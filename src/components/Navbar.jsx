@@ -72,24 +72,23 @@ const Navbar = () => {
                     }}
                 >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Typography
-                            variant="h5"
-                            component="div"
-                            sx={{
-                                fontWeight: 900,
-                                fontFamily: '"Outfit", sans-serif',
-                                color: '#1a1a1a',
-                                letterSpacing: '-1.5px',
-                                textTransform: 'uppercase',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.5,
-                                '& span': { color: '#C00C0C' }
-                            }}
-                        >
-                            Near<span>ZO</span>
-                        </Typography>
+                       <Typography
+  variant="h5"
+  component="div"
+  sx={{
+    fontWeight: 900,
+    fontFamily: '"Outfit", sans-serif',
+    color: '#1a1a1a',
+    letterSpacing: '-1.5px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0,
+    '& span': { color: '#C00C0C' }
+  }}
+>
+  Near<span>ZO</span>
+</Typography>q
 
                        
                     </Box>
