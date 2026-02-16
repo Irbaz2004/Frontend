@@ -361,7 +361,7 @@ const Hero = () => {
                                         overflow: 'hidden',
                                         position: 'relative',
                                         transform: { xs: 'rotateY(0deg) rotateX(0deg)', md: 'rotateY(-20deg) rotateX(3deg)' },
-                                        ml: { xs: 20, md: 30 }
+                                        ml: { xs: 23, md: 30 }
                                     }}
                                 >
                                     {/* App UI */}
