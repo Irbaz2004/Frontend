@@ -1,0 +1,133 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: #1a1a1a;
+  background-color: #ffffff;
+
+  --primary-red: #C00C0C;
+  --dark-red: #7C2F2F;
+  --off-white: #F8F8F8;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  /* Removed display: flex to prevent ScrollTrigger pinning issues */
+}
+
+#root {
+  width: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Base Responsive Scaling */
+:root {
+  font-size: 16px;
+}
+
+@media (max-width: 400px) {
+  :root {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 300px) {
+  :root {
+    font-size: 12px;
+  }
+}
+
+/* Handling ultra-small screens (250px) */
+@media (max-width: 250px) {
+  :root {
+    font-size: 10px;
+  }
+
+  .MuiContainer-root {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+}
+
+/* GSAP Helper Classes */
+.gsap-reveal {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.perspective-3d {
+  perspective: 2000px;
+}
+
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.07),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.liquid-glass-dark {
+  background: rgba(26, 26, 26, 0.6);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mesh-background {
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(192, 12, 12, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(124, 47, 47, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(192, 12, 12, 0.05) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(124, 47, 47, 0.05) 0px, transparent 50%);
+}
+
+.floating-3d {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.floating-3d:hover {
+  transform: translateY(-10px) rotateX(5deg) rotateY(-5deg);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #1a1a1a 0%, #C00C0C 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+section {
+  padding: 80px 0;
+  position: relative;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  section {
+    padding: 60px 0;
+  }
+}
+
+@media (max-width: 350px) {
+  section {
+    padding: 40px 0;
+  }
+}
