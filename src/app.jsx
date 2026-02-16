@@ -33,9 +33,6 @@ function App() {
       <Hero />
       <ProblemSolution />
       <HowItWorks />
-      {/* <CoreFeatures />
-      <UseCases /> */}
-      {/* <WhyForEasy /> */}
       <DownloadCTA />
       <Footer />
     </Box>
