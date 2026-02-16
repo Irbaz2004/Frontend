@@ -88,7 +88,7 @@ const Navbar = () => {
   }}
 >
   Near<span>ZO</span>
-</Typography>q
+</Typography>
 
                        
                     </Box>
