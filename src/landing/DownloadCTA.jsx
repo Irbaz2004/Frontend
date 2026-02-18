@@ -61,9 +61,32 @@ const DownloadCTA = () => {
 
                     <Box sx={{ position: 'relative', zIndex: 1 }}>
                         <Typography variant="h2" mb={3} sx={{ fontWeight: 900, fontFamily: '"Outfit", sans-serif' }}>
-Ready to discover everything <span style={{ color: '#000000ff' }}>Near You?</span>                        </Typography>
+                            Ready to discover everything <span style={{ color: '#000000ff' }}>Near You?</span>                        </Typography>
                         <Typography variant="h5" mb={6} sx={{ opacity: 0.9, maxWidth: '700px', mx: 'auto', lineHeight: 1.6 }}>
-Find local jobs, hire nearby workers, and discover small shops around you — all in one app.                        </Typography>
+                            Find local jobs, hire nearby workers, and discover small shops around you — all in one app.
+                        </Typography>
+
+                        <Button
+                            variant="contained"
+                            size="large"
+                            onClick={() => window.__triggerPWAInstall && window.__triggerPWAInstall()}
+                            sx={{
+                                bgcolor: 'white',
+                                color: '#C00C0C',
+                                px: 6,
+                                py: 2,
+                                borderRadius: '100px',
+                                fontWeight: 900,
+                                fontSize: '1.1rem',
+                                '&:hover': {
+                                    bgcolor: 'rgba(255,255,255,0.9)',
+                                    transform: 'scale(1.05)',
+                                },
+                                transition: 'all 0.3s ease',
+                            }}
+                        >
+                            Download App Now
+                        </Button>
 
                     </Box>
                 </Box>

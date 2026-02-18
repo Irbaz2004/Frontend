@@ -52,11 +52,29 @@ function LandingPage() {
     }
   };
 
-  // Expose navigate to DownloadCTA via window (simple approach for landing isolation)
+  // Expose triggers to child components
   useEffect(() => {
-    window.__nearzoNavigate = () => navigate('/app/user/home');
-    return () => { delete window.__nearzoNavigate; };
-  }, [navigate]);
+    window.__triggerPWAInstall = async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setDeferredPrompt(null);
+          setShowInstallBanner(false);
+        }
+      } else {
+        // If not installable, just go to the app
+        navigate('/app/login');
+      }
+    };
+
+    window.__nearzoNavigate = () => navigate('/app/login');
+
+    return () => {
+      delete window.__triggerPWAInstall;
+      delete window.__nearzoNavigate;
+    };
+  }, [deferredPrompt, navigate]);
 
   return (
     <Box sx={{ overflowX: 'hidden' }}>

@@ -133,6 +133,7 @@ const Footer = () => {
                   boxShadow: '0 10px 20px rgba(192, 12, 12, 0.2)'
                 }
               }}
+              onClick={() => window.__triggerPWAInstall && window.__triggerPWAInstall()}
             >
               <GetAppIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />
               <Typography sx={{

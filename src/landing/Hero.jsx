@@ -260,6 +260,7 @@ const Hero = () => {
                                             background: '#a00a0a',
                                         }
                                     }}
+                                    onClick={() => window.__triggerPWAInstall && window.__triggerPWAInstall()}
                                 >
                                     Download App
                                 </Button>
