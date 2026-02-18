@@ -16,7 +16,7 @@ gsap.registerPlugin(ScrollTrigger);
 const highlights = [
     {
         title: 'Unified Local Ecosystem',
-        desc: 'FindEasy isn\'t just an app; it\'s a digital town square. We combine job hunting, service discovery, and local shopping into a single, high-performance interface, saving you time and battery.',
+        desc: 'NearZO isn\'t just an app; it\'s a digital town square. We combine job hunting, service discovery, and local shopping into a single, high-performance interface, saving you time and battery.',
         icon: <HomeIcon sx={{ fontSize: 28 }} />,
         color: '#C00C0C',
         gradient: 'linear-gradient(135deg, #C00C0C 0%, #ff6b6b 100%)'
@@ -198,8 +198,8 @@ const WhyForEasy = () => {
             // Clean up event listeners
             itemsRef.current.forEach((item) => {
                 if (item) {
-                    item.removeEventListener('mouseenter', () => {});
-                    item.removeEventListener('mouseleave', () => {});
+                    item.removeEventListener('mouseenter', () => { });
+                    item.removeEventListener('mouseleave', () => { });
                 }
             });
             ctx.revert();
@@ -332,7 +332,7 @@ const WhyForEasy = () => {
                                             }
                                         }}
                                     >
-                                        FindEasy
+                                        NearZO
                                     </Box>
                                     <br />
                                     is Unique.
@@ -351,7 +351,7 @@ const WhyForEasy = () => {
                                     visibility: 'visible'
                                 }}
                             >
-                                We aren't just another directory. FindEasy is a community engine designed to make local life better, faster, and more rewarding for everyone.
+                                We aren't just another directory. NearZO is a community engine designed to make local life better, faster, and more rewarding for everyone.
                             </Typography>
 
                             {/* Stats Counter */}
