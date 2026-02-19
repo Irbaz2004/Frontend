@@ -8,7 +8,6 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PhoneIcon from '@mui/icons-material/Phone';
 import LogoutIcon from '@mui/icons-material/Logout';
 import WorkIcon from '@mui/icons-material/Work';
-import gsap from 'gsap';
 import { useNavigate } from 'react-router-dom';
 
 function Profile() {
@@ -24,16 +23,7 @@ function Profile() {
         setTimeout(() => {
             setLoading(false);
 
-            // GSAP Animations
-            setTimeout(() => {
-                gsap.from(".profile-animate", {
-                    y: 30,
-                    opacity: 0,
-                    duration: 0.7,
-                    stagger: 0.15,
-                    ease: "power2.out"
-                });
-            }, 100);
+
         }, 1000);
     }, []);
 
@@ -55,7 +45,7 @@ function Profile() {
     return (
         <Box sx={{ p: 3, pb: 4, bgcolor: '#F8F8F8', minHeight: '100vh' }}>
             {/* Profile Header */}
-            <Box className="profile-animate" sx={{
+            <Box sx={{
                 background: 'linear-gradient(135deg, #C00C0C 0%, #8A0909 100%)',
                 borderRadius: '32px',
                 p: 4,
@@ -99,7 +89,7 @@ function Profile() {
             </Box>
 
             {/* Account Details Card */}
-            <Card className="profile-animate" sx={{
+            <Card sx={{
                 borderRadius: '24px',
                 mb: 4,
                 border: '1px solid rgba(0,0,0,0.03)',
@@ -137,7 +127,7 @@ function Profile() {
             </Card>
 
             {/* Logout Section */}
-            <Box className="profile-animate" sx={{ px: 1 }}>
+            <Box sx={{ px: 1 }}>
                 <Button
                     fullWidth
                     variant="outlined"

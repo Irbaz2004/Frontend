@@ -5,7 +5,6 @@ import {
 } from '@mui/material';
 import WorkIcon from '@mui/icons-material/Work';
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
-import gsap from 'gsap';
 import { useNavigate } from 'react-router-dom';
 import { postJob } from '../../services/jobs';
 
@@ -22,14 +21,6 @@ function PostJob() {
     const [success, setSuccess] = useState(false);
 
     useEffect(() => {
-        // GSAP Animations on mount
-        gsap.from(".post-animate", {
-            y: 30,
-            opacity: 0,
-            duration: 0.7,
-            stagger: 0.1,
-            ease: "power2.out"
-        });
     }, []);
 
     const handleChange = (e) => {
@@ -58,14 +49,14 @@ function PostJob() {
 
     return (
         <Box sx={{ p: 3, pb: 6, bgcolor: '#F8F8F8', minHeight: '100vh' }}>
-            <Typography variant="h5" className="post-animate" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 900, mb: 3, color: '#1a1a1a' }}>
+            <Typography variant="h5" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 900, mb: 3, color: '#1a1a1a' }}>
                 Post a New Job
             </Typography>
 
-            {error && <Alert severity="error" className="post-animate" sx={{ mb: 3, borderRadius: '16px', fontFamily: '"Inter", sans-serif' }}>{error}</Alert>}
-            {success && <Alert severity="success" className="post-animate" sx={{ mb: 3, borderRadius: '16px', fontFamily: '"Inter", sans-serif' }}>Job posted successfully! Redirecting...</Alert>}
+            {error && <Alert severity="error" sx={{ mb: 3, borderRadius: '16px', fontFamily: '"Inter", sans-serif' }}>{error}</Alert>}
+            {success && <Alert severity="success" sx={{ mb: 3, borderRadius: '16px', fontFamily: '"Inter", sans-serif' }}>Job posted successfully! Redirecting...</Alert>}
 
-            <Card className="post-animate" sx={{
+            <Card sx={{
                 borderRadius: '32px',
                 border: '1px solid rgba(0,0,0,0.03)',
                 boxShadow: '0 8px 30px rgba(0,0,0,0.04)',

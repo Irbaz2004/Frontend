@@ -3,7 +3,6 @@ import { Box, Typography, Card, CardContent, Chip, Avatar, Skeleton, Button, Gri
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import WorkIcon from '@mui/icons-material/Work';
 import StoreIcon from '@mui/icons-material/Store';
-import gsap from 'gsap';
 import { getNearbyJobs } from '../../services/jobs';
 import { getNearbyShops } from '../../services/shops';
 import { useNavigate } from 'react-router-dom';
@@ -28,16 +27,7 @@ function Home() {
                 setJobs(j?.slice(0, 4) || []);
                 setShops(s?.slice(0, 4) || []);
 
-                // GSAP Animations
-                setTimeout(() => {
-                    gsap.from(".home-animate", {
-                        y: 40,
-                        opacity: 0,
-                        duration: 0.7,
-                        stagger: 0.1,
-                        ease: "power2.out"
-                    });
-                }, 100);
+
 
             } catch {
                 // silently fail — show empty state
@@ -67,7 +57,7 @@ function Home() {
     return (
         <Box sx={{ p: 3, pb: 4, bgcolor: '#F8F8F8', minHeight: '100vh' }}>
             {/* Header / Welcome Section */}
-            <Box sx={{ mb: 4, pt: 1 }} className="home-animate">
+            <Box sx={{ mb: 4, pt: 1 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Box>
                         <Typography
@@ -114,7 +104,6 @@ function Home() {
 
             {/* Promo Card */}
             <Box
-                className="home-animate"
                 sx={{
                     mb: 4,
                     p: 3,
@@ -137,7 +126,7 @@ function Home() {
 
             {/* Nearby Jobs Section */}
             <Box sx={{ mb: 4 }}>
-                <Box className="home-animate" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 2 }}>
                     <Box>
                         <Typography
                             variant="h6"
@@ -156,8 +145,6 @@ function Home() {
                     <Button
                         size="small"
                         onClick={() => navigate('/app/user/jobs')}
-                        onMouseEnter={(e) => gsap.to(e.currentTarget, { scale: 1.05, duration: 0.2 })}
-                        onMouseLeave={(e) => gsap.to(e.currentTarget, { scale: 1, duration: 0.2 })}
                         sx={{
                             color: '#C00C0C',
                             fontFamily: '"Outfit", sans-serif',
@@ -175,8 +162,7 @@ function Home() {
                     jobs.map((job, i) => (
                         <Card
                             key={i}
-                            className="home-animate"
-                            onClick={() => navigate(`/app/user/shop/${job.shopId}`)}
+                            onClick={() => navigate(`/app/user/shops/${job.shopId}`)}
                             sx={{
                                 mb: 2,
                                 borderRadius: '20px',
@@ -194,7 +180,7 @@ function Home() {
                                             {job.title}
                                         </Typography>
                                         <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', color: '#666', mt: 0.5, fontSize: '0.85rem' }}>
-                                            {job.shopName}
+                                            {job.shop_name}
                                         </Typography>
                                     </Box>
                                     <Chip
@@ -221,7 +207,7 @@ function Home() {
 
             {/* Nearby Shops Section */}
             <Box sx={{ mb: 2 }}>
-                <Box className="home-animate" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 2 }}>
                     <Box>
                         <Typography
                             variant="h6"
@@ -240,8 +226,6 @@ function Home() {
                     <Button
                         size="small"
                         onClick={() => navigate('/app/user/shops')}
-                        onMouseEnter={(e) => gsap.to(e.currentTarget, { scale: 1.05, duration: 0.2 })}
-                        onMouseLeave={(e) => gsap.to(e.currentTarget, { scale: 1, duration: 0.2 })}
                         sx={{
                             color: '#C00C0C',
                             fontFamily: '"Outfit", sans-serif',
@@ -256,11 +240,11 @@ function Home() {
                 {shops.length === 0 ? (
                     <EmptyState icon={<StoreIcon />} text="No shops found nearby" />
                 ) : (
-                    <Grid container spacing={2} className="home-animate">
+                    <Grid container spacing={2}>
                         {shops.map((shop, i) => (
                             <Grid item xs={6} key={i}>
                                 <Card
-                                    onClick={() => navigate(`/app/user/shop/${shop.id}`)}
+                                    onClick={() => navigate(`/app/user/shops/${shop.id}`)}
                                     sx={{
                                         borderRadius: '20px',
                                         border: '1px solid rgba(0,0,0,0.03)',
@@ -285,7 +269,7 @@ function Home() {
                                             <StoreIcon />
                                         </Avatar>
                                         <Typography variant="subtitle2" noWrap sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 800, color: '#1a1a1a' }}>
-                                            {shop.shopName}
+                                            {shop.shop_name}
                                         </Typography>
                                         <Typography variant="caption" sx={{ fontFamily: '"Inter", sans-serif', color: '#888', fontWeight: 500 }}>
                                             {shop.category}

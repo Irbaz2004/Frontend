@@ -4,8 +4,9 @@ import WorkIcon from '@mui/icons-material/Work';
 import PeopleIcon from '@mui/icons-material/People';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AddBoxIcon from '@mui/icons-material/AddBox';
-import gsap from 'gsap';
 import { useNavigate } from 'react-router-dom';
+import gsap from 'gsap';
+import { getShopJobs, getShopApplications } from '../../services/jobs';
 
 function Dashboard() {
     const navigate = useNavigate();
@@ -17,23 +18,46 @@ function Dashboard() {
         const stored = localStorage.getItem('nearzo_user');
         if (stored) setShop(JSON.parse(stored));
 
-        // Simulating data fetch
-        setTimeout(() => {
-            setStats({ jobs: 2, applications: 12, views: 145 });
-            setLoading(false);
+        const fetchStats = async () => {
+            try {
+                setLoading(true);
+                const [jobs, applications] = await Promise.all([
+                    getShopJobs(),
+                    getShopApplications()
+                ]);
 
-            // GSAP Animations after loading
-            setTimeout(() => {
-                gsap.from(".dash-animate", {
-                    y: 30,
-                    opacity: 0,
-                    duration: 0.6,
-                    stagger: 0.1,
-                    ease: "power2.out"
+                setStats({
+                    jobs: jobs?.length || 0,
+                    applications: applications?.length || 0,
+                    views: 0 // Profile views logic can be added later if tracked
                 });
-            }, 100);
-        }, 800);
+            } catch (err) {
+                console.error('Failed to fetch dashboard stats:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
     }, []);
+
+    useEffect(() => {
+        if (!loading) {
+            const timer = setTimeout(() => {
+                const ctx = gsap.context(() => {
+                    gsap.from(".dash-animate", {
+                        y: 30,
+                        opacity: 0,
+                        duration: 0.6,
+                        stagger: 0.1,
+                        ease: "power2.out"
+                    });
+                });
+                return () => ctx.revert();
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [loading]);
 
     const statCards = [
         { label: 'Active Jobs', value: stats.jobs, icon: <WorkIcon />, color: '#C00C0C' },
@@ -117,7 +141,7 @@ function Dashboard() {
             </Box>
 
             {/* Stats Overview */}
-            <Typography variant="h6" className="dash-animate" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 800, color: '#1a1a1a', mb: 2 }}>
+            <Typography className="dash-animate" variant="h6" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 800, color: '#1a1a1a', mb: 2 }}>
                 Shop Performance
             </Typography>
             <Grid container spacing={2} sx={{ mb: 4 }}>
@@ -147,7 +171,7 @@ function Dashboard() {
             </Grid>
 
             {/* Quick Actions */}
-            <Typography variant="h6" className="dash-animate" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 800, color: '#1a1a1a', mb: 2 }}>
+            <Typography className="dash-animate" variant="h6" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 800, color: '#1a1a1a', mb: 2 }}>
                 Management
             </Typography>
             <Grid container spacing={2}>

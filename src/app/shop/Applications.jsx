@@ -3,32 +3,29 @@ import { Box, Typography, Card, CardContent, Avatar, Chip, Button, Skeleton, Sta
 import PeopleIcon from '@mui/icons-material/People';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
-import gsap from 'gsap';
+import { getShopApplications } from '../../services/jobs';
 
 function Applications() {
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Simulating data fetch
-        setTimeout(() => {
-            setApplications([
-                { id: 1, applicantName: 'Rahul Kumar', jobTitle: 'Sales Associate', status: 'pending' },
-                { id: 2, applicantName: 'Sonia Sharma', jobTitle: 'Store Manager', status: 'pending' }
-            ]);
-            setLoading(false);
+        const fetchApplications = async () => {
+            try {
+                setLoading(true);
+                const data = await getShopApplications();
+                setApplications(data || []);
+                setError(null);
+            } catch (err) {
+                console.error('Failed to fetch applications:', err);
+                setError('Failed to load applications. Please try again later.');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-            // GSAP Animations
-            setTimeout(() => {
-                gsap.from(".app-animate", {
-                    y: 20,
-                    opacity: 0,
-                    duration: 0.6,
-                    stagger: 0.1,
-                    ease: "power2.out"
-                });
-            }, 100);
-        }, 1200);
+        fetchApplications();
     }, []);
 
     if (loading) return (
@@ -40,14 +37,20 @@ function Applications() {
         </Box>
     );
 
+    if (error) return (
+        <Box sx={{ p: 3, bgcolor: '#F8F8F8', minHeight: '100vh', textAlign: 'center' }}>
+            <Typography color="error" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 700 }}>{error}</Typography>
+        </Box>
+    );
+
     return (
         <Box sx={{ p: 3, pb: 4, bgcolor: '#F8F8F8', minHeight: '100vh' }}>
-            <Typography variant="h5" className="app-animate" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 900, mb: 3, color: '#1a1a1a' }}>
+            <Typography variant="h5" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 900, mb: 3, color: '#1a1a1a' }}>
                 Applications Received
             </Typography>
 
             {applications.length === 0 ? (
-                <Box className="app-animate" sx={{ textAlign: 'center', py: 10, bgcolor: 'white', borderRadius: '32px', border: '1px solid rgba(0,0,0,0.03)' }}>
+                <Box sx={{ textAlign: 'center', py: 10, bgcolor: 'white', borderRadius: '32px', border: '1px solid rgba(0,0,0,0.03)' }}>
                     <Box sx={{
                         width: 80, height: 80, borderRadius: '50%', bgcolor: '#F8F8F8',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2
@@ -60,7 +63,7 @@ function Applications() {
             ) : (
                 <Stack spacing={2}>
                     {applications.map((app, i) => (
-                        <Card key={i} className="app-animate" sx={{
+                        <Card key={app.id || i} sx={{
                             borderRadius: '24px',
                             border: '1px solid rgba(0,0,0,0.03)',
                             boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
@@ -77,21 +80,27 @@ function Applications() {
                                         fontSize: '1.2rem',
                                         boxShadow: '0 4px 10px rgba(192,12,12,0.1)'
                                     }}>
-                                        {app.applicantName?.[0]}
+                                        {app.users?.full_name?.[0] || 'A'}
                                     </Avatar>
                                     <Box sx={{ flex: 1 }}>
                                         <Typography variant="subtitle1" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 900, color: '#1a1a1a', lineHeight: 1.2 }}>
-                                            {app.applicantName}
+                                            {app.users?.full_name || 'Generic Applicant'}
                                         </Typography>
                                         <Typography variant="body2" sx={{ color: '#666', fontFamily: '"Inter", sans-serif', fontWeight: 500 }}>
-                                            Applied for: <span style={{ fontWeight: 700, color: '#C00C0C' }}>{app.jobTitle}</span>
+                                            Applied for: <span style={{ fontWeight: 700, color: '#C00C0C' }}>{app.jobs?.title || 'Job Listing'}</span>
                                         </Typography>
+                                        {app.users?.phone && (
+                                            <Typography variant="caption" sx={{ color: '#888' }}>
+                                                Contact: {app.users.phone}
+                                            </Typography>
+                                        )}
                                     </Box>
                                     <Chip
                                         label={app.status || 'pending'}
                                         size="small"
                                         sx={{
-                                            bgcolor: '#FFF8E1', color: '#FF8F00',
+                                            bgcolor: app.status === 'accepted' ? '#E8F5E9' : app.status === 'rejected' ? '#FFEBEE' : '#FFF8E1',
+                                            color: app.status === 'accepted' ? '#2E7D32' : app.status === 'rejected' ? '#C62828' : '#FF8F00',
                                             fontWeight: 800, textTransform: 'uppercase', fontSize: '0.65rem',
                                             borderRadius: '8px', px: 0.5
                                         }}

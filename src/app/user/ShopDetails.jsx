@@ -11,7 +11,6 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import PhoneIcon from '@mui/icons-material/Phone';
 import DirectionsIcon from '@mui/icons-material/Directions';
 import ShareIcon from '@mui/icons-material/Share';
-import gsap from 'gsap';
 import { getShopDetails } from '../../services/shops';
 import { getNearbyJobs, applyJob } from '../../services/jobs';
 
@@ -36,16 +35,7 @@ function ShopDetails() {
                 setShop(shopData);
                 setJobs((jobsData || []).filter(j => j.shopId === id));
 
-                // Animation after data is loaded
-                setTimeout(() => {
-                    gsap.from(".shop-animate", {
-                        y: 30,
-                        opacity: 0,
-                        duration: 0.6,
-                        stagger: 0.1,
-                        ease: "power2.out"
-                    });
-                }, 100);
+
 
             } catch (err) {
                 console.error(err);
@@ -62,7 +52,23 @@ function ShopDetails() {
     };
 
     const handleDirections = () => {
-        if (shop) {
+        if (shop?.latitude && shop?.longitude) {
+            // Try to get current position for precise origin
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        window.open(`https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${shop.latitude},${shop.longitude}`);
+                    },
+                    () => {
+                        // Fallback if denied or error
+                        window.open(`https://www.google.com/maps/dir/?api=1&destination=${shop.latitude},${shop.longitude}`);
+                    }
+                );
+            } else {
+                window.open(`https://www.google.com/maps/dir/?api=1&destination=${shop.latitude},${shop.longitude}`);
+            }
+        } else if (shop) {
             const query = encodeURIComponent(`${shop.shopName} ${shop.street} ${shop.area} ${shop.city}`);
             window.open(`https://www.google.com/maps/search/?api=1&query=${query}`);
         }
@@ -110,7 +116,7 @@ function ShopDetails() {
                     </IconButton>
                 </Box>
 
-                <Box className="shop-animate" sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
                     <Avatar sx={{
                         width: 72, height: 72,
                         bgcolor: 'white', color: '#C00C0C',
@@ -136,7 +142,7 @@ function ShopDetails() {
 
             <Box sx={{ p: 3, mt: -5 }}>
                 {/* Action Buttons */}
-                <Stack direction="row" spacing={2} sx={{ mb: 4 }} className="shop-animate">
+                <Stack direction="row" spacing={2} sx={{ mb: 4 }}>
                     <Button
                         fullWidth
                         variant="contained"
@@ -174,7 +180,7 @@ function ShopDetails() {
                 </Stack>
 
                 {/* Details Card */}
-                <Card className="shop-animate" sx={{
+                <Card sx={{
                     borderRadius: '24px', mb: 4,
                     border: '1px solid rgba(0,0,0,0.03)',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
@@ -223,7 +229,7 @@ function ShopDetails() {
                 </Card>
 
                 {/* Jobs Section */}
-                <Typography variant="h6" className="shop-animate" sx={{
+                <Typography variant="h6" sx={{
                     fontFamily: '"Outfit", sans-serif', fontWeight: 900, mb: 2.5,
                     display: 'flex', alignItems: 'center', gap: 1.5, color: '#1a1a1a'
                 }}>
@@ -239,7 +245,7 @@ function ShopDetails() {
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {jobs.length === 0 ? (
-                        <Box className="shop-animate" sx={{ textAlign: 'center', py: 6, bgcolor: 'white', borderRadius: '24px', border: '1px dashed #ddd' }}>
+                        <Box sx={{ textAlign: 'center', py: 6, bgcolor: 'white', borderRadius: '24px', border: '1px dashed #ddd' }}>
                             <Typography variant="body2" sx={{ color: '#999', fontFamily: '"Inter", sans-serif', fontWeight: 500 }}>
                                 This shop hasn't posted any jobs yet.
                             </Typography>
@@ -248,7 +254,6 @@ function ShopDetails() {
                         jobs.map((job, i) => (
                             <Card
                                 key={i}
-                                className="shop-animate"
                                 sx={{
                                     borderRadius: '20px',
                                     border: '1px solid rgba(0,0,0,0.03)',

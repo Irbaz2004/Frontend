@@ -3,34 +3,31 @@ import { Box, Typography, Card, CardContent, Chip, Skeleton, Button, IconButton,
 import WorkIcon from '@mui/icons-material/Work';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import gsap from 'gsap';
 import { useNavigate } from 'react-router-dom';
+import { getShopJobs } from '../../services/jobs';
 
 function MyJobs() {
     const navigate = useNavigate();
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Simulating data fetch
-        setTimeout(() => {
-            setJobs([
-                { id: 1, title: 'Sales Associate', type: 'Full-time', applicants: 5 },
-                { id: 2, title: 'Store Manager', type: 'Full-time', applicants: 7 }
-            ]);
-            setLoading(false);
+        const fetchJobs = async () => {
+            try {
+                setLoading(true);
+                const data = await getShopJobs();
+                setJobs(data || []);
+                setError(null);
+            } catch (err) {
+                console.error('Failed to fetch jobs:', err);
+                setError('Failed to load your job listings.');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-            // GSAP Animations
-            setTimeout(() => {
-                gsap.from(".job-animate", {
-                    y: 20,
-                    opacity: 0,
-                    duration: 0.6,
-                    stagger: 0.1,
-                    ease: "power2.out"
-                });
-            }, 100);
-        }, 1200);
+        fetchJobs();
     }, []);
 
     if (loading) return (
@@ -45,14 +42,19 @@ function MyJobs() {
         </Box>
     );
 
+    if (error) return (
+        <Box sx={{ p: 3, bgcolor: '#F8F8F8', minHeight: '100vh', textAlign: 'center' }}>
+            <Typography color="error" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 700 }}>{error}</Typography>
+        </Box>
+    );
+
     return (
         <Box sx={{ p: 3, pb: 4, bgcolor: '#F8F8F8', minHeight: '100vh' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h5" className="job-animate" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 900, color: '#1a1a1a' }}>
+                <Typography variant="h5" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 900, color: '#1a1a1a' }}>
                     Active Listings
                 </Typography>
                 <Button
-                    className="job-animate"
                     variant="contained"
                     size="small"
                     onClick={() => navigate('/app/shop/post-job')}
@@ -68,7 +70,7 @@ function MyJobs() {
             </Box>
 
             {jobs.length === 0 ? (
-                <Box className="job-animate" sx={{ textAlign: 'center', py: 10, bgcolor: 'white', borderRadius: '32px', border: '1px solid rgba(0,0,0,0.03)' }}>
+                <Box sx={{ textAlign: 'center', py: 10, bgcolor: 'white', borderRadius: '32px', border: '1px solid rgba(0,0,0,0.03)' }}>
                     <Box sx={{
                         width: 80, height: 80, borderRadius: '50%', bgcolor: '#F8F8F8',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2
@@ -86,7 +88,7 @@ function MyJobs() {
             ) : (
                 <Stack spacing={2}>
                     {jobs.map((job, i) => (
-                        <Card key={i} className="job-animate" sx={{
+                        <Card key={job.id || i} sx={{
                             borderRadius: '24px',
                             border: '1px solid rgba(0,0,0,0.03)',
                             boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
@@ -101,22 +103,24 @@ function MyJobs() {
                                         </Typography>
                                         <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
                                             <Chip
-                                                label={job.type}
+                                                label={job.type || 'Full-time'}
                                                 size="small"
                                                 sx={{
                                                     bgcolor: 'rgba(192,12,12,0.05)', color: '#C00C0C',
                                                     fontSize: '0.7rem', fontWeight: 800, borderRadius: '8px'
                                                 }}
                                             />
-                                            <Chip
-                                                label={`${job.applicants || 0} applicants`}
-                                                size="small"
-                                                variant="outlined"
-                                                sx={{
-                                                    fontSize: '0.7rem', fontWeight: 600, borderRadius: '8px',
-                                                    borderColor: 'rgba(0,0,0,0.1)'
-                                                }}
-                                            />
+                                            {job.salary && (
+                                                <Chip
+                                                    label={`₹${job.salary}`}
+                                                    size="small"
+                                                    variant="outlined"
+                                                    sx={{
+                                                        fontSize: '0.7rem', fontWeight: 600, borderRadius: '8px',
+                                                        borderColor: 'rgba(0,0,0,0.1)'
+                                                    }}
+                                                />
+                                            )}
                                         </Stack>
                                     </Box>
                                     <Box sx={{ display: 'flex', gap: 0.5 }}>

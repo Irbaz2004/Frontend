@@ -91,7 +91,7 @@ function Jobs() {
                                         {job.title}
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                        {job.shopName}
+                                        {job.shop_name}
                                     </Typography>
                                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                         <Chip label={job.type || 'Full-time'} size="small" sx={{ bgcolor: 'rgba(192,12,12,0.08)', color: '#C00C0C', fontSize: '0.7rem' }} />
