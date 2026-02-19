@@ -54,59 +54,94 @@ function Login() {
         <Box
             sx={{
                 minHeight: '100vh',
-                background: 'linear-gradient(135deg, #1a1a1a 0%, #2d1515 50%, #1a1a1a 100%)',
+                bgcolor: '#F8F8F8', // Matches landing page background
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 p: 2,
             }}
         >
-            <Container maxWidth="xs">
-                {/* Logo */}
-                <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Container maxWidth="xs" sx={{ position: 'relative' }}>
+                {/* Decorative background element */}
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: -100,
+                        right: -100,
+                        width: 300,
+                        height: 300,
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(192,12,12,0.05) 0%, transparent 70%)',
+                        filter: 'blur(50px)',
+                        zIndex: 0
+                    }}
+                />
+
+                {/* Logo & Header */}
+                <Box sx={{ textAlign: 'center', mb: 4, position: 'relative', zIndex: 1 }}>
                     <Typography
                         variant="h4"
                         sx={{
                             fontFamily: '"Outfit", sans-serif',
-                            fontWeight: 800,
-                            color: '#fff',
-                            letterSpacing: '-0.02em',
+                            fontWeight: 900,
+                            color: '#1a1a1a',
+                            letterSpacing: '-1.5px',
                         }}
                     >
                         Near<span style={{ color: '#C00C0C' }}>ZO</span>
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mt: 0.5 }}>
-                        Find what's near you
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            color: '#666',
+                            mt: 0.5,
+                            fontWeight: 500,
+                            letterSpacing: '0.5px'
+                        }}
+                    >
+                        Your Hyperlocal Connection
                     </Typography>
                 </Box>
 
                 <Paper
                     elevation={0}
                     sx={{
-                        p: 4,
-                        borderRadius: 4,
-                        background: 'rgba(255,255,255,0.05)',
-                        backdropFilter: 'blur(20px)',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        p: 4.5,
+                        borderRadius: '32px',
+                        bgcolor: 'white',
+                        border: '1px solid rgba(0,0,0,0.04)',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.04)',
+                        position: 'relative',
+                        zIndex: 1
                     }}
                 >
                     <Typography
                         variant="h5"
                         sx={{
                             fontFamily: '"Outfit", sans-serif',
-                            fontWeight: 700,
-                            color: '#fff',
-                            mb: 0.5,
+                            fontWeight: 800,
+                            color: '#1a1a1a',
+                            mb: 1,
+                            letterSpacing: '-0.5px'
                         }}
                     >
-                        Welcome back
+                        Welcome Back
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mb: 3 }}>
-                        Sign in to your account
+                    <Typography variant="body2" sx={{ color: '#777', mb: 4, fontWeight: 500 }}>
+                        Login to access your local community
                     </Typography>
 
                     {error && (
-                        <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                        <Alert
+                            severity="error"
+                            sx={{
+                                mb: 3,
+                                borderRadius: '16px',
+                                fontSize: '0.85rem',
+                                fontWeight: 500,
+                                '& .MuiAlert-icon': { color: '#C00C0C' }
+                            }}
+                        >
                             {error}
                         </Alert>
                     )}
@@ -118,11 +153,11 @@ function Login() {
                             label="Phone Number"
                             value={form.phone}
                             onChange={handleChange}
-                            placeholder="+91 98765 43210"
+                            placeholder="9876543210"
                             InputProps={{
                                 startAdornment: (
                                     <InputAdornment position="start">
-                                        <PhoneIcon sx={{ color: '#C00C0C' }} />
+                                        <PhoneIcon sx={{ color: '#C00C0C', fontSize: '1.2rem' }} />
                                     </InputAdornment>
                                 ),
                             }}
@@ -140,12 +175,16 @@ function Login() {
                             InputProps={{
                                 startAdornment: (
                                     <InputAdornment position="start">
-                                        <LockIcon sx={{ color: '#C00C0C' }} />
+                                        <LockIcon sx={{ color: '#C00C0C', fontSize: '1.2rem' }} />
                                     </InputAdornment>
                                 ),
                                 endAdornment: (
                                     <InputAdornment position="end">
-                                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                                        <IconButton
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            edge="end"
+                                            sx={{ color: '#999' }}
+                                        >
                                             {showPassword ? <VisibilityOff /> : <Visibility />}
                                         </IconButton>
                                     </InputAdornment>
@@ -161,44 +200,63 @@ function Login() {
                             variant="contained"
                             disabled={loading}
                             sx={{
-                                mt: 3,
-                                py: 1.5,
-                                borderRadius: 3,
-                                background: 'linear-gradient(135deg, #C00C0C 0%, #8A0909 100%)',
+                                mt: 4,
+                                py: 2,
+                                borderRadius: '18px',
+                                bgcolor: '#C00C0C',
+                                color: 'white',
                                 fontFamily: '"Outfit", sans-serif',
-                                fontWeight: 700,
+                                fontWeight: 800,
                                 fontSize: '1rem',
                                 textTransform: 'none',
+                                boxShadow: '0 10px 20px rgba(192, 12, 12, 0.2)',
                                 '&:hover': {
-                                    background: 'linear-gradient(135deg, #A00A0A 0%, #700707 100%)',
+                                    bgcolor: '#8A0909',
                                     transform: 'translateY(-2px)',
-                                    boxShadow: '0 8px 20px rgba(192,12,12,0.4)',
+                                    boxShadow: '0 12px 24px rgba(192, 12, 12, 0.3)',
                                 },
+                                '&.Mui-disabled': {
+                                    bgcolor: '#eee',
+                                    color: '#aaa'
+                                }
                             }}
                         >
                             {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
                         </Button>
 
-                        <Box sx={{ textAlign: 'center', mt: 2.5 }}>
-                            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                        <Box sx={{ textAlign: 'center', mt: 4 }}>
+                            <Typography variant="body2" sx={{ color: '#777', fontWeight: 500 }}>
                                 Don't have an account?{' '}
                                 <Link
                                     onClick={() => navigate('/app/register')}
-                                    sx={{ color: '#C00C0C', cursor: 'pointer', fontWeight: 600 }}
+                                    sx={{
+                                        color: '#C00C0C',
+                                        cursor: 'pointer',
+                                        fontWeight: 700,
+                                        textDecoration: 'none',
+                                        '&:hover': { textDecoration: 'underline' }
+                                    }}
                                 >
-                                    Register
+                                    Join NearZO
                                 </Link>
                             </Typography>
                         </Box>
                     </Box>
                 </Paper>
 
-                <Box sx={{ textAlign: 'center', mt: 3 }}>
+                <Box sx={{ textAlign: 'center', mt: 4 }}>
                     <Link
                         onClick={() => navigate('/')}
-                        sx={{ color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '0.85rem' }}
+                        sx={{
+                            color: '#999',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            textDecoration: 'none',
+                            fontWeight: 500,
+                            '&:hover': { color: '#333' }
+                        }}
                     >
-                        ← Back to Home
+                        ← Back to Landing Page
                     </Link>
                 </Box>
             </Container>
@@ -208,15 +266,21 @@ function Login() {
 
 const inputStyles = {
     '& .MuiOutlinedInput-root': {
-        borderRadius: 2,
-        color: '#fff',
-        background: 'rgba(255,255,255,0.05)',
-        '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' },
-        '&:hover fieldset': { borderColor: 'rgba(192,12,12,0.5)' },
+        borderRadius: '16px',
+        bgcolor: '#FBFAFA',
+        color: '#1a1a1a',
+        fontFamily: '"Inter", sans-serif',
+        '& fieldset': {
+            borderColor: 'rgba(0,0,0,0.06)',
+            transition: 'all 0.2s ease'
+        },
+        '&:hover fieldset': { borderColor: 'rgba(192, 12, 12, 0.2)' },
         '&.Mui-focused fieldset': { borderColor: '#C00C0C' },
     },
     '& .MuiInputLabel-root': {
-        color: 'rgba(255,255,255,0.5)',
+        color: '#888',
+        fontFamily: '"Inter", sans-serif',
+        fontSize: '0.95rem',
         '&.Mui-focused': { color: '#C00C0C' },
     },
 };

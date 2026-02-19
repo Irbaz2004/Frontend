@@ -66,27 +66,74 @@ function AppLayout() {
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: '100vh',
-                background: '#f5f5f5',
-                pb: '70px', // space for bottom nav
+                background: '#F8F8F8', // Consistent with landing
+                pb: '80px', // slightly more space for bottom nav
             }}
         >
+            {/* Professional App Header */}
+            <Box
+                sx={{
+                    px: 3,
+                    py: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    bgcolor: 'white',
+                    borderBottom: '1px solid rgba(0,0,0,0.05)',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 1100,
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
+                }}
+            >
+                <Typography
+                    variant="h6"
+                    sx={{
+                        fontWeight: 900,
+                        fontFamily: '"Outfit", sans-serif',
+                        letterSpacing: '-1px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5
+                    }}
+                >
+                    Near<span style={{ color: '#C00C0C' }}>ZO</span>
+                </Typography>
+
+                <Avatar
+                    sx={{
+                        width: 32,
+                        height: 32,
+                        bgcolor: 'rgba(192, 12, 12, 0.1)',
+                        color: '#C00C0C',
+                        fontSize: '0.8rem',
+                        fontWeight: 700
+                    }}
+                >
+                    {role[0].toUpperCase()}
+                </Avatar>
+            </Box>
+
             {/* Page Content */}
-            <Box sx={{ flex: 1, overflowY: 'auto' }}>
+            <Box sx={{ flex: 1 }}>
                 <Outlet />
             </Box>
 
-            {/* Bottom Navigation */}
+            {/* Bottom Navigation with Glassmorphism */}
             <Paper
-                elevation={8}
+                elevation={0}
                 sx={{
                     position: 'fixed',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
+                    bottom: 20,
+                    left: 20,
+                    right: 20,
                     zIndex: 1000,
-                    borderRadius: '20px 20px 0 0',
+                    borderRadius: '24px',
                     overflow: 'hidden',
-                    boxShadow: '0 -4px 20px rgba(0,0,0,0.12)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: 'blur(20px)',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
                 }}
             >
                 <BottomNavigation
@@ -94,13 +141,17 @@ function AppLayout() {
                     onChange={handleNavChange}
                     sx={{
                         height: 70,
-                        background: '#fff',
+                        background: 'transparent',
                         '& .MuiBottomNavigationAction-root': {
                             color: '#9e9e9e',
                             minWidth: 'auto',
-                            transition: 'all 0.3s ease',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                             '&.Mui-selected': {
                                 color: '#C00C0C',
+                                '& .MuiBottomNavigationAction-label': {
+                                    fontSize: '0.75rem',
+                                    fontWeight: 800,
+                                }
                             },
                         },
                         '& .MuiBottomNavigationAction-label': {

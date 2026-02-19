@@ -71,8 +71,8 @@ const DownloadCTA = () => {
                             size="large"
                             onClick={() => window.__triggerPWAInstall && window.__triggerPWAInstall()}
                             sx={{
-                                bgcolor: 'white',
-                                color: '#C00C0C',
+                                backgroundColor: "white",
+                                color: '#ffffffff',
                                 px: 6,
                                 py: 2,
                                 borderRadius: '100px',

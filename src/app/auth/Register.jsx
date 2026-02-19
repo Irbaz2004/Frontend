@@ -136,38 +136,60 @@ function Register() {
         <Box
             sx={{
                 minHeight: '100vh',
-                background: 'linear-gradient(135deg, #1a1a1a 0%, #2d1515 50%, #1a1a1a 100%)',
+                bgcolor: '#F8F8F8',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 p: 2,
-                py: 4,
+                py: 6,
             }}
         >
-            <Container maxWidth="sm">
-                {/* Logo */}
-                <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Container maxWidth="sm" sx={{ position: 'relative' }}>
+                {/* Decorative background element */}
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: -150,
+                        left: -150,
+                        width: 400,
+                        height: 400,
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(192,12,12,0.04) 0%, transparent 70%)',
+                        filter: 'blur(60px)',
+                        zIndex: 0
+                    }}
+                />
+
+                {/* Logo & Header */}
+                <Box sx={{ textAlign: 'center', mb: 4, position: 'relative', zIndex: 1 }}>
                     <Typography
                         variant="h4"
-                        sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 800, color: '#fff' }}
+                        sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 900, color: '#1a1a1a', letterSpacing: '-1.5px' }}
                     >
                         Near<span style={{ color: '#C00C0C' }}>ZO</span>
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mt: 0.5 }}>
-                        Create your account
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            color: '#666',
+                            mt: 0.5,
+                            fontWeight: 500
+                        }}
+                    >
+                        Create your hyperlocal account
                     </Typography>
                 </Box>
 
                 {/* Stepper */}
-                <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
+                <Stepper activeStep={activeStep} sx={{ mb: 4, position: 'relative', zIndex: 1 }}>
                     {steps.map((label) => (
                         <Step key={label}>
                             <StepLabel
                                 sx={{
-                                    '& .MuiStepLabel-label': { color: 'rgba(255,255,255,0.5)', fontFamily: '"Outfit", sans-serif' },
-                                    '& .MuiStepLabel-label.Mui-active': { color: '#fff' },
+                                    '& .MuiStepLabel-label': { color: '#999', fontFamily: '"Outfit", sans-serif', fontWeight: 600, fontSize: '0.85rem' },
+                                    '& .MuiStepLabel-label.Mui-active': { color: '#1a1a1a' },
                                     '& .MuiStepLabel-label.Mui-completed': { color: '#C00C0C' },
-                                    '& .MuiStepIcon-root': { color: 'rgba(255,255,255,0.2)' },
+                                    '& .MuiStepIcon-root': { color: '#eee' },
                                     '& .MuiStepIcon-root.Mui-active': { color: '#C00C0C' },
                                     '& .MuiStepIcon-root.Mui-completed': { color: '#C00C0C' },
                                 }}
@@ -181,15 +203,26 @@ function Register() {
                 <Paper
                     elevation={0}
                     sx={{
-                        p: { xs: 3, sm: 4 },
-                        borderRadius: 4,
-                        background: 'rgba(255,255,255,0.05)',
-                        backdropFilter: 'blur(20px)',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        p: { xs: 3, sm: 5 },
+                        borderRadius: '32px',
+                        bgcolor: 'white',
+                        border: '1px solid rgba(0,0,0,0.04)',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.04)',
+                        position: 'relative',
+                        zIndex: 1
                     }}
                 >
                     {error && (
-                        <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                        <Alert
+                            severity="error"
+                            sx={{
+                                mb: 3,
+                                borderRadius: '16px',
+                                fontSize: '0.85rem',
+                                fontWeight: 500,
+                                '& .MuiAlert-icon': { color: '#C00C0C' }
+                            }}
+                        >
                             {error}
                         </Alert>
                     )}
@@ -197,17 +230,26 @@ function Register() {
                     {/* Step 1: Role Selection */}
                     {activeStep === 0 && (
                         <Box>
-                            <Typography variant="h6" sx={{ color: '#fff', fontFamily: '"Outfit", sans-serif', mb: 1 }}>
+                            <Typography
+                                variant="h5"
+                                sx={{
+                                    color: '#1a1a1a',
+                                    fontFamily: '"Outfit", sans-serif',
+                                    fontWeight: 800,
+                                    mb: 1,
+                                    letterSpacing: '-0.5px'
+                                }}
+                            >
                                 Who are you?
                             </Typography>
-                            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mb: 3 }}>
-                                Select your role to get started
+                            <Typography variant="body2" sx={{ color: '#777', mb: 4, fontWeight: 500 }}>
+                                Select your role to personalize your experience
                             </Typography>
 
-                            <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
+                            <Box sx={{ display: 'flex', flexWrap: { xs: 'wrap', sm: 'nowrap' }, gap: 2, mb: 4 }}>
                                 {[
-                                    { value: 'user', label: 'Job Seeker', icon: <PersonIcon sx={{ fontSize: 40 }} />, desc: 'Find jobs & shops near you' },
-                                    { value: 'shop', label: 'Shop Owner', icon: <StoreIcon sx={{ fontSize: 40 }} />, desc: 'Post jobs & manage your shop' },
+                                    { value: 'user', label: 'Job Seeker', icon: <PersonIcon sx={{ fontSize: 32 }} />, desc: 'Find local jobs & shops' },
+                                    { value: 'shop', label: 'Shop Owner', icon: <StoreIcon sx={{ fontSize: 32 }} />, desc: 'Post jobs & manage shop' },
                                 ].map((opt) => (
                                     <Box
                                         key={opt.value}
@@ -215,25 +257,25 @@ function Register() {
                                         sx={{
                                             flex: 1,
                                             p: 3,
-                                            borderRadius: 3,
-                                            border: `2px solid ${role === opt.value ? '#C00C0C' : 'rgba(255,255,255,0.1)'}`,
-                                            background: role === opt.value ? 'rgba(192,12,12,0.1)' : 'rgba(255,255,255,0.03)',
+                                            borderRadius: '24px',
+                                            border: `2px solid ${role === opt.value ? '#C00C0C' : '#F5F5F5'}`,
+                                            bgcolor: role === opt.value ? 'rgba(192,12,12,0.02)' : 'white',
                                             cursor: 'pointer',
                                             textAlign: 'center',
-                                            transition: 'all 0.3s ease',
+                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                             '&:hover': {
-                                                border: '2px solid rgba(192,12,12,0.5)',
-                                                background: 'rgba(192,12,12,0.05)',
+                                                borderColor: role === opt.value ? '#C00C0C' : 'rgba(192,12,12,0.2)',
+                                                transform: 'translateY(-4px)',
                                             },
                                         }}
                                     >
-                                        <Box sx={{ color: role === opt.value ? '#C00C0C' : 'rgba(255,255,255,0.5)', mb: 1 }}>
+                                        <Box sx={{ color: role === opt.value ? '#C00C0C' : '#bbb', mb: 1.5 }}>
                                             {opt.icon}
                                         </Box>
-                                        <Typography sx={{ color: '#fff', fontFamily: '"Outfit", sans-serif', fontWeight: 700, mb: 0.5 }}>
+                                        <Typography sx={{ color: '#1a1a1a', fontFamily: '"Outfit", sans-serif', fontWeight: 800, mb: 0.5 }}>
                                             {opt.label}
                                         </Typography>
-                                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
+                                        <Typography variant="caption" sx={{ color: '#888', fontWeight: 500 }}>
                                             {opt.desc}
                                         </Typography>
                                     </Box>
@@ -254,14 +296,23 @@ function Register() {
                     {/* Step 2: Details Form */}
                     {activeStep === 1 && (
                         <Box component="form" onSubmit={handleSubmit}>
-                            <Typography variant="h6" sx={{ color: '#fff', fontFamily: '"Outfit", sans-serif', mb: 0.5 }}>
+                            <Typography
+                                variant="h5"
+                                sx={{
+                                    color: '#1a1a1a',
+                                    fontFamily: '"Outfit", sans-serif',
+                                    fontWeight: 800,
+                                    mb: 1,
+                                    letterSpacing: '-0.5px'
+                                }}
+                            >
                                 {role === 'shop' ? 'Shop Details' : 'Your Details'}
                             </Typography>
-                            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mb: 2 }}>
-                                Fill in your information below
+                            <Typography variant="body2" sx={{ color: '#777', mb: 4, fontWeight: 500 }}>
+                                Complete your profile to get started
                             </Typography>
 
-                            <Grid container spacing={2}>
+                            <Grid container spacing={2.5}>
                                 {/* Common Fields */}
                                 <Grid item xs={12}>
                                     <TextField fullWidth name="fullName" label="Full Name" value={form.fullName}
@@ -286,7 +337,7 @@ function Register() {
                                             </TextField>
                                         </Grid>
                                         <Grid item xs={12}>
-                                            <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                                            <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
                                                 <TextField
                                                     fullWidth label="Add Key Item (e.g. Rice, Bread)"
                                                     value={keyItemInput}
@@ -294,15 +345,33 @@ function Register() {
                                                     onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addKeyItem())}
                                                     sx={inputStyles}
                                                 />
-                                                <Button variant="outlined" onClick={addKeyItem}
-                                                    sx={{ borderColor: 'rgba(255,255,255,0.2)', color: '#fff', minWidth: 48 }}>
+                                                <Button
+                                                    variant="outlined"
+                                                    onClick={addKeyItem}
+                                                    sx={{
+                                                        borderColor: 'rgba(0,0,0,0.1)',
+                                                        color: '#1a1a1a',
+                                                        minWidth: 56,
+                                                        borderRadius: '16px'
+                                                    }}
+                                                >
                                                     <AddIcon />
                                                 </Button>
                                             </Box>
-                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                                                 {form.shopKeyItems.map(item => (
-                                                    <Chip key={item} label={item} onDelete={() => removeKeyItem(item)}
-                                                        sx={{ background: 'rgba(192,12,12,0.2)', color: '#fff', '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.5)' } }} />
+                                                    <Chip
+                                                        key={item}
+                                                        label={item}
+                                                        onDelete={() => removeKeyItem(item)}
+                                                        sx={{
+                                                            bgcolor: 'rgba(192,12,12,0.06)',
+                                                            color: '#C00C0C',
+                                                            fontWeight: 600,
+                                                            fontFamily: '"Inter", sans-serif',
+                                                            '& .MuiChip-deleteIcon': { color: '#C00C0C' }
+                                                        }}
+                                                    />
                                                 ))}
                                             </Box>
                                         </Grid>
@@ -318,10 +387,18 @@ function Register() {
                                 )}
 
                                 <Grid item xs={12} sm={role === 'user' ? 6 : 12}>
-                                    <TextField fullWidth name="phone" label="Phone Number" value={form.phone}
-                                        onChange={handleChange} required placeholder="+91 98765 43210"
-                                        InputProps={{ startAdornment: <InputAdornment position="start"><PhoneIcon sx={{ color: '#C00C0C' }} /></InputAdornment> }}
-                                        sx={inputStyles} />
+                                    <TextField
+                                        fullWidth name="phone" label="Phone" value={form.phone}
+                                        onChange={handleChange} required placeholder="9876543210"
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <PhoneIcon sx={{ color: '#C00C0C', fontSize: '1.2rem' }} />
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                        sx={inputStyles}
+                                    />
                                 </Grid>
 
                                 {/* Address */}
@@ -330,7 +407,7 @@ function Register() {
                                         onChange={handleChange} required sx={inputStyles} />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
-                                    <TextField fullWidth name="area" label="Area / Locality" value={form.area}
+                                    <TextField fullWidth name="area" label="Area" value={form.area}
                                         onChange={handleChange} required sx={inputStyles} />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
@@ -345,19 +422,19 @@ function Register() {
                                 {/* GPS */}
                                 <Grid item xs={12}>
                                     <Box sx={{
-                                        p: 2, borderRadius: 2,
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        background: 'rgba(255,255,255,0.03)',
+                                        p: 2.5, borderRadius: '20px',
+                                        border: '1px solid rgba(0,0,0,0.04)',
+                                        bgcolor: '#FBFAFA',
                                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                     }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                             <LocationOnIcon sx={{ color: '#C00C0C' }} />
                                             <Box>
-                                                <Typography sx={{ color: '#fff', fontFamily: '"Outfit", sans-serif', fontWeight: 600, fontSize: '0.9rem' }}>
-                                                    Allow GPS Location {role === 'shop' && <span style={{ color: '#C00C0C' }}>*</span>}
+                                                <Typography sx={{ color: '#1a1a1a', fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '0.9rem' }}>
+                                                    Precision Location {role === 'shop' && <span style={{ color: '#C00C0C' }}>*</span>}
                                                 </Typography>
-                                                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
-                                                    {form.latitude ? `📍 ${form.latitude.toFixed(4)}, ${form.longitude.toFixed(4)}` : 'For nearby search accuracy'}
+                                                <Typography variant="caption" sx={{ color: '#888', fontWeight: 500 }}>
+                                                    {form.latitude ? `📍 Located Successfully` : 'Help nearby users find you'}
                                                 </Typography>
                                             </Box>
                                         </Box>
@@ -380,10 +457,17 @@ function Register() {
                                         type={showPassword ? 'text' : 'password'}
                                         value={form.password} onChange={handleChange} required
                                         InputProps={{
-                                            startAdornment: <InputAdornment position="start"><LockIcon sx={{ color: '#C00C0C' }} /></InputAdornment>,
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <LockIcon sx={{ color: '#C00C0C', fontSize: '1.2rem' }} />
+                                                </InputAdornment>
+                                            ),
                                             endAdornment: (
                                                 <InputAdornment position="end">
-                                                    <IconButton onClick={() => setShowPassword(!showPassword)} sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                                                    <IconButton
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        sx={{ color: '#999' }}
+                                                    >
                                                         {showPassword ? <VisibilityOff /> : <Visibility />}
                                                     </IconButton>
                                                 </InputAdornment>
@@ -394,20 +478,35 @@ function Register() {
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                     <TextField
-                                        fullWidth name="confirmPassword" label="Confirm Password"
+                                        fullWidth name="confirmPassword" label="Confirm"
                                         type={showPassword ? 'text' : 'password'}
                                         value={form.confirmPassword} onChange={handleChange} required
-                                        InputProps={{ startAdornment: <InputAdornment position="start"><LockIcon sx={{ color: '#C00C0C' }} /></InputAdornment> }}
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <LockIcon sx={{ color: '#C00C0C', fontSize: '1.2rem' }} />
+                                                </InputAdornment>
+                                            )
+                                        }}
                                         sx={inputStyles}
                                     />
                                 </Grid>
                             </Grid>
 
-                            <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
+                            <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
                                 <Button
                                     variant="outlined"
                                     onClick={() => setActiveStep(0)}
-                                    sx={{ flex: 1, py: 1.5, borderRadius: 3, borderColor: 'rgba(255,255,255,0.2)', color: '#fff', fontFamily: '"Outfit", sans-serif' }}
+                                    sx={{
+                                        flex: 1,
+                                        py: 2,
+                                        borderRadius: '18px',
+                                        borderColor: '#eee',
+                                        color: '#666',
+                                        fontFamily: '"Outfit", sans-serif',
+                                        fontWeight: 700,
+                                        textTransform: 'none'
+                                    }}
                                 >
                                     ← Back
                                 </Button>
@@ -423,19 +522,37 @@ function Register() {
                         </Box>
                     )}
 
-                    <Box sx={{ textAlign: 'center', mt: 2.5 }}>
-                        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                    <Box sx={{ textAlign: 'center', mt: 4 }}>
+                        <Typography variant="body2" sx={{ color: '#777', fontWeight: 500 }}>
                             Already have an account?{' '}
-                            <Link onClick={() => navigate('/app/login')} sx={{ color: '#C00C0C', cursor: 'pointer', fontWeight: 600 }}>
+                            <Link
+                                onClick={() => navigate('/app/login')}
+                                sx={{
+                                    color: '#C00C0C',
+                                    cursor: 'pointer',
+                                    fontWeight: 700,
+                                    textDecoration: 'none',
+                                    '&:hover': { textDecoration: 'underline' }
+                                }}
+                            >
                                 Sign In
                             </Link>
                         </Typography>
                     </Box>
                 </Paper>
 
-                <Box sx={{ textAlign: 'center', mt: 3 }}>
-                    <Link onClick={() => navigate('/')} sx={{ color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '0.85rem' }}>
-                        ← Back to Home
+                <Box sx={{ textAlign: 'center', mt: 4 }}>
+                    <Link
+                        onClick={() => navigate('/')}
+                        sx={{
+                            color: '#999',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            textDecoration: 'none',
+                            fontWeight: 500
+                        }}
+                    >
+                        ← Back to Landing Page
                     </Link>
                 </Box>
             </Container>
@@ -444,35 +561,46 @@ function Register() {
 }
 
 const primaryBtnStyles = {
-    py: 1.5,
-    borderRadius: 3,
-    background: 'linear-gradient(135deg, #C00C0C 0%, #8A0909 100%)',
+    py: 2,
+    borderRadius: '18px',
+    bgcolor: '#C00C0C',
+    color: 'white',
     fontFamily: '"Outfit", sans-serif',
-    fontWeight: 700,
+    fontWeight: 800,
     fontSize: '1rem',
     textTransform: 'none',
+    boxShadow: '0 10px 20px rgba(192, 12, 12, 0.2)',
     '&:hover': {
-        background: 'linear-gradient(135deg, #A00A0A 0%, #700707 100%)',
+        bgcolor: '#8A0909',
         transform: 'translateY(-2px)',
-        boxShadow: '0 8px 20px rgba(192,12,12,0.4)',
+        boxShadow: '0 12px 24px rgba(192, 12, 12, 0.3)',
     },
+    '&.Mui-disabled': {
+        bgcolor: '#eee',
+        color: '#aaa'
+    }
 };
 
 const inputStyles = {
     '& .MuiOutlinedInput-root': {
-        borderRadius: 2,
-        color: '#fff',
-        background: 'rgba(255,255,255,0.05)',
-        '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' },
-        '&:hover fieldset': { borderColor: 'rgba(192,12,12,0.5)' },
+        borderRadius: '16px',
+        bgcolor: '#FBFAFA',
+        color: '#1a1a1a',
+        fontFamily: '"Inter", sans-serif',
+        '& fieldset': {
+            borderColor: 'rgba(0,0,0,0.06)',
+            transition: 'all 0.2s ease'
+        },
+        '&:hover fieldset': { borderColor: 'rgba(192, 12, 12, 0.2)' },
         '&.Mui-focused fieldset': { borderColor: '#C00C0C' },
     },
     '& .MuiInputLabel-root': {
-        color: 'rgba(255,255,255,0.5)',
+        color: '#888',
+        fontFamily: '"Inter", sans-serif',
+        fontSize: '0.95rem',
         '&.Mui-focused': { color: '#C00C0C' },
     },
-    '& .MuiSelect-icon': { color: 'rgba(255,255,255,0.5)' },
-    '& .MuiMenuItem-root': { color: '#1a1a1a' },
+    '& .MuiSelect-icon': { color: '#999' },
 };
 
 export default Register;

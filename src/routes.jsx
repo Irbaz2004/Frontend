@@ -4,6 +4,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 // Landing
 import LandingPage from './landing/LandingPage';
 
+// Splash
+import SplashScreen from './app/SplashScreen';
+
 // Auth
 import Login from './app/auth/Login';
 import Register from './app/auth/Register';
@@ -54,14 +57,17 @@ function AppRoutes() {
             {/* Landing */}
             <Route path="/" element={<LandingPage />} />
 
+            {/* Splash */}
+            <Route path="/app/splash" element={<SplashScreen />} />
+
             {/* Auth */}
             <Route path="/app/login" element={<Login />} />
             <Route path="/app/register" element={<Register />} />
 
             {/* App Shell */}
             <Route path="/app" element={<AppLayout />}>
-                {/* Default redirect */}
-                <Route index element={<Navigate to="/app/login" replace />} />
+                {/* Default redirect to splash */}
+                <Route index element={<Navigate to="/app/splash" replace />} />
 
                 {/* User Routes */}
                 <Route path="user/home" element={<ProtectedRoute allowedRoles={['user']}><UserHome /></ProtectedRoute>} />

@@ -1,21 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import {
     Box, Typography, Avatar, Card, CardContent, Button,
-    List, ListItem, ListItemIcon, ListItemText, Chip,
+    List, ListItem, ListItemIcon, Chip, Skeleton,
 } from '@mui/material';
 import StoreIcon from '@mui/icons-material/Store';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PhoneIcon from '@mui/icons-material/Phone';
 import LogoutIcon from '@mui/icons-material/Logout';
+import gsap from 'gsap';
 import { useNavigate } from 'react-router-dom';
 
 function ShopProfile() {
     const navigate = useNavigate();
     const [shop, setShop] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const stored = localStorage.getItem('nearzo_user');
         if (stored) setShop(JSON.parse(stored));
+
+        // Simulating data fetch for loading state
+        setTimeout(() => {
+            setLoading(false);
+
+            // GSAP Animations
+            setTimeout(() => {
+                gsap.from(".profile-animate", {
+                    y: 30,
+                    opacity: 0,
+                    duration: 0.7,
+                    stagger: 0.15,
+                    ease: "power2.out"
+                });
+            }, 100);
+        }, 1000);
     }, []);
 
     const handleLogout = () => {
@@ -25,48 +43,154 @@ function ShopProfile() {
         navigate('/app/login');
     };
 
+    if (loading) return (
+        <Box sx={{ p: 3, bgcolor: '#F8F8F8', minHeight: '100vh' }}>
+            <Skeleton variant="rounded" height={280} sx={{ mb: 3, borderRadius: '32px' }} />
+            <Skeleton variant="rounded" height={200} sx={{ mb: 3, borderRadius: '24px' }} />
+            <Skeleton variant="rounded" height={60} sx={{ borderRadius: '18px' }} />
+        </Box>
+    );
+
     return (
-        <Box sx={{ p: 2, pb: 4 }}>
-            <Box sx={{
+        <Box sx={{ p: 3, pb: 4, bgcolor: '#F8F8F8', minHeight: '100vh' }}>
+            {/* Shop Profile Header */}
+            <Box className="profile-animate" sx={{
                 background: 'linear-gradient(135deg, #C00C0C 0%, #8A0909 100%)',
-                borderRadius: 4, p: 3, mb: 2, textAlign: 'center',
+                borderRadius: '32px',
+                p: 4,
+                mb: 3,
+                textAlign: 'center',
+                boxShadow: '0 12px 24px rgba(192,12,12,0.15)',
+                position: 'relative',
+                overflow: 'hidden'
             }}>
-                <Avatar sx={{ width: 80, height: 80, bgcolor: 'rgba(255,255,255,0.2)', mx: 'auto', mb: 1.5 }}>
-                    <StoreIcon sx={{ fontSize: 40, color: '#fff' }} />
+                <Box sx={{
+                    position: 'absolute',
+                    top: -30,
+                    right: -30,
+                    width: 120,
+                    height: 120,
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.05)',
+                }} />
+
+                <Avatar sx={{
+                    width: 90,
+                    height: 90,
+                    bgcolor: 'white',
+                    color: '#C00C0C',
+                    mx: 'auto',
+                    mb: 2,
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.1)',
+                    border: '4px solid rgba(255,255,255,0.2)'
+                }}>
+                    <StoreIcon sx={{ fontSize: '2.5rem' }} />
                 </Avatar>
-                <Typography variant="h6" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 700, color: '#fff' }}>
+                <Typography variant="h5" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 900, color: '#fff', mb: 0.5 }}>
                     {shop?.shopName || 'My Shop'}
                 </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem' }}>
-                    {shop?.shopCategory || ''}
+                <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', fontFamily: '"Inter", sans-serif', fontWeight: 500 }}>
+                    {shop?.shopCategory || 'Category'}
                 </Typography>
-                {!shop?.isVerified && (
-                    <Chip label="Pending Verification" size="small" sx={{ mt: 1, bgcolor: 'rgba(255,152,0,0.2)', color: '#ffb74d' }} />
+
+                {shop?.isVerified ? (
+                    <Chip
+                        label="Verified Business"
+                        size="small"
+                        sx={{
+                            mt: 2,
+                            bgcolor: 'rgba(255,255,255,0.2)',
+                            color: '#fff',
+                            fontWeight: 700,
+                            fontFamily: '"Inter", sans-serif',
+                            fontSize: '0.7rem'
+                        }}
+                    />
+                ) : (
+                    <Chip
+                        label="Pending Verification"
+                        size="small"
+                        sx={{
+                            mt: 2,
+                            bgcolor: 'rgba(255,255,255,0.15)',
+                            color: '#fff',
+                            fontWeight: 700,
+                            fontSize: '0.7rem',
+                            fontFamily: '"Inter", sans-serif'
+                        }}
+                    />
                 )}
             </Box>
 
-            <Card sx={{ borderRadius: 3, mb: 2, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-                <CardContent>
-                    <Typography variant="subtitle2" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 700, mb: 1.5, color: '#C00C0C' }}>
-                        Shop Info
+            {/* Business Details Card */}
+            <Card className="profile-animate" sx={{
+                borderRadius: '24px',
+                mb: 4,
+                border: '1px solid rgba(0,0,0,0.03)',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+                bgcolor: 'white'
+            }}>
+                <CardContent sx={{ p: 3 }}>
+                    <Typography variant="subtitle1" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 800, mb: 2, color: '#1a1a1a' }}>
+                        Business Information
                     </Typography>
-                    <List dense disablePadding>
-                        <ListItem disablePadding sx={{ mb: 1 }}>
-                            <ListItemIcon sx={{ minWidth: 36 }}><PhoneIcon sx={{ fontSize: 18, color: '#C00C0C' }} /></ListItemIcon>
-                            <ListItemText primary={shop?.phone || 'Not set'} primaryTypographyProps={{ variant: 'body2' }} />
-                        </ListItem>
-                        <ListItem disablePadding>
-                            <ListItemIcon sx={{ minWidth: 36 }}><LocationOnIcon sx={{ fontSize: 18, color: '#C00C0C' }} /></ListItemIcon>
-                            <ListItemText primary={`${shop?.area || ''}, ${shop?.city || ''}, ${shop?.state || ''}`} primaryTypographyProps={{ variant: 'body2' }} />
-                        </ListItem>
+                    <List disablePadding>
+                        {[
+                            { icon: <PhoneIcon />, label: 'Business Contact', value: shop?.phone || 'Not set' },
+                            { icon: <LocationOnIcon />, label: 'Location', value: `${shop?.area || ''}, ${shop?.city || ''}` },
+                            { icon: <StoreIcon />, label: 'Role', value: 'Merchant / Shop Owner' },
+                        ].map((item, idx) => (
+                            <ListItem key={idx} sx={{ px: 0, py: 1.5, borderBottom: idx < 2 ? '1px solid #f5f5f5' : 'none' }}>
+                                <ListItemIcon sx={{ minWidth: 40 }}>
+                                    <Box sx={{ color: '#C00C0C', display: 'flex' }}>
+                                        {React.cloneElement(item.icon, { sx: { fontSize: 20 } })}
+                                    </Box>
+                                </ListItemIcon>
+                                <Box>
+                                    <Typography variant="caption" sx={{ color: '#999', fontWeight: 600, display: 'block', mb: -0.5 }}>
+                                        {item.label}
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, color: '#333' }}>
+                                        {item.value}
+                                    </Typography>
+                                </Box>
+                            </ListItem>
+                        ))}
                     </List>
                 </CardContent>
             </Card>
 
-            <Button fullWidth variant="outlined" startIcon={<LogoutIcon />} onClick={handleLogout}
-                sx={{ borderRadius: 3, py: 1.5, borderColor: '#C00C0C', color: '#C00C0C', fontFamily: '"Outfit", sans-serif', fontWeight: 600, textTransform: 'none' }}>
-                Sign Out
-            </Button>
+            {/* Logout Section */}
+            <Box className="profile-animate" sx={{ px: 1 }}>
+                <Button
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<LogoutIcon />}
+                    onClick={handleLogout}
+                    sx={{
+                        borderRadius: '18px',
+                        py: 2,
+                        borderColor: 'rgba(192,12,12,0.2)',
+                        color: '#C00C0C',
+                        fontFamily: '"Outfit", sans-serif',
+                        fontWeight: 800,
+                        textTransform: 'none',
+                        fontSize: '1rem',
+                        bgcolor: 'white',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                            bgcolor: '#FFF5F5',
+                            borderColor: '#C00C0C',
+                            transform: 'translateY(-2px)'
+                        }
+                    }}
+                >
+                    Sign Out
+                </Button>
+                <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 3, color: '#aaa', fontWeight: 500 }}>
+                    NearZO Merchant v1.0.0
+                </Typography>
+            </Box>
         </Box>
     );
 }
