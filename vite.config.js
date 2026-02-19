@@ -20,7 +20,7 @@ export default defineConfig({
         start_url: '/app/splash',
         icons: [
           {
-            src: 'icons/logo.svg',
+            src: 'icons/logo.png',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any maskable',
