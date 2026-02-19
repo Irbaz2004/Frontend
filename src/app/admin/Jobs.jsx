@@ -2,12 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { Box, Typography, Card, CardContent, Chip, Skeleton } from '@mui/material';
 import WorkIcon from '@mui/icons-material/Work';
 
+import { getAllAdminJobs } from '../../services/admin';
+
 function AdminJobs() {
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        setTimeout(() => { setJobs([]); setLoading(false); }, 800);
+        const fetchJobs = async () => {
+            try {
+                const data = await getAllAdminJobs();
+                setJobs(data);
+            } catch (err) {
+                console.error('Failed to fetch jobs:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchJobs();
     }, []);
 
     return (
@@ -30,7 +42,7 @@ function AdminJobs() {
                             <Typography variant="subtitle1" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 700 }}>
                                 {job.title}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">{job.shopName}</Typography>
+                            <Typography variant="body2" color="text.secondary">{job.shop_name}</Typography>
                             <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
                                 <Chip label={job.type} size="small" sx={{ bgcolor: 'rgba(192,12,12,0.08)', color: '#C00C0C', fontSize: '0.7rem' }} />
                             </Box>

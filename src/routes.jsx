@@ -34,6 +34,7 @@ import ShopProfile from './app/shop/Profile';
 import AdminDashboard from './app/admin/Dashboard';
 import VerifyShops from './app/admin/VerifyShops';
 import AdminUsers from './app/admin/Users';
+import AdminShops from './app/admin/Shops';
 import AdminJobs from './app/admin/Jobs';
 import Reports from './app/admin/Reports';
 
@@ -88,6 +89,7 @@ function AppRoutes() {
                 {/* Admin Routes */}
                 <Route path="admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
                 <Route path="admin/verify-shops" element={<ProtectedRoute allowedRoles={['admin']}><VerifyShops /></ProtectedRoute>} />
+                <Route path="admin/shops" element={<ProtectedRoute allowedRoles={['admin']}><AdminShops /></ProtectedRoute>} />
                 <Route path="admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
                 <Route path="admin/jobs" element={<ProtectedRoute allowedRoles={['admin']}><AdminJobs /></ProtectedRoute>} />
                 <Route path="admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><Reports /></ProtectedRoute>} />

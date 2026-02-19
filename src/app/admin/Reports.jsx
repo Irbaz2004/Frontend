@@ -5,12 +5,31 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PeopleIcon from '@mui/icons-material/People';
 import WorkIcon from '@mui/icons-material/Work';
 
+import { getAdminStats } from '../../services/admin';
+
 function Reports() {
+    const [stats, setStats] = useState({ users: 0, shops: 0, jobs: 0, pendingVerification: 0 });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const data = await getAdminStats();
+                setStats(data);
+            } catch (err) {
+                console.error('Failed to fetch reports stats:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchStats();
+    }, []);
+
     const metrics = [
-        { label: 'New Users (7d)', value: '—', icon: <PeopleIcon />, color: '#1976d2' },
-        { label: 'New Jobs (7d)', value: '—', icon: <WorkIcon />, color: '#C00C0C' },
-        { label: 'Applications (7d)', value: '—', icon: <TrendingUpIcon />, color: '#388e3c' },
-        { label: 'Active Shops', value: '—', icon: <AssessmentIcon />, color: '#f57c00' },
+        { label: 'Total Users', value: stats.users, icon: <PeopleIcon />, color: '#1976d2' },
+        { label: 'Total Jobs', value: stats.jobs, icon: <WorkIcon />, color: '#C00C0C' },
+        { label: 'Pending Shops', value: stats.pendingVerification, icon: <TrendingUpIcon />, color: '#388e3c' },
+        { label: 'Active Shops', value: stats.shops, icon: <AssessmentIcon />, color: '#f57c00' },
     ];
 
     return (

@@ -5,16 +5,24 @@ import StoreIcon from '@mui/icons-material/Store';
 import WorkIcon from '@mui/icons-material/Work';
 import VerifiedIcon from '@mui/icons-material/Verified';
 
+import { getAdminStats } from '../../services/admin';
+
 function AdminDashboard() {
     const [stats, setStats] = useState({ users: 0, shops: 0, jobs: 0, pendingVerification: 0 });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // TODO: fetch real stats from admin services
-        setTimeout(() => {
-            setStats({ users: 0, shops: 0, jobs: 0, pendingVerification: 0 });
-            setLoading(false);
-        }, 800);
+        const fetchStats = async () => {
+            try {
+                const data = await getAdminStats();
+                setStats(data);
+            } catch (err) {
+                console.error('Failed to fetch admin stats:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchStats();
     }, []);
 
     const statCards = [

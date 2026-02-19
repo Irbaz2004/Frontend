@@ -4,13 +4,25 @@ import PeopleIcon from '@mui/icons-material/People';
 import SearchIcon from '@mui/icons-material/Search';
 import BlockIcon from '@mui/icons-material/Block';
 
+import { getAllUsers } from '../../services/admin';
+
 function AdminUsers() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
 
     useEffect(() => {
-        setTimeout(() => { setUsers([]); setLoading(false); }, 800);
+        const fetchUsers = async () => {
+            try {
+                const data = await getAllUsers();
+                setUsers(data);
+            } catch (err) {
+                console.error('Failed to fetch users:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchUsers();
     }, []);
 
     const filtered = users.filter(u =>
@@ -43,12 +55,25 @@ function AdminUsers() {
                                 {user.fullName?.[0]}
                             </Avatar>
                             <Box sx={{ flex: 1 }}>
-                                <Typography variant="subtitle2" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 700 }}>
-                                    {user.fullName}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">{user.phone} • {user.city}</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Typography variant="subtitle2" sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 700 }}>
+                                        {user.fullName}
+                                    </Typography>
+                                    <Chip label={user.role} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.65rem', textTransform: 'capitalize' }} />
+                                </Box>
+                                <Typography variant="caption" color="text.secondary">{user.phone} {user.city && `• ${user.city}`}</Typography>
                             </Box>
-                            {user.isBlocked && <Chip icon={<BlockIcon />} label="Blocked" size="small" color="error" />}
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'flex-end' }}>
+                                {user.role === 'shop' && (
+                                    <Chip
+                                        label={user.isVerified ? 'Verified' : 'Unverified'}
+                                        size="small"
+                                        color={user.isVerified ? 'success' : 'warning'}
+                                        sx={{ height: 20, fontSize: '0.65rem' }}
+                                    />
+                                )}
+                                {user.isBlocked && <Chip icon={<BlockIcon />} label="Blocked" size="small" color="error" sx={{ height: 20, fontSize: '0.65rem' }} />}
+                            </Box>
                         </CardContent>
                     </Card>
                 ))

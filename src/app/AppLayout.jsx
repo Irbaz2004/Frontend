@@ -34,6 +34,7 @@ const NAV_CONFIG = {
     ],
     admin: [
         { label: 'Dashboard', icon: <DashboardIcon />, path: '/app/admin/dashboard' },
+        { label: 'Shops', icon: <StoreIcon />, path: '/app/admin/shops' },
         { label: 'Verify', icon: <VerifiedIcon />, path: '/app/admin/verify-shops' },
         { label: 'Users', icon: <PeopleIcon />, path: '/app/admin/users' },
         { label: 'Reports', icon: <AssessmentIcon />, path: '/app/admin/reports' },

@@ -4,18 +4,33 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 
+import { getPendingShops, verifyShop } from '../../services/admin';
+
 function VerifyShops() {
     const [shops, setShops] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // TODO: fetch pending shops from admin services
-        setTimeout(() => { setShops([]); setLoading(false); }, 800);
+        const fetchPending = async () => {
+            try {
+                const data = await getPendingShops();
+                setShops(data);
+            } catch (err) {
+                console.error('Failed to fetch pending shops:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPending();
     }, []);
 
-    const handleVerify = (shopId, action) => {
-        // TODO: call admin service to verify/reject shop
-        setShops(prev => prev.filter(s => s.id !== shopId));
+    const handleVerify = async (shopId, action) => {
+        try {
+            await verifyShop(shopId, action);
+            setShops(prev => prev.filter(s => s.id !== shopId));
+        } catch (err) {
+            console.error('Action failed:', err);
+        }
     };
 
     return (
@@ -44,6 +59,12 @@ function VerifyShops() {
                                         {shop.shopName}
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">{shop.category} • {shop.city}</Typography>
+                                    <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+                                        <strong>Address:</strong> {shop.street}, {shop.area}, {shop.city}, {shop.state}
+                                    </Typography>
+                                    <Typography variant="caption" display="block" color="text.secondary" sx={{ mb: 1 }}>
+                                        <strong>Items:</strong> {shop.keyItems?.join(', ') || 'None'}
+                                    </Typography>
                                     <Typography variant="caption" color="text.secondary">Owner: {shop.fullName} • {shop.phone}</Typography>
                                 </Box>
                             </Box>
