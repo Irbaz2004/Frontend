@@ -1,7 +1,7 @@
 // auth.js — All authentication API calls go through here
 // Never call Supabase directly from UI components
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://backend-qb4v.onrender.com/api';
 
 /**
  * Register a new user or shop owner

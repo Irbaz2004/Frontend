@@ -1,6 +1,6 @@
 // jobs.js — All job-related API calls go through here
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://backend-qb4v.onrender.com/api';
 
 function authHeaders() {
     const token = localStorage.getItem('nearzo_token');
