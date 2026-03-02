@@ -84,7 +84,7 @@ const Navbar = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 0,
-                                '& span': { color: '#C00C0C' }
+                                '& span': { color: '#0003b1' }
                             }}
                         >
                             Near<span>ZO</span>
@@ -97,11 +97,18 @@ const Navbar = () => {
 
                         <Button
                             variant="contained"
-                            color="primary"
                             sx={{
                                 borderRadius: '100px',
                                 px: 4,
                                 fontWeight: 800,
+                                background: '#0003b1',
+                                color: 'white',
+                                boxShadow: '0 8px 20px #0003b10f',
+                                '&:hover': {
+                                    background: '#0003b1',
+                                                                    boxShadow: '0 8px 20px #0003b10f',
+
+                                },
                             }}
                             onClick={() => window.__triggerPWAInstall && window.__triggerPWAInstall()}
                         >

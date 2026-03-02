@@ -123,15 +123,15 @@ const Hero = () => {
                 background: 'rgba(255, 255, 255, 0.95)',
                 backdropFilter: 'blur(10px)',
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
-                border: '1px solid rgba(192, 12, 12, 0.2)',
+                border: '1px solid rgba(0, 3, 177, 0.2)',
                 zIndex: 999,
                 cursor: 'default',
                 transition: 'all 0.3s ease',
                 opacity: tagsVisible ? 1 : 0,
                 '&:hover': {
                     transform: 'translateY(-4px) scale(1.05)',
-                    boxShadow: '0 15px 40px rgba(192, 12, 12, 0.3)',
-                    border: '1px solid rgba(192, 12, 12, 0.5)',
+                    boxShadow: '0 15px 40px rgba(0, 3, 177, 0.15)',
+                    border: '1px solid rgba(0, 3, 177, 0.5)',
                     background: 'rgba(255, 255, 255, 1)',
                 },
                 '@media (max-width: 768px)': {
@@ -142,13 +142,14 @@ const Hero = () => {
             }}
         >
             <Box sx={{
-                color: '#C00C0C',
+                color: '#0003b1',
                 display: 'flex',
-                background: 'rgba(192, 12, 12, 0.15)',
+                background: 'rgba(0, 3, 177, 0.15)',
                 padding: { xs: '4px', md: '8px' },
                 borderRadius: '50%',
+
             }}>
-                {React.cloneElement(icon, { sx: { fontSize: { xs: 16, md: 24 } } })}
+                {React.cloneElement(icon, { sx: { fontSize: { xs: 16, md: 24 }} })}
             </Box>
             <Typography variant="body2" fontWeight={700} sx={{ color: '#1a1a1a', fontSize: { xs: '0.7rem', md: '0.875rem' } }}>{text}</Typography>
         </Box>
@@ -198,7 +199,7 @@ const Hero = () => {
                                     className="hero-text"
                                     variant="overline"
                                     sx={{
-                                        color: '#C00C0C',
+                                        color: '#010118',
                                         fontWeight: 900,
                                         letterSpacing: { xs: '2px', md: '4px' },
                                         mb: 1,
@@ -222,7 +223,7 @@ const Hero = () => {
                                 >
                                     Made Simple with,{' '}
                                     <span style={{
-                                        color: '#C00C0C',
+                                        color: '#0003b1',
                                         display: 'inline-block',
                                         position: 'relative',
                                         zIndex: 10,
@@ -254,10 +255,10 @@ const Hero = () => {
                                         px: { xs: 3, md: 5 },
                                         py: { xs: 1.5, md: 2 },
                                         borderRadius: '100px',
-                                        background: '#C00C0C',
+                                        background: '#0003b1',
                                         fontSize: { xs: '0.9rem', md: '1rem' },
                                         '&:hover': {
-                                            background: '#a00a0a',
+                                            background: '#0000b1',
                                         }
                                     }}
                                     onClick={() => window.__triggerPWAInstall && window.__triggerPWAInstall()}
@@ -275,9 +276,12 @@ const Hero = () => {
                                         color: '#1a1a1a',
                                         borderWidth: '2px',
                                         fontSize: { xs: '0.9rem', md: '1rem' },
+                                        backgroundColor: 'transparent',
                                         '&:hover': {
-                                            borderColor: '#C00C0C',
+                                            borderColor: '#0003b1',
                                             background: 'rgba(192, 12, 12, 0.05)',
+                                                                                    backgroundColor: 'rgba(0, 3, 177, 0.15)',
+
                                         }
                                     }}
                                 >
@@ -345,7 +349,7 @@ const Hero = () => {
                                     transform: 'translate(-50%, -50%)',
                                     width: '120%',
                                     height: '80%',
-                                    background: 'radial-gradient(circle, rgba(192, 12, 12, 0.25) 0%, transparent 70%)',
+                                    // background: 'radial-gradient(circle, #0003b13b 0%, transparent 70%)',
                                     filter: 'blur(40px)',
                                     zIndex: -1,
                                 }} />
@@ -367,7 +371,7 @@ const Hero = () => {
                                 >
                                     {/* App UI */}
                                     <Box sx={{ height: '100%', background: '#fff', overflow: 'hidden' }}>
-                                        <Box sx={{ p: { xs: 2, md: 3 }, pt: { xs: 3, md: 5 }, bgcolor: '#C00C0C', color: 'white' }}>
+                                        <Box sx={{ p: { xs: 2, md: 3 }, pt: { xs: 3, md: 5 }, bgcolor: '#0003b1', color: 'white' }}>
                                             <Typography variant="h6" fontWeight={900} sx={{ fontSize: { xs: '0.9rem', md: '1.25rem' } }}>NearZO</Typography>
                                             <Typography variant="caption" sx={{ fontSize: { xs: '0.5rem', md: '0.6rem' } }}>Discover what's around you</Typography>
                                         </Box>
@@ -396,7 +400,7 @@ const Hero = () => {
                                                     id="route-path"
                                                     d="M 120 140 Q 150 180, 200 240 T 220 280"
                                                     fill="none"
-                                                    stroke="#C00C0C"
+                                                    stroke="#0003b1"
                                                     strokeWidth="3"
                                                     strokeDasharray="1000"
                                                     strokeDashoffset="1000"
@@ -426,7 +430,7 @@ const Hero = () => {
                                                     <Box sx={{
                                                         width: '100%',
                                                         height: '100%',
-                                                        bgcolor: 'rgba(192, 12, 12, 0.2)',
+                                                        bgcolor: 'rgba(0, 3, 177, 0.15)',
                                                         borderRadius: '50%',
                                                         display: 'flex',
                                                         alignItems: 'center',
@@ -434,7 +438,7 @@ const Hero = () => {
                                                         position: 'relative',
                                                         zIndex: 2
                                                     }}>
-                                                        <MyLocationIcon sx={{ color: '#C00C0C', fontSize: { xs: '14px', md: '18px' } }} />
+                                                        <MyLocationIcon sx={{ color: '#0003b1', fontSize: { xs: '14px', md: '18px' } }} />
                                                     </Box>
                                                     <Box className="map-marker-pulse" sx={{
                                                         position: 'absolute',
@@ -443,7 +447,7 @@ const Hero = () => {
                                                         width: '100%',
                                                         height: '100%',
                                                         borderRadius: '50%',
-                                                        bgcolor: '#C00C0C',
+                                                        bgcolor: '#0003b1',
                                                         zIndex: 1
                                                     }} />
                                                 </Box>
@@ -467,16 +471,16 @@ const Hero = () => {
                                                 <Box sx={{
                                                     width: { xs: '30px', md: '40px' },
                                                     height: { xs: '30px', md: '40px' },
-                                                    bgcolor: '#C00C0C',
+                                                    bgcolor: '#0003b1',
                                                     borderRadius: '10px',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    boxShadow: '0 6px 12px rgba(192, 12, 12, 0.3)'
+                                                    boxShadow: '0 6px 12px rgba(0, 3, 177, 0.15)'
                                                 }}>
                                                     <StorefrontIcon sx={{ color: 'white', fontSize: { xs: '16px', md: '22px' } }} />
                                                 </Box>
-                                                <Typography variant="caption" sx={{ color: '#C00C0C', fontWeight: 800, mt: 0.5, bgcolor: 'white', px: 1, borderRadius: 1, boxShadow: '0 2px 4px rgba(0,0,0,0.1)', fontSize: { xs: '0.5rem', md: '0.7rem' } }}>Egg Corner</Typography>
+                                                <Typography variant="caption" sx={{ color: '#0003b1', fontWeight: 800, mt: 0.5, bgcolor: 'white', px: 1, borderRadius: 1, boxShadow: '0 2px 4px rgba(0,0,0,0.1)', fontSize: { xs: '0.5rem', md: '0.7rem' } }}>Egg Corner</Typography>
                                             </Box>
                                         </Box>
                                     </Box>
@@ -520,7 +524,7 @@ const Hero = () => {
                         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
                         border: '1px solid rgba(192, 12, 12, 0.2)',
                     }}>
-                        <Box sx={{ color: '#C00C0C', display: 'flex', background: 'rgba(192, 12, 12, 0.15)', padding: '4px', borderRadius: '50%' }}>
+                        <Box sx={{ color: '#0003b1', display: 'flex', background: 'rgba(0, 3, 177, 0.15)', padding: '4px', borderRadius: '50%' }}>
                             <HomeIcon sx={{ fontSize: 16 }} />
                         </Box>
                         <Typography variant="body2" fontWeight={700}>Local Jobs</Typography>
@@ -535,7 +539,7 @@ const Hero = () => {
                         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
                         border: '1px solid rgba(192, 12, 12, 0.2)',
                     }}>
-                        <Box sx={{ color: '#C00C0C', display: 'flex', background: 'rgba(192, 12, 12, 0.15)', padding: '4px', borderRadius: '50%' }}>
+                        <Box sx={{ color: '#0003b1', display: 'flex', background: 'rgba(0, 3, 177, 0.15)', padding: '4px', borderRadius: '50%' }}>
                             <LocalMallIcon sx={{ fontSize: 16 }} />
                         </Box>
                         <Typography variant="body2" fontWeight={700}>Nearby Shops</Typography>
@@ -550,7 +554,7 @@ const Hero = () => {
                         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
                         border: '1px solid rgba(192, 12, 12, 0.2)',
                     }}>
-                        <Box sx={{ color: '#C00C0C', display: 'flex', background: 'rgba(192, 12, 12, 0.15)', padding: '4px', borderRadius: '50%' }}>
+                        <Box sx={{ color: '#0003b1', display: 'flex', background: 'rgba(0, 3, 177, 0.15)', padding: '4px', borderRadius: '50%' }}>
                             <WorkIcon sx={{ fontSize: 16 }} />
                         </Box>
                         <Typography variant="body2" fontWeight={700}>Hire Locally</Typography>

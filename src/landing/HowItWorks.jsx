@@ -9,22 +9,22 @@ const steps = [
     {
         title: 'Register as You',
         desc: 'Join as a Job Seeker, Employer, or Shop Owner. It takes less than a minute.',
-        color: '#C00C0C',
+        color: '#0003b1',
     },
     {
         title: 'Search & Explore',
         desc: 'Browse local jobs, nearby services, or filter by category to find exactly what you need.',
-        color: '#7C2F2F',
+        color: '#0003b1',
     },
     {
         title: 'Connect Instantly',
         desc: 'Call, chat, or get directions to the shop. Direct communication with no middlemen.',
-        color: '#C00C0C',
+        color: '#0003b1',
     },
     {
         title: 'Grow Local',
         desc: 'Hire faster, find work easily, or boost your shops visibility in your community.',
-        color: '#7C2F2F',
+        color: '#0003b1',
     },
 ];
 
@@ -85,7 +85,11 @@ const HowItWorks = () => {
         }}>
             <Container maxWidth="lg">
                 <Box sx={{ mb: { xs: 6, md: 10 }, textAlign: 'center' }}>
-                    <Typography variant="overline" sx={{ color: '#C00C0C', fontWeight: 900, letterSpacing: '2px' }}>
+                    <Typography variant="overline" sx={{ 
+                        color: '#0003b1', 
+                        fontWeight: 900, 
+                        letterSpacing: '2px' 
+                    }}>
                         THE PROCESS
                     </Typography>
                     <Typography variant="h2" sx={{
@@ -94,7 +98,7 @@ const HowItWorks = () => {
                         fontSize: { xs: '1.8rem', sm: '2.5rem', md: '4rem' },
                         mt: 1
                     }}>
-                        How It <span style={{ color: '#C00C0C' }}>Works</span>
+                        How It <span style={{ color: '#0003b1' }}>Works</span>
                     </Typography>
                 </Box>
 
@@ -106,16 +110,16 @@ const HowItWorks = () => {
                         top: 0,
                         bottom: 0,
                         width: '4px',
-                        bgcolor: 'rgba(192, 12, 12, 0.1)',
+                        bgcolor: 'rgba(0, 11, 49, 0.1)',
                         transform: { xs: 'none', sm: 'translateX(-50%)' },
                         zIndex: 0
                     }}>
                         <Box ref={lineRef} sx={{
                             width: '100%',
                             height: '100%',
-                            bgcolor: '#C00C0C',
+                            bgcolor: '#0003b1',
                             transformOrigin: 'top',
-                            boxShadow: '0 0 10px rgba(192, 12, 12, 0.5)'
+                            boxShadow: '0 0 10px rgba(0, 3, 177, 0.5)'
                         }} />
                     </Box>
 
@@ -141,10 +145,10 @@ const HowItWorks = () => {
                                     width: '16px',
                                     height: '16px',
                                     borderRadius: '50%',
-                                    bgcolor: '#C00C0C',
+                                    bgcolor: '#0003b1',
                                     border: '4px solid white',
                                     transform: { xs: 'translateX(-50%)', sm: 'translateX(-50%)' },
-                                    boxShadow: '0 0 0 4px rgba(192, 12, 12, 0.1)'
+                                    boxShadow: '0 0 0 4px rgba(0, 11, 49, 0.1)'
                                 }} />
 
                                 <Paper elevation={0} sx={{
@@ -152,16 +156,16 @@ const HowItWorks = () => {
                                     width: { xs: '100%', sm: '42%' },
                                     borderRadius: '24px',
                                     bgcolor: 'white',
-                                    border: '1px solid rgba(192, 12, 12, 0.1)',
+                                    border: '1px solid rgba(0, 11, 49, 0.1)',
                                     transition: 'all 0.3s ease',
                                     '&:hover': {
                                         transform: 'translateY(-5px)',
-                                        borderColor: '#C00C0C',
-                                        boxShadow: '0 15px 30px rgba(192, 12, 12, 0.08)'
+                                        borderColor: '#0003b1',
+                                        boxShadow: '0 15px 30px rgba(0, 3, 177, 0.15)'
                                     }
                                 }}>
                                     <Typography variant="h4" sx={{
-                                        color: '#C00C0C',
+                                        color: '#0003b1',
                                         fontWeight: 900,
                                         mb: 1,
                                         fontSize: { xs: '1rem', sm: '1.5rem' }

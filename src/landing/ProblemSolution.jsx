@@ -229,11 +229,12 @@ const ProblemSolution = () => {
 
     return (
         <Box ref={sectionRef} sx={{ bgcolor: '#ffffff', position: 'relative', overflow: 'hidden' }}>
-            {/* Background Pattern */}
+            {/* Background Pattern - Updated to use new theme color */}
             <Box sx={{
                 position: 'absolute',
                 top: 0, left: 0, right: 0, bottom: 0,
-                background: 'radial-gradient(circle at 10% 20%, rgba(192, 12, 12, 0.02) 0%, transparent 30%), radial-gradient(circle at 90% 80%, rgba(192, 12, 12, 0.02) 0%, transparent 30%)',
+                background: `radial-gradient(circle at 10% 20%, rgba(0, 11, 49, 0.02) 0%, transparent 30%), 
+                             radial-gradient(circle at 90% 80%, rgba(0, 11, 49, 0.02) 0%, transparent 30%)`,
                 pointerEvents: 'none',
                 zIndex: 0,
             }} />
@@ -244,7 +245,7 @@ const ProblemSolution = () => {
                     <Typography
                         variant="overline"
                         sx={{
-                            color: '#C00C0C',
+                            color: '#0003b1',
                             fontWeight: 800,
                             letterSpacing: { xs: '1px', sm: '2px' },
                             fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' }
@@ -263,7 +264,7 @@ const ProblemSolution = () => {
                             px: { xs: 2, sm: 0 }
                         }}
                     >
-                        Solving the <span style={{ color: '#C00C0C' }}>Hyperlocal Problem</span>
+                        Solving the <span style={{ color: '#0003b1' }}>Hyperlocal Problem</span>
                     </Typography>
                 </Box>
 
@@ -276,7 +277,7 @@ const ProblemSolution = () => {
                     alignItems: 'center',
                     justifyContent: 'center'
                 }}>
-                    {/* Background Circles - Hide on mobile */}
+                    {/* Background Circles - Hide on mobile - Updated with new theme color */}
                     {!isMobile && (
                         <Box sx={{
                             display: { xs: 'none', md: 'block' },
@@ -294,8 +295,8 @@ const ProblemSolution = () => {
                                 width: { md: '450px', lg: '500px' },
                                 height: { md: '450px', lg: '500px' },
                                 borderRadius: '50%',
-                                border: '2px dashed rgba(192, 12, 12, 0.15)',
-                                bgcolor: 'rgba(192, 12, 12, 0.01)'
+                                border: '2px dashed rgba(0, 11, 49, 0.15)',
+                                bgcolor: 'rgba(0, 11, 49, 0.01)'
                             }} />
                             <Box className="dashed-circle" sx={{
                                 position: 'absolute',
@@ -305,8 +306,8 @@ const ProblemSolution = () => {
                                 width: { md: '450px', lg: '500px' },
                                 height: { md: '450px', lg: '500px' },
                                 borderRadius: '50%',
-                                border: '2px dashed rgba(192, 12, 12, 0.15)',
-                                bgcolor: 'rgba(192, 12, 12, 0.01)',
+                                border: '2px dashed rgba(0, 11, 49, 0.15)',
+                                bgcolor: 'rgba(0, 11, 49, 0.01)',
                                 animationDirection: 'reverse'
                             }} />
                             <Box className="dashed-circle" sx={{
@@ -317,8 +318,8 @@ const ProblemSolution = () => {
                                 width: { md: '450px', lg: '500px' },
                                 height: { md: '450px', lg: '500px' },
                                 borderRadius: '50%',
-                                border: '2px dashed rgba(192, 12, 12, 0.15)',
-                                bgcolor: 'rgba(192, 12, 12, 0.01)'
+                                border: '2px dashed rgba(0, 11, 49, 0.15)',
+                                bgcolor: 'rgba(0, 11, 49, 0.01)'
                             }} />
                         </Box>
                     )}
@@ -373,19 +374,19 @@ const ProblemSolution = () => {
                                         justifyContent: 'center',
                                         textAlign: 'center',
                                         bgcolor: 'white',
-                                        border: '1px solid rgba(192, 12, 12, 0.12)',
-                                        boxShadow: '0 20px 50px rgba(0,0,0,0.08)',
+                                        border: '1px solid rgba(0, 11, 49, 0.12)',
+                                        boxShadow: '0 20px 50px rgba(0, 3, 177, 0.15)',
                                         transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
                                         cursor: 'default',
                                         position: 'relative',
                                         '&:hover': {
                                             transform: { xs: 'translateY(-10px)', md: 'scale(1.05) translateY(-10px)' },
-                                            borderColor: '#C00C0C',
-                                            boxShadow: '0 30px 60px rgba(192, 12, 12, 0.15)',
+                                            borderColor: '#0003b1',
+                                            boxShadow: '0 30px 60px rgba(0, 3, 177, 0.25)',
                                             zIndex: 20,
                                             '& .problem-icon': {
                                                 transform: 'scale(1.1) rotate(5deg)',
-                                                bgcolor: '#C00C0C',
+                                                bgcolor: '#0003b1',
                                                 color: 'white'
                                             }
                                         }
@@ -393,9 +394,9 @@ const ProblemSolution = () => {
                                 >
                                     <Box className="problem-icon" sx={{
                                         p: 2,
-                                        bgcolor: 'rgba(192, 12, 12, 0.05)',
+                                        bgcolor: 'rgba(0, 11, 49, 0.05)',
                                         borderRadius: '50%',
-                                        color: '#C00C0C',
+                                        color: '#0003b1',
                                         mb: 2,
                                         transition: '0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
                                     }}>
@@ -430,24 +431,24 @@ const ProblemSolution = () => {
                         ))}
                     </Grid>
 
-                    {/* Center point indicator - Desktop only */}
+                    {/* Center point indicator - Desktop only - Updated with new theme color */}
                     {!isMobile && (
                         <Box className="gap-circle" sx={{
                             display: { xs: 'none', md: 'flex' },
                             position: 'absolute',
-                            top: '40%', left: '50%',
+                            top: '39%', left: '50%',
                             transform: 'translate(-50%, -50%)',
-                            width: { md: '160px', lg: '180px' },
-                            height: { md: '160px', lg: '180px' },
+                            width: { md: '160px', lg: '150px' },
+                            height: { md: '160px', lg: '150px' },
                             borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)',
+                            background: 'linear-gradient(135deg, black 0%, black 100%)',
                             color: 'white',
                             alignItems: 'center',
                             justifyContent: 'center',
                             textAlign: 'center',
                             zIndex: 3,
-                            boxShadow: '0 0 60px rgba(0, 0, 0, 0.4)',
-                            border: '5px solid #C00C0C'
+                            boxShadow: '0 0 60px rgba(0, 3, 177, 0.3)',
+                            border: '5px solid #0003b1'
                         }}>
                             <Box>
                                 <Typography variant="h6" fontWeight={900} sx={{
@@ -458,30 +459,39 @@ const ProblemSolution = () => {
                                 }}>
                                     THE<br />GAP
                                 </Typography>
-                                <Box sx={{ width: '30px', height: '2px', bgcolor: '#C00C0C', mx: 'auto' }} />
+                                <Box sx={{ width: '30px', height: '2px', bgcolor: '#0003b1', mx: 'auto' }} />
                             </Box>
                         </Box>
                     )}
                 </Box>
 
-                {/* Mission Section */}
+                {/* Mission Section - Updated with new theme color */}
                 <Box sx={{
                     textAlign: 'center',
                     mb: { xs: 8, sm: 10, md: 12 },
                     p: { xs: 4, sm: 6, md: 10 },
-                    bgcolor: '#1a1a1a',
+                    bgcolor: 'white',
                     borderRadius: { xs: '40px', sm: '50px', md: '80px' },
                     color: 'white',
                     position: 'relative',
                     overflow: 'hidden',
-                    boxShadow: '0 30px 60px rgba(0,0,0,0.2)'
+                    boxShadow: '0 10px 10px rgba(0, 3, 177, 0.25)'
                 }}>
-                    <Box sx={{ position: 'absolute', top: '-10%', right: '-5%', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(192, 12, 12, 0.15) 0%, transparent 70%)', zIndex: 0 }} />
+                    <Box sx={{ 
+                        position: 'absolute', 
+                        top: '-10%', 
+                        right: '-5%', 
+                        width: '400px', 
+                        height: '400px', 
+                        borderRadius: '50%', 
+                        background: 'radial-gradient(circle, rgba(0, 11, 49, 0.15) 0%, transparent 70%)', 
+                        zIndex: 0 
+                    }} />
                     <Box sx={{ position: 'relative', zIndex: 1 }}>
                         <Typography
                             variant="overline"
                             sx={{
-                                color: '#C00C0C',
+                                color: '#0003b1',
                                 fontWeight: 900,
                                 letterSpacing: '4px',
                                 fontSize: { xs: '0.75rem', sm: '0.9rem' }
@@ -497,10 +507,11 @@ const ProblemSolution = () => {
                                 mb: 3,
                                 fontFamily: '"Outfit", sans-serif',
                                 fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3.5rem' },
-                                lineHeight: 1.1
+                                lineHeight: 1.1,
+                                color: 'black'
                             }}
                         >
-                            Empowering Communities with <span style={{ color: '#C00C0C' }}>NearZO</span>
+                            Empowering Communities with <span style={{ color: '#0003b1' }}>NearZO</span>
                         </Typography>
                         <Typography
                             variant="h6"
@@ -510,7 +521,9 @@ const ProblemSolution = () => {
                                 maxWidth: '800px',
                                 mx: 'auto',
                                 fontSize: { xs: '1rem', sm: '1.1rem', md: '1.3rem' },
-                                lineHeight: 1.6
+                                lineHeight: 1.6,
+                                color: '#333'
+
                             }}
                         >
                             NearZO connects job seekers, shop owners, and customers on one platform — making local discovery simple, fast, and reliable.
@@ -528,7 +541,7 @@ const ProblemSolution = () => {
                         textAlign: { xs: 'center', md: 'left' }
                     }}>
                         <Typography sx={{
-                            color: '#C00C0C',
+                            color: '#0003b1',
                             fontWeight: 900,
                             mb: 2,
                             letterSpacing: '3px',
@@ -544,7 +557,7 @@ const ProblemSolution = () => {
                             fontFamily: '"Outfit", sans-serif',
                             lineHeight: 1
                         }}>
-                            How <span style={{ color: '#C00C0C' }}>NearZO</span> Works
+                            How <span style={{ color: '#0003b1' }}>NearZO</span> Works
                         </Typography>
                     </Box>
 
@@ -576,12 +589,14 @@ const ProblemSolution = () => {
                                     flexShrink: 0,
                                     bgcolor: '#ffffff',
                                     borderRight: { xs: 'none', md: '1px solid #f0f0f0' },
-
                                     borderRadius: { xs: '32px', md: 0 },
                                     position: 'relative',
                                     p: { xs: 4, sm: 6, md: 10 },
                                     transition: '0.5s',
-                                    border: { xs: '1px solid rgba(192, 12, 12, 0.1)', md: '2px dashed rgba(192, 12, 12, 0.1) ' }
+                                    border: { 
+                                        xs: '1px solid rgba(0, 11, 49, 0.1)', 
+                                        md: '2px dashed rgba(0, 11, 49, 0.1) ' 
+                                    }
                                 }}
                             >
                                 {/* Background Number */}
@@ -623,12 +638,12 @@ const ProblemSolution = () => {
                                             borderRadius: '35%',
                                             color: sol.color,
                                             transition: '0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                                            boxShadow: `0 20px 40px ${sol.color}15`,
+                                            boxShadow: `0 20px 40px rgba(0, 3, 177, 0.15)`,
                                             '&:hover': {
                                                 transform: 'rotate(10deg) scale(1.1)',
                                                 background: sol.color,
                                                 color: 'white',
-                                                boxShadow: `0 30px 60px ${sol.color}40`,
+                                                boxShadow: `0 30px 60px rgba(0, 3, 177, 0.3)`,
                                             }
                                         }}>
                                             {React.cloneElement(sol.icon, {
@@ -711,7 +726,7 @@ const ProblemSolution = () => {
                                         background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)',
                                         borderRadius: '32px',
                                         color: 'white',
-                                        boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+                                        boxShadow: '0 20px 40px rgba(0, 3, 177, 0.25)'
                                     }}>
                                         <Typography
                                             variant="h3"
@@ -768,7 +783,7 @@ const ProblemSolution = () => {
                                     width: index === activeIndex ? '30px' : '8px',
                                     height: '8px',
                                     borderRadius: '4px',
-                                    background: index === activeIndex ? sol.color : 'rgba(0,0,0,0.1)',
+                                    background: index === activeIndex ? sol.color : 'rgba(0, 3, 177, 0.15)',
                                     transition: 'all 0.3s ease'
                                 }}
                             />

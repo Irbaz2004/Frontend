@@ -21,11 +21,35 @@ const Footer = () => {
         bgcolor: '#ffffff',
         pt: { xs: 6, md: 10 },
         pb: 4,
-        borderTop: '1px solid rgba(0,0,0,0.05)',
+        borderTop: '1px solid rgba(0, 11, 49, 0.05)',
         position: 'relative',
         overflow: 'hidden'
       }}
     >
+      {/* Background Decorative Elements */}
+      <Box sx={{
+        position: 'absolute',
+        top: '50%',
+        right: '-5%',
+        width: '300px',
+        height: '300px',
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(0, 11, 49, 0.02) 0%, transparent 70%)',
+        filter: 'blur(60px)',
+        zIndex: 0
+      }} />
+      <Box sx={{
+        position: 'absolute',
+        bottom: '-10%',
+        left: '-5%',
+        width: '250px',
+        height: '250px',
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(0, 11, 49, 0.02) 0%, transparent 70%)',
+        filter: 'blur(50px)',
+        zIndex: 0
+      }} />
+
       <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
         <Grid container spacing={{ xs: 4, md: 8 }} sx={{ mb: 6 }}>
           {/* Logo & About */}
@@ -36,8 +60,20 @@ const Footer = () => {
                 sx={{
                   fontWeight: 900,
                   fontFamily: '"Outfit", sans-serif',
-                  color: '#C00C0C',
-                  fontSize: { xs: '1.5rem', sm: '2rem' }
+                  color: '#0003b1',
+                  fontSize: { xs: '1.5rem', sm: '2rem' },
+                  position: 'relative',
+                  display: 'inline-block',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: -8,
+                    left: 0,
+                    width: '60px',
+                    height: '3px',
+                    background: '#0003b1',
+                    borderRadius: '2px'
+                  }
                 }}
               >
                 NearZO
@@ -57,13 +93,15 @@ const Footer = () => {
                     key={i}
                     aria-label={social.label}
                     sx={{
-                      bgcolor: 'rgba(0,0,0,0.03)',
+                      bgcolor: 'rgba(0, 11, 49, 0.03)',
                       color: '#666',
                       p: { xs: 1, sm: 1.5 },
+                      transition: 'all 0.3s ease',
                       '&:hover': {
-                        bgcolor: '#C00C0C',
+                        bgcolor: '#0003b1',
                         color: 'white',
-                        transform: 'translateY(-3px)'
+                        transform: 'translateY(-3px)',
+                        boxShadow: '0 5px 15px rgba(0, 3, 177, 0.3)'
                       }
                     }}
                   >
@@ -74,21 +112,27 @@ const Footer = () => {
             </Stack>
           </Grid>
 
-          {/* Legal Links */}
+          {/* Quick Links */}
           <Grid item xs={6} md={3}>
             <Typography variant="h6" fontWeight={800} sx={{
               mb: 2,
               fontFamily: '"Outfit", sans-serif',
-              fontSize: { xs: '0.9rem', sm: '1.1rem' }
+              fontSize: { xs: '0.9rem', sm: '1.1rem' },
+              color: '#1a1a1a'
             }}>
-              Legal
+              Quick Links
             </Typography>
             <Stack spacing={1.5}>
-              {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((link) => (
+              {['About Us', 'How It Works', 'Contact Support', 'FAQ'].map((link) => (
                 <Link key={link} href="#" underline="none" sx={{
                   color: '#666',
                   fontSize: { xs: '0.75rem', sm: '0.9rem' },
-                  '&:hover': { color: '#C00C0C' }
+                  transition: 'color 0.2s ease',
+                  '&:hover': { 
+                    color: '#0003b1',
+                    transform: 'translateX(5px)',
+                    display: 'inline-block'
+                  }
                 }}>
                   {link}
                 </Link>
@@ -96,63 +140,36 @@ const Footer = () => {
             </Stack>
           </Grid>
 
-          {/* Download Section */}
+          {/* Legal Links */}
           <Grid item xs={6} md={3}>
             <Typography variant="h6" fontWeight={800} sx={{
               mb: 2,
               fontFamily: '"Outfit", sans-serif',
-              fontSize: { xs: '0.9rem', sm: '1.1rem' }
+              fontSize: { xs: '0.9rem', sm: '1.1rem' },
+              color: '#1a1a1a'
             }}>
-              Download
+              Legal
             </Typography>
-            <Typography variant="body2" sx={{
-              color: '#777',
-              mb: 2,
-              fontSize: { xs: '0.7rem', sm: '0.85rem' }
-            }}>
-              Experience NearZO on your mobile.
-            </Typography>
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 1.5,
-                px: { xs: 2, sm: 3 },
-                py: { xs: 1, sm: 1.5 },
-                bgcolor: '#ffffffff',
-
-                color: '#C00C0C',
-                borderRadius: '100px',
-                cursor: 'pointer',
-                transition: '0.3s',
-                border: '1px solid rgba(192, 12, 12, 0.26)',
-                '&:hover': {
-                  bgcolor: '#C00C0C',
-                  transform: 'translateY(-3px)',
-                  color: 'white',
-                  boxShadow: '0 10px 20px rgba(192, 12, 12, 0.2)'
-                }
-              }}
-              onClick={() => window.__triggerPWAInstall && window.__triggerPWAInstall()}
-            >
-              <GetAppIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />
-              <Typography sx={{
-                fontWeight: 700,
-                fontSize: { xs: '0.75rem', sm: '0.9rem' },
-                whiteSpace: 'nowrap',
-                color: 'inherit',
-                '&:hover': {
-                  color: 'white'
-                }
-              }}>
-
-                Download Now
-              </Typography>
-            </Box>
+            <Stack spacing={1.5}>
+              {['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'GDPR Compliance'].map((link) => (
+                <Link key={link} href="#" underline="none" sx={{
+                  color: '#666',
+                  fontSize: { xs: '0.75rem', sm: '0.9rem' },
+                  transition: 'color 0.2s ease',
+                  '&:hover': { 
+                    color: '#0003b1',
+                    transform: 'translateX(5px)',
+                    display: 'inline-block'
+                  }
+                }}>
+                  {link}
+                </Link>
+              ))}
+            </Stack>
           </Grid>
         </Grid>
 
-        <Divider sx={{ mb: 4, opacity: 0.5 }} />
+        <Divider sx={{ mb: 4, opacity: 0.5, borderColor: 'rgba(0, 11, 49, 0.1)' }} />
 
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
@@ -162,12 +179,67 @@ const Footer = () => {
           textAlign="center"
         >
           <Typography sx={{ color: '#888', fontSize: { xs: '0.7rem', sm: '0.85rem' } }}>
-            © {new Date().getFullYear()} <b>NearZO</b>. All rights reserved.
+            © {new Date().getFullYear()} <b style={{ color: '#0003b1' }}>NearZO</b>. All rights reserved.
           </Typography>
-          <Typography variant="caption" sx={{ color: '#aaa', fontStyle: 'italic', fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+          <Typography variant="caption" sx={{ 
+            color: '#aaa', 
+            fontStyle: 'italic', 
+            fontSize: { xs: '0.65rem', sm: '0.75rem' },
+            '& b': {
+              color: '#0003b1',
+              fontWeight: 800
+            }
+          }}>
             A product by <b>Ruzix</b>
           </Typography>
         </Stack>
+
+        {/* App Download Section */}
+        <Box sx={{
+          display: { xs: 'block', md: 'none' },
+          mt: 4,
+          textAlign: 'center'
+        }}>
+          <Typography variant="body2" sx={{
+            color: '#777',
+            mb: 2,
+            fontSize: { xs: '0.7rem', sm: '0.85rem' }
+          }}>
+            Experience NearZO on your mobile.
+          </Typography>
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1.5,
+              px: { xs: 2, sm: 3 },
+              py: { xs: 1, sm: 1.5 },
+              bgcolor: '#ffffffff',
+              color: '#0003b1',
+              borderRadius: '100px',
+              cursor: 'pointer',
+              transition: '0.3s',
+              border: '1px solid rgba(0, 11, 49, 0.2)',
+              '&:hover': {
+                bgcolor: '#0003b1',
+                transform: 'translateY(-3px)',
+                color: 'white',
+                boxShadow: '0 10px 20px rgba(0, 3, 177, 0.25)'
+              }
+            }}
+            onClick={() => window.__triggerPWAInstall && window.__triggerPWAInstall()}
+          >
+            <GetAppIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />
+            <Typography sx={{
+              fontWeight: 700,
+              fontSize: { xs: '0.75rem', sm: '0.9rem' },
+              whiteSpace: 'nowrap',
+              color: 'inherit'
+            }}>
+              Download Now
+            </Typography>
+          </Box>
+        </Box>
       </Container>
     </Box>
   );

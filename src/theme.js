@@ -3,20 +3,20 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#C00C0C', // Custom Red
-      dark: '#7C2F2F',  // Dark Red
-      light: '#FF4D4D',
+      main: '#0003b1', // Custom Red
+      dark: '#0003b1',  // Dark Red
+      light: '#0003b1',
       contrastText: '#fff',
     },
     background: {
-      default: '#ffffff',
+      default: '#0003b1',
       paper: '#F8F8F8',
     },
     secondary: {
       main: '#1a1a1a', // Dark Gray/Black for contrast
     },
     text: {
-      primary: '#1a1a1a',
+      primary: '#0003b1',
       secondary: '#4a4a4a',
     },
   },
@@ -84,13 +84,13 @@ const theme = createTheme({
           transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
           '&:hover': {
             transform: 'translateY(-4px) scale(1.02)',
-            boxShadow: '0 12px 24px rgba(192, 12, 12, 0.2)',
+            boxShadow: '0 12px 24px rgba(0, 3, 177, 0.15)',
           },
         },
         containedPrimary: {
-          background: 'linear-gradient(135deg, #C00C0C 0%, #8A0909 100%)',
-          boxShadow: '0 8px 20px rgba(192, 12, 12, 0.15)',
-          '&:hover': {
+          background: 'linear-gradient(135deg, #0003b1 0%, #0003b1 100%)',
+              boxShadow: '0 8px 20px rgba(0, 3, 177, 0.15)',
+              '&:hover': {
             background: 'linear-gradient(135deg, #A00A0A 0%, #700707 100%)',
           },
         },
@@ -98,7 +98,7 @@ const theme = createTheme({
           borderWidth: 2,
           '&:hover': {
             borderWidth: 2,
-            backgroundColor: 'rgba(192, 12, 12, 0.03)',
+            backgroundColor: 'rgba(0, 3, 177, 0.03)',
           },
         },
       },

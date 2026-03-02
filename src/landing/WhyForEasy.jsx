@@ -18,8 +18,8 @@ const highlights = [
         title: 'Unified Local Ecosystem',
         desc: 'NearZO isn\'t just an app; it\'s a digital town square. We combine job hunting, service discovery, and local shopping into a single, high-performance interface, saving you time and battery.',
         icon: <HomeIcon sx={{ fontSize: 28 }} />,
-        color: '#C00C0C',
-        gradient: 'linear-gradient(135deg, #C00C0C 0%, #ff6b6b 100%)'
+        color: '#0003b1',
+        gradient: 'linear-gradient(135deg, #0003b1 0%, #1a3b6e 100%)'
     },
     {
         title: 'Precision Hyperlocal Engine',
@@ -137,7 +137,7 @@ const WhyForEasy = () => {
                     gsap.to(item, {
                         scale: 1.02,
                         x: 15,
-                        boxShadow: '0 30px 60px rgba(192, 12, 12, 0.15)',
+                        boxShadow: '0 30px 60px rgba(0, 3, 177, 0.15)',
                         duration: 0.4,
                         ease: 'power2.out'
                     });
@@ -216,7 +216,7 @@ const WhyForEasy = () => {
                 overflow: 'hidden'
             }}
         >
-            {/* Animated Background Elements */}
+            {/* Animated Background Elements - Updated with new theme color */}
             <Box
                 className="gradient-bg"
                 sx={{
@@ -226,7 +226,7 @@ const WhyForEasy = () => {
                     width: '400px',
                     height: '400px',
                     borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(192,12,12,0.05) 0%, transparent 70%)',
+                    background: 'radial-gradient(circle, rgba(0, 11, 49, 0.05) 0%, transparent 70%)',
                     filter: 'blur(60px)',
                     zIndex: 0,
                     animation: 'float 20s infinite alternate'
@@ -241,21 +241,21 @@ const WhyForEasy = () => {
                     width: '500px',
                     height: '500px',
                     borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(192,12,12,0.03) 0%, transparent 70%)',
+                    background: 'radial-gradient(circle, rgba(0, 11, 49, 0.03) 0%, transparent 70%)',
                     filter: 'blur(80px)',
                     zIndex: 0,
                     animation: 'float 25s infinite alternate-reverse'
                 }}
             />
 
-            {/* Decorative Grid Pattern */}
+            {/* Decorative Grid Pattern - Updated with new theme color */}
             <Box sx={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundImage: 'radial-gradient(rgba(192,12,12,0.02) 1px, transparent 1px)',
+                backgroundImage: 'radial-gradient(rgba(0, 11, 49, 0.02) 1px, transparent 1px)',
                 backgroundSize: '50px 50px',
                 opacity: 0.5,
                 zIndex: 0
@@ -276,7 +276,7 @@ const WhyForEasy = () => {
                                 <Typography
                                     variant="overline"
                                     sx={{
-                                        color: '#C00C0C',
+                                        color: '#0003b1',
                                         fontWeight: 900,
                                         letterSpacing: '3px',
                                         fontSize: '0.9rem',
@@ -292,7 +292,7 @@ const WhyForEasy = () => {
                                             left: 0,
                                             width: '40px',
                                             height: '3px',
-                                            background: '#C00C0C',
+                                            background: '#0003b1',
                                             borderRadius: '2px'
                                         }
                                     }}
@@ -317,7 +317,7 @@ const WhyForEasy = () => {
                                     <Box
                                         component="span"
                                         sx={{
-                                            color: '#C00C0C',
+                                            color: '#0003b1',
                                             position: 'relative',
                                             display: 'inline-block',
                                             '&::after': {
@@ -327,7 +327,7 @@ const WhyForEasy = () => {
                                                 left: 0,
                                                 width: '100%',
                                                 height: '8px',
-                                                background: 'rgba(192,12,12,0.2)',
+                                                background: 'rgba(0, 11, 49, 0.2)',
                                                 zIndex: -1
                                             }
                                         }}
@@ -344,7 +344,7 @@ const WhyForEasy = () => {
                                     fontSize: '1.25rem',
                                     color: '#4a4a4a',
                                     lineHeight: 1.7,
-                                    borderLeft: '4px solid #C00C0C',
+                                    borderLeft: '4px solid #0003b1',
                                     pl: 3,
                                     py: 1,
                                     opacity: 1,
@@ -354,10 +354,10 @@ const WhyForEasy = () => {
                                 We aren't just another directory. NearZO is a community engine designed to make local life better, faster, and more rewarding for everyone.
                             </Typography>
 
-                            {/* Stats Counter */}
+                            {/* Stats Counter - Updated with new theme color */}
                             <Stack direction="row" spacing={4} sx={{ mt: 4 }}>
                                 <Box>
-                                    <Typography variant="h3" fontWeight={900} sx={{ color: '#C00C0C' }}>
+                                    <Typography variant="h3" fontWeight={900} sx={{ color: '#0003b1' }}>
                                         10k+
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">
@@ -365,7 +365,7 @@ const WhyForEasy = () => {
                                     </Typography>
                                 </Box>
                                 <Box>
-                                    <Typography variant="h3" fontWeight={900} sx={{ color: '#C00C0C' }}>
+                                    <Typography variant="h3" fontWeight={900} sx={{ color: '#0003b1' }}>
                                         500+
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">
@@ -373,7 +373,7 @@ const WhyForEasy = () => {
                                     </Typography>
                                 </Box>
                                 <Box>
-                                    <Typography variant="h3" fontWeight={900} sx={{ color: '#C00C0C' }}>
+                                    <Typography variant="h3" fontWeight={900} sx={{ color: '#0003b1' }}>
                                         98%
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">
@@ -396,7 +396,6 @@ const WhyForEasy = () => {
                                         p: 4,
                                         bgcolor: 'white',
                                         borderRadius: '24px',
-                                        boxShadow: '0 20px 40px rgba(0,0,0,0.05)',
                                         border: '1px solid rgba(0,0,0,0.05)',
                                         transition: 'all 0.3s ease',
                                         position: 'relative',
@@ -404,6 +403,8 @@ const WhyForEasy = () => {
                                         cursor: 'pointer',
                                         opacity: 1,
                                         visibility: 'visible',
+                                      
+                        
                                         '&::before': {
                                             content: '""',
                                             position: 'absolute',
@@ -411,7 +412,7 @@ const WhyForEasy = () => {
                                             left: 0,
                                             width: '4px',
                                             height: '100%',
-                                            background: item.gradient,
+                                            background: index === 0 ? '#0003b1' : item.gradient,
                                             opacity: 0,
                                             transition: 'opacity 0.3s ease'
                                         },
@@ -431,12 +432,12 @@ const WhyForEasy = () => {
                                                 height: '60px',
                                                 minWidth: '60px',
                                                 borderRadius: '16px',
-                                                background: item.gradient,
+                                                background: index === 0 ? '#0003b1' : item.gradient,
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 color: 'white',
-                                                boxShadow: '0 10px 20px rgba(0,0,0,0.1)',
+                                                boxShadow: '0 10px 20px rgba(0, 3, 177, 0.15)',
                                                 transform: 'rotate(0deg)',
                                                 transition: 'all 0.3s ease',
                                                 opacity: 1,
@@ -483,7 +484,7 @@ const WhyForEasy = () => {
                                                 width: '8px',
                                                 height: '8px',
                                                 borderRadius: '50%',
-                                                background: item.gradient,
+                                                background: index === 0 ? '#0003b1' : item.gradient,
                                                 alignSelf: 'center',
                                                 opacity: 0.5,
                                                 transition: 'all 0.3s ease'
@@ -499,7 +500,7 @@ const WhyForEasy = () => {
                                         width: '150px',
                                         height: '150px',
                                         borderRadius: '50%',
-                                        background: item.gradient,
+                                        background: index === 0 ? '#0003b1' : item.gradient,
                                         opacity: 0.03,
                                         filter: 'blur(40px)',
                                         zIndex: 0,
