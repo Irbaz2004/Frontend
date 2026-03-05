@@ -91,7 +91,8 @@ const theme = createTheme({
           background: 'linear-gradient(135deg, #0003b1 0%, #0003b1 100%)',
               boxShadow: '0 8px 20px rgba(0, 3, 177, 0.15)',
               '&:hover': {
-            background: 'linear-gradient(135deg, #A00A0A 0%, #700707 100%)',
+                background: 'linear-gradient(135deg, #0003b1 0%, #0003b1 100%)',
+                boxShadow: '0 12px 24px rgba(0, 3, 177, 0.25)',
           },
         },
         outlinedPrimary: {

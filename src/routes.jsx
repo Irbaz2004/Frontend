@@ -1,3 +1,4 @@
+// AppRoutes.jsx
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
@@ -17,13 +18,13 @@ import AppLayout from './app/AppLayout';
 // User pages
 import UserHome from './app/user/Home';
 import UserJobs from './app/user/Jobs';
-import UserShops from './app/user/Shops';
-import ShopDetails from './app/user/ShopDetails';
+import UserShops from './app/commonPages/Shops';
+import ShopDetails from './app/commonPages/ShopDetails';
 import AppliedJobs from './app/user/AppliedJobs';
 import Notifications from './app/user/Notifications';
 import UserProfile from './app/user/Profile';
 
-// Shop pages
+// Shop/Business pages
 import ShopDashboard from './app/shop/Dashboard';
 import PostJob from './app/shop/PostJob';
 import MyJobs from './app/shop/MyJobs';
@@ -43,12 +44,24 @@ function ProtectedRoute({ children, allowedRoles }) {
     const token = localStorage.getItem('nearzo_token');
     const role = localStorage.getItem('nearzo_role');
 
-    if (!token) return <Navigate to="/app/login" replace />;
+    console.log('ProtectedRoute - Token:', !!token, 'Role:', role, 'Allowed:', allowedRoles);
+
+    if (!token) {
+        console.log('No token, redirecting to login');
+        return <Navigate to="/app/login" replace />;
+    }
+    
     if (allowedRoles && !allowedRoles.includes(role)) {
+        console.log('Role not allowed, redirecting to appropriate home');
         // Redirect to correct home based on role
-        const roleHome = { user: '/app/user/home', shop: '/app/shop/dashboard', admin: '/app/admin/dashboard' };
+        const roleHome = { 
+            user: '/app/user/home', 
+            business: '/app/business/dashboard', 
+            admin: '/app/admin/dashboard' 
+        };
         return <Navigate to={roleHome[role] || '/app/login'} replace />;
     }
+    
     return children;
 }
 
@@ -72,28 +85,13 @@ function AppRoutes() {
 
                 {/* User Routes */}
                 <Route path="user/home" element={<ProtectedRoute allowedRoles={['user']}><UserHome /></ProtectedRoute>} />
-                <Route path="user/jobs" element={<ProtectedRoute allowedRoles={['user']}><UserJobs /></ProtectedRoute>} />
-                <Route path="user/shops" element={<ProtectedRoute allowedRoles={['user']}><UserShops /></ProtectedRoute>} />
-                <Route path="user/shops/:id" element={<ProtectedRoute allowedRoles={['user']}><ShopDetails /></ProtectedRoute>} />
-                <Route path="user/applied-jobs" element={<ProtectedRoute allowedRoles={['user']}><AppliedJobs /></ProtectedRoute>} />
-                <Route path="user/notifications" element={<ProtectedRoute allowedRoles={['user']}><Notifications /></ProtectedRoute>} />
-                <Route path="user/profile" element={<ProtectedRoute allowedRoles={['user']}><UserProfile /></ProtectedRoute>} />
-
-                {/* Shop Routes */}
-                <Route path="shop/dashboard" element={<ProtectedRoute allowedRoles={['shop']}><ShopDashboard /></ProtectedRoute>} />
-                <Route path="shop/post-job" element={<ProtectedRoute allowedRoles={['shop']}><PostJob /></ProtectedRoute>} />
-                <Route path="shop/my-jobs" element={<ProtectedRoute allowedRoles={['shop']}><MyJobs /></ProtectedRoute>} />
-                <Route path="shop/applications" element={<ProtectedRoute allowedRoles={['shop']}><ShopApplications /></ProtectedRoute>} />
-                <Route path="shop/profile" element={<ProtectedRoute allowedRoles={['shop']}><ShopProfile /></ProtectedRoute>} />
-
+               
+                {/* Business Routes - Note: using 'business' not 'shop' */}
+                <Route path="business/dashboard" element={<ProtectedRoute allowedRoles={['business']}><ShopDashboard /></ProtectedRoute>} />
+              
                 {/* Admin Routes */}
                 <Route path="admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-                <Route path="admin/verify-shops" element={<ProtectedRoute allowedRoles={['admin']}><VerifyShops /></ProtectedRoute>} />
-                <Route path="admin/shops" element={<ProtectedRoute allowedRoles={['admin']}><AdminShops /></ProtectedRoute>} />
-                <Route path="admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
-                <Route path="admin/jobs" element={<ProtectedRoute allowedRoles={['admin']}><AdminJobs /></ProtectedRoute>} />
-                <Route path="admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><Reports /></ProtectedRoute>} />
-            </Route>
+                 </Route>
 
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />

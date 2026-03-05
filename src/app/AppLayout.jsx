@@ -1,3 +1,4 @@
+// AppLayout.jsx
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -7,59 +8,92 @@ import {
     Paper,
     Avatar,
     Typography,
+    Button,
+    CircularProgress
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
-import WorkIcon from '@mui/icons-material/Work';
-import StoreIcon from '@mui/icons-material/Store';
-import PersonIcon from '@mui/icons-material/Person';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import AddBoxIcon from '@mui/icons-material/AddBox';
-import PeopleIcon from '@mui/icons-material/People';
-import VerifiedIcon from '@mui/icons-material/Verified';
-import AssessmentIcon from '@mui/icons-material/Assessment';
 
 // Role-based nav config
 const NAV_CONFIG = {
     user: [
         { label: 'Home', icon: <HomeIcon />, path: '/app/user/home' },
-        { label: 'Jobs', icon: <WorkIcon />, path: '/app/user/jobs' },
-        { label: 'Shops', icon: <StoreIcon />, path: '/app/user/shops' },
-        { label: 'Profile', icon: <PersonIcon />, path: '/app/user/profile' },
     ],
-    shop: [
-        { label: 'Dashboard', icon: <DashboardIcon />, path: '/app/shop/dashboard' },
-        { label: 'Post Job', icon: <AddBoxIcon />, path: '/app/shop/post-job' },
-        { label: 'Applications', icon: <PeopleIcon />, path: '/app/shop/applications' },
-        { label: 'Profile', icon: <PersonIcon />, path: '/app/shop/profile' },
+    business: [
+        { label: 'Dashboard', icon: <DashboardIcon />, path: '/app/business/dashboard' },
     ],
     admin: [
         { label: 'Dashboard', icon: <DashboardIcon />, path: '/app/admin/dashboard' },
-        { label: 'Shops', icon: <StoreIcon />, path: '/app/admin/shops' },
-        { label: 'Verify', icon: <VerifiedIcon />, path: '/app/admin/verify-shops' },
-        { label: 'Users', icon: <PeopleIcon />, path: '/app/admin/users' },
-        { label: 'Reports', icon: <AssessmentIcon />, path: '/app/admin/reports' },
     ],
 };
 
 function AppLayout() {
     const navigate = useNavigate();
     const location = useLocation();
-    const [role, setRole] = useState('user');
+    const [role, setRole] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const stored = localStorage.getItem('nearzo_role') || 'user';
-        setRole(stored);
-    }, []);
+        // Get role from localStorage (set during login)
+        const storedRole = localStorage.getItem('nearzo_role');
+        const token = localStorage.getItem('nearzo_token');
+        
+        console.log('AppLayout - Stored role:', storedRole);
+        console.log('AppLayout - Token exists:', !!token);
+        console.log('AppLayout - Current path:', location.pathname);
+        
+        if (!token || !storedRole) {
+            // No token or role found, redirect to login
+            console.log('No auth found, redirecting to login');
+            navigate('/app/login', { replace: true });
+            return;
+        }
+        
+        setRole(storedRole);
+        setLoading(false);
+    }, [navigate, location.pathname]); // Add location.pathname to dependency array
 
-    const navItems = NAV_CONFIG[role] || NAV_CONFIG.user;
+    // Get navigation items based on role
+    const navItems = role ? (NAV_CONFIG[role] || NAV_CONFIG.user) : [];
 
+    // Find current index based on path
     const currentIndex = navItems.findIndex(item =>
         location.pathname.startsWith(item.path)
     );
 
     const handleNavChange = (_, newValue) => {
-        navigate(navItems[newValue].path);
+        if (navItems[newValue]) {
+            navigate(navItems[newValue].path);
+        }
     };
+
+    const handleLogout = () => {
+        // Clear all auth data
+        localStorage.removeItem('nearzo_token');
+        localStorage.removeItem('nearzo_role');
+        localStorage.removeItem('nearzo_user');
+        navigate('/app/login', { replace: true });
+    };
+
+    // Show loading spinner while checking auth
+    if (loading) {
+        return (
+            <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                minHeight: '100vh',
+                bgcolor: '#F8F8F8'
+            }}>
+                <CircularProgress sx={{ color: '#0003b1' }} />
+            </Box>
+        );
+    }
+
+    // Don't render if no role (will redirect in useEffect)
+    if (!role) {
+        return null;
+    }
 
     return (
         <Box
@@ -67,8 +101,8 @@ function AppLayout() {
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: '100vh',
-                background: '#F8F8F8', // Consistent with landing
-                pb: '80px', // slightly more space for bottom nav
+                background: '#F8F8F8',
+                pb: '80px',
             }}
         >
             {/* Professional App Header */}
@@ -95,24 +129,45 @@ function AppLayout() {
                         letterSpacing: '-1px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 0.5
+                        gap: 0.5,
+                        cursor: 'pointer'
                     }}
+                    onClick={() => navigate('/')}
                 >
                     Near<span style={{ color: '#C00C0C' }}>ZO</span>
                 </Typography>
 
-                <Avatar
-                    sx={{
-                        width: 32,
-                        height: 32,
-                        bgcolor: 'rgba(192, 12, 12, 0.1)',
-                        color: '#C00C0C',
-                        fontSize: '0.8rem',
-                        fontWeight: 700
-                    }}
-                >
-                    {role[0].toUpperCase()}
-                </Avatar>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Typography 
+                        variant="caption" 
+                        sx={{ 
+                            color: '#666',
+                            textTransform: 'capitalize',
+                            display: { xs: 'none', sm: 'block' }
+                        }}
+                    >
+                        {role}
+                    </Typography>
+                    <Avatar
+                        sx={{
+                            width: 32,
+                            height: 32,
+                            bgcolor: 'rgba(192, 12, 12, 0.1)',
+                            color: '#C00C0C',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                                transform: 'scale(1.05)',
+                                bgcolor: 'rgba(192, 12, 12, 0.2)',
+                            }
+                        }}
+                        onClick={() => navigate(`/app/${role}/profile`)}
+                    >
+                        {role ? role[0].toUpperCase() : 'U'}
+                    </Avatar>
+                </Box>
             </Box>
 
             {/* Page Content */}
@@ -140,6 +195,7 @@ function AppLayout() {
                 <BottomNavigation
                     value={currentIndex >= 0 ? currentIndex : 0}
                     onChange={handleNavChange}
+                    showLabels
                     sx={{
                         height: 70,
                         background: 'transparent',
@@ -154,11 +210,16 @@ function AppLayout() {
                                     fontWeight: 800,
                                 }
                             },
+                            '&:hover': {
+                                color: '#C00C0C',
+                                transform: 'translateY(-2px)',
+                            }
                         },
                         '& .MuiBottomNavigationAction-label': {
                             fontFamily: '"Outfit", sans-serif',
                             fontSize: '0.7rem',
                             fontWeight: 600,
+                            mt: 0.5,
                         },
                     }}
                 >
@@ -171,6 +232,37 @@ function AppLayout() {
                     ))}
                 </BottomNavigation>
             </Paper>
+
+            {/* Optional: Add a logout button for development */}
+            {process.env.NODE_ENV === 'development' && (
+                <Box
+                    sx={{
+                        position: 'fixed',
+                        bottom: 100,
+                        right: 20,
+                        zIndex: 2000,
+                    }}
+                >
+                    <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleLogout}
+                        sx={{
+                            borderRadius: '20px',
+                            borderColor: '#ccc',
+                            color: '#666',
+                            fontSize: '0.7rem',
+                            bgcolor: 'white',
+                            '&:hover': {
+                                borderColor: '#C00C0C',
+                                color: '#C00C0C',
+                            }
+                        }}
+                    >
+                        Logout (Dev)
+                    </Button>
+                </Box>
+            )}
         </Box>
     );
 }

@@ -1,9 +1,9 @@
 import React from 'react'
 
-export default function VerifyShops() {
+export default function Shops() {
   return (
     <div>
-      Verify Shops
+      Shops List
     </div>
   )
 }
