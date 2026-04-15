@@ -28,7 +28,9 @@ const Hero = () => {
 
     useEffect(() => {
         // Force tags to be visible after mount
-        setTagsVisible(true);
+        setTimeout(() => {
+            setTagsVisible(true);
+        }, 100);
 
         const ctx = gsap.context(() => {
             // Entry Animation
@@ -110,11 +112,12 @@ const Hero = () => {
                 backdropFilter: 'blur(10px)',
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
                 border: '1px solid rgba(50, 95, 236, 0.2)',
-                zIndex: 999,
+                zIndex: 9999,
                 cursor: 'default',
                 transition: 'all 0.3s ease',
                 opacity: tagsVisible ? 1 : 0,
                 visibility: tagsVisible ? 'visible' : 'hidden',
+                pointerEvents: 'auto',
                 '&:hover': {
                     transform: 'translateY(-4px) scale(1.05)',
                     boxShadow: '0 15px 40px rgba(50, 95, 236, 0.15)',
@@ -147,7 +150,7 @@ const Hero = () => {
                 left: { xs: '50%', md: '60%' },
                 transform: 'translate(-50%, -50%)',
                 width: { xs: '240px', sm: '260px', md: '300px' },
-                zIndex: 5,
+                zIndex: 10,
             }}
         >
             {/* Phone Frame */}
@@ -207,14 +210,12 @@ const Hero = () => {
             sx={{
                 pt: { xs: 4, md: 12 },
                 pb: { xs: 4, md: 12 },
-                overflow: 'hidden',
+                overflow: 'visible',
                 position: 'relative',
                 minHeight: { xs: 'auto', md: '100vh' },
                 background: '#ffffff',
             }}
         >
-           
-
             {/* Logo Background - Hidden on mobile */}
             {!isMobile && (
                 <Box
@@ -356,7 +357,7 @@ const Hero = () => {
                     </Grid>
 
                     {/* Phone with GIF - Right side */}
-                    <Grid item xs={12} md={6}ml={{xs:24,md:30}}>
+                    <Grid item xs={12} md={6}ml={{xs:23,md:30}}>
                         {!isMobile ? (
                             <Box
                                 ref={phoneContainerRef}
@@ -398,33 +399,46 @@ const Hero = () => {
                             <Box
                                 sx={{
                                     position: 'relative',
-                                    height: '520px',
+                                    height: '550px',
                                     width: '100%',
                                     mt: 2,
                                     mb: 2,
+                                    overflow: 'visible',
                                 }}
                             >
-                                {/* Floating Tags around phone on mobile - Adjusted positions */}
+                                {/* Floating Tags around phone on mobile - Adjusted positions with higher z-index */}
                                 <FloatingTag
                                     icon={<HomeIcon />}
                                     text="Local Jobs"
-                                    top="5%"
-                                    left="5%"
+                                    top="0%"
+                                    left="0%"
+                                    customSx={{
+                                        zIndex: 9999,
+                                        position: 'absolute',
+                                    }}
                                 />
 
                                 <FloatingTag
                                     icon={<LocalMallIcon />}
                                     text="Nearby Shops"
                                     top="35%"
-                                    right="5%"
+                                    right="0%"
                                     left="auto"
+                                    customSx={{
+                                        zIndex: 9999,
+                                        position: 'absolute',
+                                    }}
                                 />
 
                                 <FloatingTag
                                     icon={<WorkIcon />}
                                     text="Hire Locally"
-                                    bottom="8%"
-                                    left="8%"
+                                    bottom="0%"
+                                    left="5%"
+                                    customSx={{
+                                        zIndex: 9999,
+                                        position: 'absolute',
+                                    }}
                                 />
 
                                 {/* Phone Frame for Mobile */}
@@ -440,18 +454,35 @@ const Hero = () => {
                     @media (max-width: 768px) {
                         .floating-tag {
                             min-width: 110px !important;
-                            padding: 6px 14px !important;
-                            z-index: 999 !important;
+                            padding: 8px 14px !important;
+                            z-index: 9999 !important;
                             display: flex !important;
                             visibility: visible !important;
+                            opacity: 1 !important;
+                            position: absolute !important;
+                            background: rgba(255, 255, 255, 0.98) !important;
+                            backdropFilter: blur(12px) !important;
+                            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
                         }
                     }
                     
                     @media (max-width: 480px) {
                         .floating-tag {
-                            min-width: 125px !important;
-                            padding: 4px 10px !important;
+                            min-width: 100px !important;
+                            padding: 6px 12px !important;
                         }
+                        .floating-tag .MuiTypography-root {
+                            font-size: 0.7rem !important;
+                        }
+                    }
+                    
+                    /* Ensure container doesn't clip floating tags */
+                    .MuiGrid-root {
+                        overflow: visible !important;
+                    }
+                    
+                    .MuiContainer-root {
+                        overflow: visible !important;
                     }
                 `}
             </style>

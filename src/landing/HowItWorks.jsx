@@ -323,19 +323,7 @@ const HowItWorks = () => {
                                         }
                                     }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                                            <Box sx={{
-                                                width: 40,
-                                                height: 40,
-                                                borderRadius: '16px',
-                                                backgroundColor: 'rgba(50, 95, 236, 0.1)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                fontSize: '1.4rem',
-                                                color: '#325fec'
-                                            }}>
-                                                {step.icon}
-                                            </Box>
+                                         
                                             <Typography variant="h4" sx={{
                                                 color: '#325fec',
                                                 fontWeight: 900,
