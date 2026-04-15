@@ -48,7 +48,7 @@ const solutions = [
         subtitle: 'Near you',
         desc: 'Search anything — egg sandwich, pharmacy, mechanic — and see results around you.',
         icon: <MyLocationIcon />,
-        color: '#2196F3',
+        color: '#325fec',
         stats: 'Real-time',
         statLabel: 'GPS Results',
         features: ['Nearby Search', 'Map View', 'Instant Call']
@@ -73,6 +73,8 @@ const ProblemSolution = () => {
     const titleRef = useRef(null);
     const problemCardsRef = useRef([]);
     const solutionCardsRef = useRef([]);
+    const radarRef = useRef(null);
+    const mobileRadarRef = useRef(null);
     const [activeIndex, setActiveIndex] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
 
@@ -149,6 +151,28 @@ const ProblemSolution = () => {
                     duration: 40,
                     repeat: -1,
                     ease: "none"
+                });
+            }
+
+            // Radar animation - Desktop
+            if (radarRef.current && !isMobile) {
+                gsap.to(radarRef.current, {
+                    rotation: 360,
+                    duration: 4,
+                    repeat: -1,
+                    ease: "none",
+                    transformOrigin: "center center"
+                });
+            }
+
+            // Radar animation - Mobile (smaller and faster)
+            if (mobileRadarRef.current && isMobile) {
+                gsap.to(mobileRadarRef.current, {
+                    rotation: 360,
+                    duration: 3,
+                    repeat: -1,
+                    ease: "none",
+                    transformOrigin: "center center"
                 });
             }
 
@@ -229,12 +253,12 @@ const ProblemSolution = () => {
 
     return (
         <Box ref={sectionRef} sx={{ bgcolor: '#ffffff', position: 'relative', overflow: 'hidden' }}>
-            {/* Background Pattern - Updated to use new theme color */}
+            {/* Background Pattern */}
             <Box sx={{
                 position: 'absolute',
                 top: 0, left: 0, right: 0, bottom: 0,
-                background: `radial-gradient(circle at 10% 20%, rgba(0, 11, 49, 0.02) 0%, transparent 30%), 
-                             radial-gradient(circle at 90% 80%, rgba(0, 11, 49, 0.02) 0%, transparent 30%)`,
+                background: `radial-gradient(circle at 10% 20%, rgba(50, 95, 236, 0.02) 0%, transparent 30%), 
+                             radial-gradient(circle at 90% 80%, rgba(50, 95, 236, 0.02) 0%, transparent 30%)`,
                 pointerEvents: 'none',
                 zIndex: 0,
             }} />
@@ -245,10 +269,11 @@ const ProblemSolution = () => {
                     <Typography
                         variant="overline"
                         sx={{
-                            color: '#0003b1',
+                            color: '#325fec',
                             fontWeight: 800,
                             letterSpacing: { xs: '1px', sm: '2px' },
-                            fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' }
+                            fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' },
+                            fontFamily: '"Inter", sans-serif',
                         }}
                     >
                         LOCAL PROBLEM
@@ -260,11 +285,11 @@ const ProblemSolution = () => {
                             color: '#1a1a1a',
                             mt: 1,
                             fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3rem', lg: '3.5rem' },
-                            fontFamily: '"Outfit", sans-serif',
+                            fontFamily: '"Alumni Sans", sans-serif',
                             px: { xs: 2, sm: 0 }
                         }}
                     >
-                        Solving the <span style={{ color: '#0003b1' }}>Hyperlocal Problem</span>
+                        Solving the <span style={{ color: '#325fec' }}>Hyperlocal Problem</span>
                     </Typography>
                 </Box>
 
@@ -277,7 +302,7 @@ const ProblemSolution = () => {
                     alignItems: 'center',
                     justifyContent: 'center'
                 }}>
-                    {/* Background Circles - Hide on mobile - Updated with new theme color */}
+                    {/* Background Circles - Hide on mobile */}
                     {!isMobile && (
                         <Box sx={{
                             display: { xs: 'none', md: 'block' },
@@ -295,8 +320,8 @@ const ProblemSolution = () => {
                                 width: { md: '450px', lg: '500px' },
                                 height: { md: '450px', lg: '500px' },
                                 borderRadius: '50%',
-                                border: '2px dashed rgba(0, 11, 49, 0.15)',
-                                bgcolor: 'rgba(0, 11, 49, 0.01)'
+                                border: '2px dashed rgba(50, 95, 236, 0.15)',
+                                bgcolor: 'rgba(50, 95, 236, 0.01)'
                             }} />
                             <Box className="dashed-circle" sx={{
                                 position: 'absolute',
@@ -306,8 +331,8 @@ const ProblemSolution = () => {
                                 width: { md: '450px', lg: '500px' },
                                 height: { md: '450px', lg: '500px' },
                                 borderRadius: '50%',
-                                border: '2px dashed rgba(0, 11, 49, 0.15)',
-                                bgcolor: 'rgba(0, 11, 49, 0.01)',
+                                border: '2px dashed rgba(50, 95, 236, 0.15)',
+                                bgcolor: 'rgba(50, 95, 236, 0.01)',
                                 animationDirection: 'reverse'
                             }} />
                             <Box className="dashed-circle" sx={{
@@ -318,8 +343,8 @@ const ProblemSolution = () => {
                                 width: { md: '450px', lg: '500px' },
                                 height: { md: '450px', lg: '500px' },
                                 borderRadius: '50%',
-                                border: '2px dashed rgba(0, 11, 49, 0.15)',
-                                bgcolor: 'rgba(0, 11, 49, 0.01)'
+                                border: '2px dashed rgba(50, 95, 236, 0.15)',
+                                bgcolor: 'rgba(50, 95, 236, 0.01)'
                             }} />
                         </Box>
                     )}
@@ -350,10 +375,8 @@ const ProblemSolution = () => {
                                     justifyContent: 'center',
                                     zIndex: 2,
                                     ...(isMobile ? {
-                                        // Mobile: normal grid layout
                                         mb: 2
                                     } : {
-                                        // Desktop: absolute positioning for overlapping circles effect
                                         position: 'absolute',
                                         ...(index === 0 && { top: '5%', left: { md: '0%', lg: '10%' } }),
                                         ...(index === 1 && { top: '5%', right: { md: '0%', lg: '10%' } }),
@@ -374,19 +397,19 @@ const ProblemSolution = () => {
                                         justifyContent: 'center',
                                         textAlign: 'center',
                                         bgcolor: 'white',
-                                        border: '1px solid rgba(0, 11, 49, 0.12)',
-                                        boxShadow: '0 20px 50px rgba(0, 3, 177, 0.15)',
+                                        border: '1px solid rgba(50, 95, 236, 0.12)',
+                                        boxShadow: '0 20px 50px rgba(50, 95, 236, 0.1)',
                                         transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
                                         cursor: 'default',
                                         position: 'relative',
                                         '&:hover': {
                                             transform: { xs: 'translateY(-10px)', md: 'scale(1.05) translateY(-10px)' },
-                                            borderColor: '#0003b1',
-                                            boxShadow: '0 30px 60px rgba(0, 3, 177, 0.25)',
+                                            borderColor: '#325fec',
+                                            boxShadow: '0 30px 60px rgba(50, 95, 236, 0.15)',
                                             zIndex: 20,
                                             '& .problem-icon': {
                                                 transform: 'scale(1.1) rotate(5deg)',
-                                                bgcolor: '#0003b1',
+                                                bgcolor: '#325fec',
                                                 color: 'white'
                                             }
                                         }
@@ -394,9 +417,9 @@ const ProblemSolution = () => {
                                 >
                                     <Box className="problem-icon" sx={{
                                         p: 2,
-                                        bgcolor: 'rgba(0, 11, 49, 0.05)',
+                                        bgcolor: 'rgba(50, 95, 236, 0.05)',
                                         borderRadius: '50%',
-                                        color: '#0003b1',
+                                        color: '#325fec',
                                         mb: 2,
                                         transition: '0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
                                     }}>
@@ -406,7 +429,7 @@ const ProblemSolution = () => {
                                         variant="h6"
                                         fontWeight={900}
                                         sx={{
-                                            fontFamily: '"Outfit", sans-serif',
+                                            fontFamily: '"Alumni Sans", sans-serif',
                                             mb: 1.5,
                                             fontSize: { xs: '1.2rem', md: '1.3rem', lg: '1.5rem' },
                                             lineHeight: 1.2
@@ -421,7 +444,8 @@ const ProblemSolution = () => {
                                             maxWidth: '240px',
                                             fontSize: { xs: '0.85rem', sm: '0.9rem', lg: '1rem' },
                                             lineHeight: 1.6,
-                                            fontWeight: 400
+                                            fontWeight: 400,
+                                            fontFamily: '"Inter", sans-serif',
                                         }}
                                     >
                                         {prob.desc}
@@ -431,7 +455,7 @@ const ProblemSolution = () => {
                         ))}
                     </Grid>
 
-                    {/* Center point indicator - Desktop only - Updated with new theme color */}
+                    {/* Center point indicator - Desktop only */}
                     {!isMobile && (
                         <Box className="gap-circle" sx={{
                             display: { xs: 'none', md: 'flex' },
@@ -441,60 +465,368 @@ const ProblemSolution = () => {
                             width: { md: '160px', lg: '150px' },
                             height: { md: '160px', lg: '150px' },
                             borderRadius: '50%',
-                            background: 'linear-gradient(135deg, black 0%, black 100%)',
+                            backgroundColor: '#1a1a1a',
                             color: 'white',
                             alignItems: 'center',
                             justifyContent: 'center',
                             textAlign: 'center',
                             zIndex: 3,
-                            boxShadow: '0 0 60px rgba(0, 3, 177, 0.3)',
-                            border: '5px solid #0003b1'
+                            boxShadow: '0 0 60px rgba(50, 95, 236, 0.2)',
+                            border: '5px solid #325fec'
                         }}>
                             <Box>
                                 <Typography variant="h6" fontWeight={900} sx={{
                                     fontSize: { md: '1.1rem', lg: '1.3rem' },
                                     lineHeight: 1,
                                     letterSpacing: '2px',
-                                    mb: 0.5
+                                    mb: 0.5,
+                                    fontFamily: '"Alumni Sans", sans-serif',
                                 }}>
                                     THE<br />GAP
                                 </Typography>
-                                <Box sx={{ width: '30px', height: '2px', bgcolor: '#0003b1', mx: 'auto' }} />
+                                <Box sx={{ width: '30px', height: '2px', bgcolor: '#325fec', mx: 'auto' }} />
                             </Box>
                         </Box>
                     )}
                 </Box>
 
-                {/* Mission Section - Updated with new theme color */}
+                {/* Mission Section - Responsive Radar Animation */}
                 <Box sx={{
                     textAlign: 'center',
                     mb: { xs: 8, sm: 10, md: 12 },
                     p: { xs: 4, sm: 6, md: 10 },
-                    bgcolor: 'white',
+                    bgcolor: '#f8f9fa',
                     borderRadius: { xs: '40px', sm: '50px', md: '80px' },
-                    color: 'white',
                     position: 'relative',
                     overflow: 'hidden',
-                    boxShadow: '0 10px 10px rgba(0, 3, 177, 0.25)'
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
+                    border: '1px solid rgba(50, 95, 236, 0.1)'
                 }}>
-                    <Box sx={{ 
-                        position: 'absolute', 
-                        top: '-10%', 
-                        right: '-5%', 
-                        width: '400px', 
-                        height: '400px', 
-                        borderRadius: '50%', 
-                        background: 'radial-gradient(circle, rgba(0, 11, 49, 0.15) 0%, transparent 70%)', 
-                        zIndex: 0 
-                    }} />
+                    {/* Desktop Radar Circles - Hidden on mobile */}
+                    {!isMobile && (
+                        <>
+                            <Box sx={{
+                                position: 'absolute',
+                                top: '-50%',
+                                right: '-10%',
+                                width: '500px',
+                                height: '500px',
+                                borderRadius: '50%',
+                                zIndex: 0,
+                            }}>
+                                {/* Outer White Circle */}
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '100%',
+                                    height: '100%',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                    border: '2px solid rgba(255, 255, 255, 0.15)',
+                                    animation: 'rotateConcentric 20s linear infinite',
+                                }} />
+                                
+                                {/* #325fec Circle */}
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '380px',
+                                    height: '380px',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'rgba(50, 95, 236, 0.15)',
+                                    border: '2px solid rgba(50, 95, 236, 0.3)',
+                                    animation: 'rotateConcentric 15s linear infinite reverse',
+                                }} />
+                                
+                                {/* Inner White Circle */}
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '280px',
+                                    height: '280px',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                                    border: '2px solid rgba(255, 255, 255, 0.2)',
+                                    animation: 'rotateConcentric 12s linear infinite',
+                                }} />
+                                
+                                {/* Inner #325fec Circle */}
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '200px',
+                                    height: '200px',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'rgba(50, 95, 236, 0.2)',
+                                    border: '2px solid rgba(50, 95, 236, 0.4)',
+                                    animation: 'rotateConcentric 10s linear infinite reverse',
+                                }} />
+                                
+                                {/* Center White Circle */}
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '120px',
+                                    height: '120px',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                                    border: '2px solid rgba(255, 255, 255, 0.25)',
+                                    animation: 'rotateConcentric 8s linear infinite',
+                                }} />
+                                
+                                {/* Center #325fec Core */}
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '50px',
+                                    height: '50px',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'rgba(50, 95, 236, 0.3)',
+                                    border: '2px solid rgba(50, 95, 236, 0.5)',
+                                    animation: 'rotateConcentric 6s linear infinite reverse',
+                                }} />
+
+                                {/* Radar Signal Sweep */}
+                                <Box
+                                    ref={radarRef}
+                                    sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        width: '100%',
+                                        height: '100%',
+                                        borderRadius: '50%',
+                                        background: 'conic-gradient(from 0deg, transparent 0deg, rgba(50, 95, 236, 0.3) 10deg, transparent 20deg)',
+                                        transform: 'translate(-50%, -50%)',
+                                        pointerEvents: 'none',
+                                    }}
+                                />
+
+                                {/* Radar Pulse Rings */}
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    width: '100%',
+                                    height: '100%',
+                                    borderRadius: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    pointerEvents: 'none',
+                                }}>
+                                    <Box sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        width: '100%',
+                                        height: '100%',
+                                        borderRadius: '50%',
+                                        boxShadow: '0 0 0 0 rgba(50, 95, 236, 0.4)',
+                                        animation: 'radarPulse 2s ease-out infinite',
+                                    }} />
+                                    <Box sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        width: '100%',
+                                        height: '100%',
+                                        borderRadius: '50%',
+                                        boxShadow: '0 0 0 0 rgba(50, 95, 236, 0.3)',
+                                        animation: 'radarPulse 2s ease-out infinite 0.6s',
+                                    }} />
+                                    <Box sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        width: '100%',
+                                        height: '100%',
+                                        borderRadius: '50%',
+                                        boxShadow: '0 0 0 0 rgba(50, 95, 236, 0.2)',
+                                        animation: 'radarPulse 2s ease-out infinite 1.2s',
+                                    }} />
+                                </Box>
+                            </Box>
+
+                            {/* Additional decorative circle on bottom-left */}
+                            <Box sx={{
+                                position: 'absolute',
+                                bottom: '-30%',
+                                left: '-5%',
+                                width: '300px',
+                                height: '300px',
+                                borderRadius: '50%',
+                                zIndex: 0,
+                            }}>
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '100%',
+                                    height: '100%',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                                    border: '2px solid rgba(255, 255, 255, 0.1)',
+                                    animation: 'rotateConcentric 18s linear infinite reverse',
+                                }} />
+                            </Box>
+                        </>
+                    )}
+
+                    {/* Mobile Radar - Smaller and centered */}
+                    {isMobile && (
+                        <>
+                            <Box sx={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                width: '280px',
+                                height: '280px',
+                                borderRadius: '50%',
+                                zIndex: 0,
+                            }}>
+                                {/* Mobile Radar Circles - Smaller */}
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '100%',
+                                    height: '100%',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    animation: 'rotateConcentric 15s linear infinite',
+                                }} />
+                                
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '200px',
+                                    height: '200px',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'rgba(50, 95, 236, 0.1)',
+                                    border: '1px solid rgba(50, 95, 236, 0.2)',
+                                    animation: 'rotateConcentric 12s linear infinite reverse',
+                                }} />
+                                
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '130px',
+                                    height: '130px',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                                    animation: 'rotateConcentric 8s linear infinite',
+                                }} />
+                                
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '70px',
+                                    height: '70px',
+                                    borderRadius: '50%',
+                                    backgroundColor: 'rgba(50, 95, 236, 0.15)',
+                                    border: '1px solid rgba(50, 95, 236, 0.25)',
+                                    animation: 'rotateConcentric 5s linear infinite reverse',
+                                }} />
+
+                                {/* Mobile Radar Signal Sweep */}
+                                <Box
+                                    ref={mobileRadarRef}
+                                    sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        width: '100%',
+                                        height: '100%',
+                                        borderRadius: '50%',
+                                        background: 'conic-gradient(from 0deg, transparent 0deg, rgba(50, 95, 236, 0.25) 15deg, transparent 30deg)',
+                                        transform: 'translate(-50%, -50%)',
+                                        pointerEvents: 'none',
+                                    }}
+                                />
+
+                                {/* Mobile Radar Pulse Rings */}
+                                <Box sx={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    width: '100%',
+                                    height: '100%',
+                                    borderRadius: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    pointerEvents: 'none',
+                                }}>
+                                    <Box sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        width: '100%',
+                                        height: '100%',
+                                        borderRadius: '50%',
+                                        boxShadow: '0 0 0 0 rgba(50, 95, 236, 0.3)',
+                                        animation: 'radarPulseMobile 2s ease-out infinite',
+                                    }} />
+                                    <Box sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        width: '100%',
+                                        height: '100%',
+                                        borderRadius: '50%',
+                                        boxShadow: '0 0 0 0 rgba(50, 95, 236, 0.2)',
+                                        animation: 'radarPulseMobile 2s ease-out infinite 0.6s',
+                                    }} />
+                                    <Box sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        width: '100%',
+                                        height: '100%',
+                                        borderRadius: '50%',
+                                        boxShadow: '0 0 0 0 rgba(50, 95, 236, 0.15)',
+                                        animation: 'radarPulseMobile 2s ease-out infinite 1.2s',
+                                    }} />
+                                </Box>
+                            </Box>
+                        </>
+                    )}
+
                     <Box sx={{ position: 'relative', zIndex: 1 }}>
                         <Typography
                             variant="overline"
                             sx={{
-                                color: '#0003b1',
+                                color: '#325fec',
                                 fontWeight: 900,
                                 letterSpacing: '4px',
-                                fontSize: { xs: '0.75rem', sm: '0.9rem' }
+                                fontSize: { xs: '0.75rem', sm: '0.9rem' },
+                                fontFamily: '"Inter", sans-serif',
                             }}
                         >
                             OUR MISSION
@@ -505,13 +837,13 @@ const ProblemSolution = () => {
                                 fontWeight: 900,
                                 mt: 3,
                                 mb: 3,
-                                fontFamily: '"Outfit", sans-serif',
+                                fontFamily: '"Alumni Sans", sans-serif',
                                 fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3.5rem' },
                                 lineHeight: 1.1,
                                 color: 'black'
                             }}
                         >
-                            Empowering Communities with <span style={{ color: '#0003b1' }}>NearZO</span>
+                            Empowering Communities with <span style={{ color: '#325fec' }}>NearZO</span>
                         </Typography>
                         <Typography
                             variant="h6"
@@ -522,8 +854,8 @@ const ProblemSolution = () => {
                                 mx: 'auto',
                                 fontSize: { xs: '1rem', sm: '1.1rem', md: '1.3rem' },
                                 lineHeight: 1.6,
-                                color: '#333'
-
+                                color: '#5a6e8a',
+                                fontFamily: '"Inter", sans-serif',
                             }}
                         >
                             NearZO connects job seekers, shop owners, and customers on one platform — making local discovery simple, fast, and reliable.
@@ -541,11 +873,12 @@ const ProblemSolution = () => {
                         textAlign: { xs: 'center', md: 'left' }
                     }}>
                         <Typography sx={{
-                            color: '#0003b1',
+                            color: '#325fec',
                             fontWeight: 900,
                             mb: 2,
                             letterSpacing: '3px',
-                            fontSize: { xs: '0.8rem', sm: '0.9rem' }
+                            fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                            fontFamily: '"Inter", sans-serif',
                         }}>
                             OUR SOLUTIONS
                         </Typography>
@@ -554,10 +887,10 @@ const ProblemSolution = () => {
                             fontWeight: 900,
                             mb: 2,
                             color: '#1a1a1a',
-                            fontFamily: '"Outfit", sans-serif',
+                            fontFamily: '"Alumni Sans", sans-serif',
                             lineHeight: 1
                         }}>
-                            How <span style={{ color: '#0003b1' }}>NearZO</span> Works
+                            How <span style={{ color: '#325fec' }}>NearZO</span> Works
                         </Typography>
                     </Box>
 
@@ -571,7 +904,6 @@ const ProblemSolution = () => {
                             px: { xs: 2, md: 0 },
                         }}
                     >
-                        {/* Spacer for start - reduced for better framing */}
                         <Box sx={{ width: { xs: 0, md: '2vw' }, display: { xs: 'none', md: 'block' } }} />
 
                         {solutions.map((sol, index) => (
@@ -594,12 +926,11 @@ const ProblemSolution = () => {
                                     p: { xs: 4, sm: 6, md: 10 },
                                     transition: '0.5s',
                                     border: { 
-                                        xs: '1px solid rgba(0, 11, 49, 0.1)', 
-                                        md: '2px dashed rgba(0, 11, 49, 0.1) ' 
+                                        xs: '1px solid rgba(50, 95, 236, 0.1)', 
+                                        md: '2px dashed rgba(50, 95, 236, 0.1)' 
                                     }
                                 }}
                             >
-                                {/* Background Number */}
                                 <Typography sx={{
                                     fontSize: { xs: '6rem', sm: '10rem', md: '12rem', lg: '15rem' },
                                     fontWeight: 900,
@@ -611,12 +942,11 @@ const ProblemSolution = () => {
                                     whiteSpace: 'nowrap',
                                     zIndex: 0,
                                     pointerEvents: 'none',
-                                    fontFamily: '"Outfit", sans-serif'
+                                    fontFamily: '"Alumni Sans", sans-serif'
                                 }}>
                                     0{index + 1}
                                 </Typography>
 
-                                {/* Content Wrapper */}
                                 <Box className="solution-content" sx={{
                                     zIndex: 1,
                                     textAlign: 'center',
@@ -634,16 +964,16 @@ const ProblemSolution = () => {
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            background: `linear-gradient(135deg, ${sol.color}20 0%, ${sol.color}05 100%)`,
+                                            backgroundColor: `${sol.color}10`,
                                             borderRadius: '35%',
                                             color: sol.color,
                                             transition: '0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                                            boxShadow: `0 20px 40px rgba(0, 3, 177, 0.15)`,
+                                            boxShadow: `0 20px 40px rgba(50, 95, 236, 0.1)`,
                                             '&:hover': {
                                                 transform: 'rotate(10deg) scale(1.1)',
-                                                background: sol.color,
+                                                backgroundColor: sol.color,
                                                 color: 'white',
-                                                boxShadow: `0 30px 60px rgba(0, 3, 177, 0.3)`,
+                                                boxShadow: `0 30px 60px rgba(50, 95, 236, 0.15)`,
                                             }
                                         }}>
                                             {React.cloneElement(sol.icon, {
@@ -661,7 +991,8 @@ const ProblemSolution = () => {
                                             letterSpacing: '4px',
                                             mb: 1.5,
                                             display: 'block',
-                                            fontSize: '0.9rem'
+                                            fontSize: '0.9rem',
+                                            fontFamily: '"Inter", sans-serif',
                                         }}
                                     >
                                         {sol.subtitle}
@@ -672,23 +1003,23 @@ const ProblemSolution = () => {
                                         fontWeight: 900,
                                         color: '#1a1a1a',
                                         mb: 2,
-                                        fontFamily: '"Outfit", sans-serif',
+                                        fontFamily: '"Alumni Sans", sans-serif',
                                         lineHeight: 1.1
                                     }}>
                                         {sol.title}
                                     </Typography>
 
                                     <Typography sx={{
-                                        color: '#444',
+                                        color: '#5a6e8a',
                                         mb: 5,
                                         fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' },
                                         lineHeight: 1.7,
-                                        fontWeight: 400
+                                        fontWeight: 400,
+                                        fontFamily: '"Inter", sans-serif',
                                     }}>
                                         {sol.desc}
                                     </Typography>
 
-                                    {/* Features Display */}
                                     <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap" useFlexGap sx={{ mb: 5 }}>
                                         {sol.features.map((feature, idx) => (
                                             <Box
@@ -702,6 +1033,7 @@ const ProblemSolution = () => {
                                                     color: '#666',
                                                     fontWeight: 600,
                                                     fontSize: '0.85rem',
+                                                    fontFamily: '"Inter", sans-serif',
                                                     transition: '0.3s',
                                                     '&:hover': {
                                                         bgcolor: sol.color,
@@ -716,17 +1048,16 @@ const ProblemSolution = () => {
                                         ))}
                                     </Stack>
 
-                                    {/* Stats Summary */}
                                     <Box sx={{
                                         display: 'inline-flex',
                                         flexDirection: 'column',
                                         alignItems: 'center',
                                         p: 3,
                                         px: 5,
-                                        background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)',
+                                        backgroundColor: '#1a1a1a',
                                         borderRadius: '32px',
                                         color: 'white',
-                                        boxShadow: '0 20px 40px rgba(0, 3, 177, 0.25)'
+                                        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)'
                                     }}>
                                         <Typography
                                             variant="h3"
@@ -734,7 +1065,8 @@ const ProblemSolution = () => {
                                             sx={{
                                                 color: sol.color,
                                                 fontSize: { xs: '2rem', sm: '2.5rem' },
-                                                lineHeight: 1
+                                                lineHeight: 1,
+                                                fontFamily: '"Alumni Sans", sans-serif',
                                             }}
                                         >
                                             {sol.stats}
@@ -745,7 +1077,8 @@ const ProblemSolution = () => {
                                                 opacity: 0.8,
                                                 fontSize: '0.85rem',
                                                 fontWeight: 700,
-                                                mt: 0.5
+                                                mt: 0.5,
+                                                fontFamily: '"Inter", sans-serif',
                                             }}
                                         >
                                             {sol.statLabel}
@@ -755,21 +1088,19 @@ const ProblemSolution = () => {
                             </Box>
                         ))}
 
-                        {/* Spacer for end */}
                         <Box sx={{ width: { xs: 0, md: '5vw' }, display: { xs: 'none', md: 'block' } }} />
                     </Box>
 
-                    {/* Scroll Hint */}
                     <Box sx={{
                         textAlign: 'center',
                         py: { xs: 3, sm: 4, md: 5 },
                         color: '#999',
-                        display: { xs: 'none', md: 'block' }
+                        display: { xs: 'none', md: 'block' },
+                        fontFamily: '"Inter", sans-serif',
                     }}>
                         Scroll down to explore solutions →
                     </Box>
 
-                    {/* Mobile Progress Indicator */}
                     <Box sx={{
                         display: { xs: 'flex', md: 'none' },
                         justifyContent: 'center',
@@ -783,7 +1114,7 @@ const ProblemSolution = () => {
                                     width: index === activeIndex ? '30px' : '8px',
                                     height: '8px',
                                     borderRadius: '4px',
-                                    background: index === activeIndex ? sol.color : 'rgba(0, 3, 177, 0.15)',
+                                    background: index === activeIndex ? sol.color : 'rgba(50, 95, 236, 0.15)',
                                     transition: 'all 0.3s ease'
                                 }}
                             />
@@ -791,6 +1122,43 @@ const ProblemSolution = () => {
                     </Box>
                 </Container>
             </Box>
+
+            <style>
+                {`
+                    @keyframes rotateConcentric {
+                        from {
+                            transform: translate(-50%, -50%) rotate(0deg);
+                        }
+                        to {
+                            transform: translate(-50%, -50%) rotate(360deg);
+                        }
+                    }
+                    
+                    @keyframes radarPulse {
+                        0% {
+                            box-shadow: 0 0 0 0 rgba(50, 95, 236, 0.4);
+                        }
+                        70% {
+                            box-shadow: 0 0 0 60px rgba(50, 95, 236, 0);
+                        }
+                        100% {
+                            box-shadow: 0 0 0 0 rgba(50, 95, 236, 0);
+                        }
+                    }
+                    
+                    @keyframes radarPulseMobile {
+                        0% {
+                            box-shadow: 0 0 0 0 rgba(50, 95, 236, 0.3);
+                        }
+                        70% {
+                            box-shadow: 0 0 0 40px rgba(50, 95, 236, 0);
+                        }
+                        100% {
+                            box-shadow: 0 0 0 0 rgba(50, 95, 236, 0);
+                        }
+                    }
+                `}
+            </style>
         </Box>
     );
 };

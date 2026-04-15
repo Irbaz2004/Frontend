@@ -3,27 +3,27 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#0003b1', // Custom Red
-      dark: '#0003b1',  // Dark Red
-      light: '#0003b1',
-      contrastText: '#fff',
+      main: '#325fec', // Primary blue
+      dark: '#2548b0',
+      light: '#5a7ef0',
+      contrastText: '#ffffff',
     },
     background: {
-      default: '#0003b1',
-      paper: '#F8F8F8',
+      default: '#020402', // Dark background
+      paper: '#ffffff',   // White for cards/surfaces
     },
     secondary: {
-      main: '#1a1a1a', // Dark Gray/Black for contrast
+      main: '#020402', // Dark green/black for contrast
     },
     text: {
-      primary: '#0003b1',
-      secondary: '#4a4a4a',
+      primary: '#020402',
+      secondary: '#5a6e8a',
     },
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
-      fontFamily: '"Outfit", sans-serif',
+      fontFamily: '"Alumni Sans", "Outfit", sans-serif',
       fontWeight: 800,
       fontSize: '3.5rem',
       lineHeight: 1.2,
@@ -33,44 +33,46 @@ const theme = createTheme({
       },
     },
     h2: {
-      fontFamily: '"Outfit", sans-serif',
+      fontFamily: '"Alumni Sans", "Outfit", sans-serif',
       fontWeight: 700,
       fontSize: '2.75rem',
       letterSpacing: '-0.01em',
     },
     h3: {
-      fontFamily: '"Outfit", sans-serif',
+      fontFamily: '"Alumni Sans", "Outfit", sans-serif',
       fontWeight: 700,
       fontSize: '2rem',
     },
     h4: {
-      fontFamily: '"Outfit", sans-serif',
+      fontFamily: '"Alumni Sans", "Outfit", sans-serif',
       fontWeight: 700,
       fontSize: '1.5rem',
     },
     h5: {
-      fontFamily: '"Outfit", sans-serif',
+      fontFamily: '"Alumni Sans", "Outfit", sans-serif',
       fontWeight: 600,
       fontSize: '1.25rem',
     },
     h6: {
-      fontFamily: '"Outfit", sans-serif',
+      fontFamily: '"Alumni Sans", "Outfit", sans-serif',
       fontWeight: 600,
       fontSize: '1.1rem',
     },
     body1: {
+      fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
       fontSize: '1.1rem',
       lineHeight: 1.6,
-      color: '#4A4A4A',
+      color: '#5a6e8a',
     },
     body2: {
+      fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
       fontSize: '0.95rem',
       lineHeight: 1.5,
     },
     button: {
       textTransform: 'none',
       fontWeight: 600,
-      fontFamily: '"Outfit", sans-serif',
+      fontFamily: '"Inter", sans-serif',
     },
   },
   components: {
@@ -84,22 +86,23 @@ const theme = createTheme({
           transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
           '&:hover': {
             transform: 'translateY(-4px) scale(1.02)',
-            boxShadow: '0 12px 24px rgba(0, 3, 177, 0.15)',
+            // boxShadow: '0 12px 24px rgba(50, 95, 236, 0.25)',
           },
         },
         containedPrimary: {
-          background: 'linear-gradient(135deg, #0003b1 0%, #0003b1 100%)',
-              boxShadow: '0 8px 20px rgba(0, 3, 177, 0.15)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #0003b1 0%, #0003b1 100%)',
-                boxShadow: '0 12px 24px rgba(0, 3, 177, 0.25)',
+          backgroundColor: '#325fec',
+          // boxShadow: '0 8px 20px rgba(50, 95, 236, 0.25)',
+          '&:hover': {
+            backgroundColor: '#325fec',
+            // boxShadow: '0 12px 28px rgba(50, 95, 236, 0.35)',
           },
         },
         outlinedPrimary: {
           borderWidth: 2,
+          borderColor: '#325fec',
           '&:hover': {
             borderWidth: 2,
-            backgroundColor: 'rgba(0, 3, 177, 0.03)',
+            backgroundColor: 'rgba(50, 95, 236, 0.05)',
           },
         },
       },
@@ -108,14 +111,13 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 24,
-          boxShadow: '0 20px 40px rgba(0,0,0,0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.6)',
-          background: 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(10px)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.05)',
+          // border: '1px solid rgba(50, 95, 236, 0.1)',
+          background: '#ffffff',
           transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
           '&:hover': {
             transform: 'translateY(-10px) scale(1.01)',
-            boxShadow: '0 30px 60px rgba(0,0,0,0.08)',
+            boxShadow: '0 30px 60px rgba(50, 95, 236, 0.12)',
           },
         },
       },
@@ -124,6 +126,15 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 24,
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#ffffff',
+          color: '#020402',
+          // boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
         },
       },
     },

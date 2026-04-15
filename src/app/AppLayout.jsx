@@ -12,7 +12,13 @@ import {
     CircularProgress
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
+import BusinessIcon from '@mui/icons-material/Business';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import WorkIcon from '@mui/icons-material/Work';
+import PeopleIcon from '@mui/icons-material/People';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 // Role-based nav config
 const NAV_CONFIG = {
@@ -21,9 +27,16 @@ const NAV_CONFIG = {
     ],
     business: [
         { label: 'Dashboard', icon: <DashboardIcon />, path: '/app/business/dashboard' },
+                { label: 'Jobs', icon: <WorkIcon />, path: '/app/business/jobs' },
+        { label: 'Profile', icon: <AccountCircleIcon />, path: '/app/business/profile' },
     ],
     admin: [
         { label: 'Dashboard', icon: <DashboardIcon />, path: '/app/admin/dashboard' },
+        { label: 'Businesses', icon: <BusinessIcon />, path: '/app/admin/businesses' },
+        { label: 'Doctors', icon: <LocalHospitalIcon />, path: '/app/admin/doctors' },
+        { label: 'Jobs', icon: <WorkIcon />, path: '/app/admin/jobs' },
+        { label: 'Users', icon: <PeopleIcon />, path: '/app/admin/users' },
+        { label: 'Verify Shops', icon: <VerifiedIcon />, path: '/app/admin/verify-shops' },
     ],
 };
 

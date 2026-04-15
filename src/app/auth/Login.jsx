@@ -11,10 +11,12 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../../services/auth';
+import { useAuth } from '../context/AuthContext';
 
 function Login() {
     const navigate = useNavigate();
     const theme = useTheme();
+    const { login } = useAuth();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isVerySmall = useMediaQuery('(max-width:350px)');
     
@@ -49,12 +51,7 @@ function Login() {
             const result = await loginUser(form.phone, form.password);
             console.log('Login result:', result);
 
-            // Your auth service already stores the role in localStorage
-            // Let's verify it was stored
-            const storedRole = localStorage.getItem('nearzo_role');
-            console.log('Stored role:', storedRole);
-            
-            // Get the role from the result (your service returns result.user.role)
+            // Get the role from the result
             const userRole = result.user?.role;
             
             if (!userRole) {
@@ -63,6 +60,9 @@ function Login() {
                 setLoading(false);
                 return;
             }
+
+            // IMPORTANT: Update AuthContext state
+            login(result.user, result.token, userRole);
 
             // Redirect based on role
             const roleRoutes = {

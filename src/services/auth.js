@@ -143,19 +143,24 @@ export async function updateProfile(updates) {
 /**
  * Verify current token
  */
-export async function verifyToken() {
-    const token = getToken();
-    if (!token) {
+export async function verifyToken(token) {
+    // If no token provided, try to get from localStorage
+    const tokenToVerify = token || getToken();
+    
+    if (!tokenToVerify) {
         return { valid: false };
     }
     
     try {
         const result = await apiCall('/auth/verify-token', {
             method: 'POST',
-            body: JSON.stringify({ token })
+            body: JSON.stringify({ token: tokenToVerify })
         });
+        
+        // Return the result directly - your backend should return { valid: true/false }
         return result;
     } catch (error) {
+        console.error('Token verification error:', error);
         return { valid: false };
     }
 }
