@@ -410,7 +410,7 @@ const Hero = () => {
                                 <FloatingTag
                                     icon={<HomeIcon />}
                                     text="Local Jobs"
-                                    top="0%"
+                                    top="10%"
                                     left="0%"
                                     customSx={{
                                         zIndex: 9999,
@@ -433,7 +433,7 @@ const Hero = () => {
                                 <FloatingTag
                                     icon={<WorkIcon />}
                                     text="Hire Locally"
-                                    bottom="0%"
+                                    bottom="10%"
                                     left="5%"
                                     customSx={{
                                         zIndex: 9999,
