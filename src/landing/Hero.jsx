@@ -356,7 +356,7 @@ const Hero = () => {
                     </Grid>
 
                     {/* Phone with GIF - Right side */}
-                    <Grid item xs={12} md={6}ml={{xs:22,md:30}}>
+                    <Grid item xs={12} md={6}ml={{xs:24,md:30}}>
                         {!isMobile ? (
                             <Box
                                 ref={phoneContainerRef}
