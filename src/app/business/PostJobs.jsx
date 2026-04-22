@@ -1,9 +1,9 @@
 import React from 'react'
 
-export default function Doctor() {
+export default function PostJobs() {
   return (
     <div>
-      Doctor List
+      
     </div>
   )
 }

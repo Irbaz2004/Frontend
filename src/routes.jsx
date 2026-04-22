@@ -29,7 +29,7 @@ import UserHome from './app/user/Home';
 // Shop/Business pages
 import ShopDashboard from './app/business/Dashboard';
 import BusinessProfile from './app/business/Profile';
-import BusinessJobs from './app/business/Jobs';
+import BusinessJobs from './app/business/PostJobs';
 
 // Admin pages
 import AdminDashboard from './app/admin/Dashboard';
