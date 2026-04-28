@@ -25,19 +25,22 @@ import AuthRedirect from './app/context/AuthRedirect';
 
 // User pages
 import UserHome from './app/user/Home';
-
-// Shop/Business pages
-import ShopDashboard from './app/business/Dashboard';
-import BusinessProfile from './app/business/Profile';
-import BusinessJobs from './app/business/PostJobs';
+import UserMap from './app/user/Map';
+import UserProfile from './app/user/Profile';
+import UserShops from './app/user/Shops';
+import UserHouses from './app/user/House';
+import UserJobs from './app/user/Jobs';
+import CreateShop from './app/user/CreateShop';
+import CreateHouse from './app/user/CreateHouse';
 
 // Admin pages
 import AdminDashboard from './app/admin/Dashboard';
-import Business from './app/admin/Business';
-import Doctor from './app/admin/Doctor';
-import Jobs from './app/admin/Jobs';
-import Users from './app/admin/Users';
-import VerifyShops from './app/admin/VerifyShops';
+import AdminBusinesses from './app/admin/Business';
+import AdminLocations from './app/admin/Location';
+import AdminJobs from './app/admin/Jobs';
+import AdminUsers from './app/admin/Users';
+import AdminVerifyShops from './app/admin/VerifyShops';
+import ShopCategory from './app/admin/ShopCategory';
 
 // Loading component
 function LoadingScreen() {
@@ -54,7 +57,7 @@ function LoadingScreen() {
     );
 }
 
-// Alternative WebsiteSplash component with ultra-responsive sizing
+// WebsiteSplash component
 function WebsiteSplash({ onComplete }) {
     const [fadeOut, setFadeOut] = useState(false);
 
@@ -96,10 +99,9 @@ function WebsiteSplash({ onComplete }) {
                         justifyContent: 'center',
                         width: '100%',
                         maxWidth: '100%',
-                        transform: 'translateZ(0)', // Force GPU acceleration
+                        transform: 'translateZ(0)',
                     }}
                 >
-                    {/* Ultra-responsive GIF sizing */}
                     <Box
                         component="img"
                         src={radar}
@@ -119,7 +121,6 @@ function WebsiteSplash({ onComplete }) {
                         }}
                     />
                     
-                    {/* Ultra-responsive logo sizing */}
                     <Box
                         component="img"
                         src={logo}
@@ -138,7 +139,6 @@ function WebsiteSplash({ onComplete }) {
                             flexShrink: 0,
                         }}
                     />
-
                 </Box>
             </Box>
         </Fade>
@@ -149,7 +149,6 @@ function AppRoutes() {
     const { loading } = useAuth();
     const [showWebsiteSplash, setShowWebsiteSplash] = useState(true);
 
-    // Check if splash has been shown before
     useEffect(() => {
         const hasSeenSplash = sessionStorage.getItem('hasSeenWebsiteSplash');
         if (hasSeenSplash) {
@@ -166,7 +165,6 @@ function AppRoutes() {
         return <LoadingScreen />;
     }
 
-    // Show website splash on first visit
     if (showWebsiteSplash) {
         return <WebsiteSplash onComplete={handleSplashComplete} />;
     }
@@ -181,44 +179,80 @@ function AppRoutes() {
 
             {/* Auth Routes - with redirect if already logged in */}
             <Route path="/app/login" element={
-                <>
-                    <AuthRedirect />
+                <AuthRedirect>
                     <Login />
-                </>
+                </AuthRedirect>
             } />
             <Route path="/app/register" element={
-                <>
-                    <AuthRedirect />
+                <AuthRedirect>
                     <Register />
-                </>
+                </AuthRedirect>
             } />
 
             {/* App Shell - Protected */}
             <Route path="/app" element={<AppLayout />}>
-                {/* Default redirect */}
-                <Route index element={<Navigate to="/app/splash" replace />} />
+                {/* Default redirect to home */}
+                <Route index element={<Navigate to="/app/home" replace />} />
 
-                {/* User Routes */}
-                <Route path="user/home" element={
-                    <AuthGuard allowedRoles={['user']}>
+                {/* User Routes - MATCHING NAV_CONFIG paths */}
+                <Route path="home" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}>
                         <UserHome />
                     </AuthGuard>
                 } />
+                
+                <Route path="map" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}>
+                        <UserMap />
+                    </AuthGuard>
+                } />
 
-                {/* Business Routes */}
-                <Route path="business/dashboard" element={
-                    <AuthGuard allowedRoles={['business']}>
-                        <ShopDashboard />
+                  <Route path="shops" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}>
+                        <UserShops />
                     </AuthGuard>
                 } />
-                <Route path="business/profile" element={
-                    <AuthGuard allowedRoles={['business']}>
-                        <BusinessProfile />
+                  <Route path="house" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}>
+                        <UserHouses />
                     </AuthGuard>
                 } />
-                <Route path="business/jobs" element={
-                    <AuthGuard allowedRoles={['business']}>
-                        <BusinessJobs />
+
+                    <Route path="jobs" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}>
+                        <UserJobs />
+                    </AuthGuard>
+                } />
+
+                <Route path="profile" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}>
+                        <UserProfile />
+                    </AuthGuard>
+                } />
+
+                {/* Shop Routes */}
+                <Route path="shops" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}>
+                        <UserShops />
+                    </AuthGuard>
+                } />
+                
+                <Route path="shops/create" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}>
+                        <CreateShop />
+                    </AuthGuard>
+                } />
+
+                {/* House Routes */}
+                <Route path="houses" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}>
+                        <UserHouses />
+                    </AuthGuard>
+                } />
+                
+                <Route path="houses/create" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}>
+                        <CreateHouse />
                     </AuthGuard>
                 } />
 
@@ -228,29 +262,39 @@ function AppRoutes() {
                         <AdminDashboard />
                     </AuthGuard>
                 } />
+                
                 <Route path="admin/businesses" element={
                     <AuthGuard allowedRoles={['admin']}>
-                        <Business />
+                        <AdminBusinesses />
                     </AuthGuard>
                 } />
-                <Route path="admin/doctors" element={
+                
+                <Route path="admin/locations" element={
                     <AuthGuard allowedRoles={['admin']}>
-                        <Doctor />
+                        <AdminLocations />
                     </AuthGuard>
                 } />
+                
                 <Route path="admin/jobs" element={
                     <AuthGuard allowedRoles={['admin']}>
-                        <Jobs />
+                        <AdminJobs />
                     </AuthGuard>
                 } />
+                
                 <Route path="admin/users" element={
                     <AuthGuard allowedRoles={['admin']}>
-                        <Users />
+                        <AdminUsers />
                     </AuthGuard>
                 } />
+                
                 <Route path="admin/verify-shops" element={
                     <AuthGuard allowedRoles={['admin']}>
-                        <VerifyShops />
+                        <AdminVerifyShops />
+                    </AuthGuard>
+                } />
+                   <Route path="admin/categories" element={
+                    <AuthGuard allowedRoles={['admin']}>
+                        <ShopCategory />
                     </AuthGuard>
                 } />
             </Route>
@@ -260,9 +304,6 @@ function AppRoutes() {
         </Routes>
     );
 }
-
-// Add Typography import
-import { Typography } from '@mui/material';
 
 // Add styles to head
 const style = document.createElement('style');

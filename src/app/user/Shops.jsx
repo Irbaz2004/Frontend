@@ -1,9 +1,9 @@
 import React from 'react'
 
-export default function Business() {
+export default function Shops() {
   return (
     <div>
-      Shops
+      Shop list
     </div>
   )
 }

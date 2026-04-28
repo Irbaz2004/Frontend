@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
-export default function AuthRedirect() {
+export default function AuthRedirect({ children }) {
     const { isAuthenticated, role, loading } = useAuth();
     const navigate = useNavigate();
 
@@ -20,16 +20,20 @@ export default function AuthRedirect() {
             console.log('AuthRedirect - User already authenticated, redirecting based on role:', role);
             
             const roleRoutes = {
-                user: '/app/user/home',
-                business: '/app/business/dashboard',
+                user: '/app/home',
                 admin: '/app/admin/dashboard',
             };
             
-            const redirectPath = roleRoutes[role] || '/app/splash';
+            const redirectPath = roleRoutes[role] || '/app/home';
             console.log('AuthRedirect - Redirecting to:', redirectPath);
             navigate(redirectPath, { replace: true });
         }
     }, [isAuthenticated, role, loading, navigate]);
+
+    // If not authenticated, render children (login/register page)
+    if (!isAuthenticated && !loading) {
+        return children;
+    }
 
     return null;
 }

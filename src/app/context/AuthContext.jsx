@@ -1,6 +1,6 @@
 // context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { getCurrentUser, getToken, getUserRole, logoutUser, verifyToken } from '../../services/auth';
+import { getCurrentUser, getToken, getUserRole, logoutUser, checkAuth } from '../../services/auth';
 
 const AuthContext = createContext();
 
@@ -39,17 +39,17 @@ export function AuthProvider({ children }) {
                 return;
             }
 
-            // Verify token with backend
-            console.log('Verifying token with backend...');
-            const isValid = await verifyToken(storedToken);
+            // Check auth with backend
+            console.log('Verifying auth with backend...');
+            const result = await checkAuth();
             
-            if (isValid && isValid.valid) {
-                console.log('Token is valid, restoring session');
+            if (result.authenticated) {
+                console.log('Auth is valid, restoring session');
                 setUser(storedUser);
                 setRole(storedRole);
                 setToken(storedToken);
             } else {
-                console.log('Token invalid or expired, clearing session');
+                console.log('Auth invalid or expired, clearing session');
                 logoutUser();
             }
         } catch (err) {
@@ -88,6 +88,12 @@ export function AuthProvider({ children }) {
         logoutUser();
     };
 
+    const updateUser = (updatedData) => {
+        const updatedUser = { ...user, ...updatedData };
+        setUser(updatedUser);
+        localStorage.setItem('nearzo_user', JSON.stringify(updatedUser));
+    };
+
     const value = {
         user,
         role,
@@ -96,7 +102,11 @@ export function AuthProvider({ children }) {
         error,
         login,
         logout,
+        updateUser,
         isAuthenticated: !!user && !!token && !!role,
+        isAdmin: role === 'admin',
+        isUser: role === 'user',
+        isBusiness: role === 'business',
         checkAuthStatus
     };
 

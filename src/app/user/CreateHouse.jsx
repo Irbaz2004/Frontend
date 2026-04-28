@@ -1,9 +1,10 @@
 import React from 'react'
 
-export default function Business() {
+export default function CreateHouse() {
   return (
     <div>
-      Shops
+      CreateHouse
+      
     </div>
   )
 }

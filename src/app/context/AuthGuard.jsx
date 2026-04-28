@@ -31,15 +31,14 @@ export default function AuthGuard({ children, allowedRoles }) {
         }
 
         // Check if role is allowed
-        if (allowedRoles && !allowedRoles.includes(role)) {
+        if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
             console.log('AuthGuard - Role not allowed:', role);
             // Redirect to appropriate dashboard based on role
             const roleRoutes = {
-                user: '/app/user/home',
-                business: '/app/business/dashboard',
+                user: '/app/home',
                 admin: '/app/admin/dashboard',
             };
-            const redirectPath = roleRoutes[role] || '/app/splash';
+            const redirectPath = roleRoutes[role] || '/app/home';
             console.log('AuthGuard - Redirecting to:', redirectPath);
             navigate(redirectPath, { replace: true });
             return;
@@ -60,13 +59,13 @@ export default function AuthGuard({ children, allowedRoles }) {
                 minHeight: '100vh',
                 bgcolor: '#F8F8F8'
             }}>
-                <CircularProgress size={60} sx={{ color: '#0003b1' }} />
+                <CircularProgress size={60} sx={{ color: '#325fec' }} />
             </Box>
         );
     }
 
     // If authenticated and role allowed, render children
-    if (isAuthenticated && allowedRoles.includes(role)) {
+    if (isAuthenticated && (!allowedRoles || allowedRoles.length === 0 || allowedRoles.includes(role))) {
         return children;
     }
 

@@ -1,11 +1,9 @@
-// src/services/auth.js
-// All authentication API calls go through here
-// Never call Supabase directly from UI components
+// services/auth.js - Remove verifyLocation function
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://backend-qb4v.onrender.com/api';
 
-// Helper for API calls with error handling
-async function apiCall(endpoint, options = {}) {
+// Helper for API calls that don't require authentication
+async function publicApiCall(endpoint, options = {}) {
     try {
         const response = await fetch(`${API_BASE}${endpoint}`, {
             headers: {
@@ -18,14 +16,40 @@ async function apiCall(endpoint, options = {}) {
         const data = await response.json();
 
         if (!response.ok) {
-            // Handle specific error codes
-            if (data.code === 'TOKEN_EXPIRED') {
+            throw new Error(data.message || 'API call failed');
+        }
+
+        return data;
+    } catch (error) {
+        console.error(`API Error (${endpoint}):`, error);
+        throw error;
+    }
+}
+
+// Helper for API calls that require authentication
+async function privateApiCall(endpoint, options = {}) {
+    try {
+        const token = getToken();
+        
+        if (!token) {
+            throw new Error('No authentication token');
+        }
+        
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                ...options.headers
+            },
+            ...options
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            if (response.status === 401) {
                 logoutUser();
                 throw new Error('Session expired. Please login again.');
-            }
-            if (data.code === 'INVALID_TOKEN') {
-                logoutUser();
-                throw new Error('Invalid session. Please login again.');
             }
             throw new Error(data.message || 'API call failed');
         }
@@ -37,137 +61,112 @@ async function apiCall(endpoint, options = {}) {
     }
 }
 
-/**
- * Fetch all categories
- */
-export async function fetchCategories() {
-    const data = await apiCall('/auth/categories');
-    return data.categories || [];
+// ===================== LOCATION SERVICES (Public) =====================
+export async function fetchCities() {
+    const data = await publicApiCall('/auth/cities');
+    return data.cities || [];
 }
 
-/**
- * Fetch keywords by category
- * @param {string} categoryId - Category ID
- */
-export async function fetchKeywordsByCategory(categoryId) {
-    const data = await apiCall(`/auth/categories/${categoryId}/keywords`);
-    return data.keywords || [];
+export async function fetchAreasByCity(cityName) {
+    const data = await publicApiCall(`/auth/areas/${encodeURIComponent(cityName)}`);
+    return data.areas || [];
 }
 
-/**
- * Register a new user or shop owner
- * @param {string} role - 'user' | 'business'
- * @param {object} data - Registration form data
- */
-export async function registerUser(role, data) {
-    const result = await apiCall('/auth/register', {
+// ===================== AUTH SERVICES (Public) =====================
+export async function registerUser(userData) {
+    const result = await publicApiCall('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ role, ...data }),
+        body: JSON.stringify(userData),
     });
     
-    // Store auth data
     if (result.token && result.user) {
-        localStorage.setItem('nearzo_role', result.user.role);
         localStorage.setItem('nearzo_token', result.token);
         localStorage.setItem('nearzo_user', JSON.stringify(result.user));
+        localStorage.setItem('nearzo_role', result.user.role);
     }
     
     return result;
 }
 
-/**
- * Login with phone and password
- * @param {string} phone
- * @param {string} password
- */
 export async function loginUser(phone, password) {
-    const result = await apiCall('/auth/login', {
+    const result = await publicApiCall('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ phone, password }),
     });
     
-    // Store auth data
     if (result.token && result.user) {
-        localStorage.setItem('nearzo_role', result.user.role);
         localStorage.setItem('nearzo_token', result.token);
         localStorage.setItem('nearzo_user', JSON.stringify(result.user));
+        localStorage.setItem('nearzo_role', result.user.role);
     }
     
     return result;
 }
 
-/**
- * Get current user profile
- */
-export async function getProfile() {
-    const token = getToken();
-    if (!token) {
-        throw new Error('No authentication token');
-    }
-    
-    const result = await apiCall('/auth/profile', {
-        headers: {
-            'Authorization': `Bearer ${token}`
+export async function checkAuth() {
+    try {
+        const token = getToken();
+        if (!token) {
+            return { authenticated: false };
         }
-    });
-    
-    return result.user;
+        
+        const result = await privateApiCall('/auth/check-auth');
+        return result;
+    } catch (error) {
+        return { authenticated: false };
+    }
 }
 
-/**
- * Update user profile
- * @param {object} updates - Profile updates
- */
+// ===================== PROFILE SERVICES (Private) =====================
+export async function getProfile() {
+    const result = await privateApiCall('/auth/profile');
+    return result;
+}
+
 export async function updateProfile(updates) {
-    const token = getToken();
-    if (!token) {
-        throw new Error('No authentication token');
-    }
-    
-    const result = await apiCall('/auth/profile', {
+    const result = await privateApiCall('/auth/profile', {
         method: 'PUT',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify(updates)
     });
     
-    // Update stored user data
     if (result.user) {
-        localStorage.setItem('nearzo_user', JSON.stringify(result.user));
+        const currentUser = getCurrentUser();
+        const updatedUser = { ...currentUser, ...result.user };
+        localStorage.setItem('nearzo_user', JSON.stringify(updatedUser));
     }
     
     return result;
 }
 
-/**
- * Verify current token
- */
-export async function verifyToken(token) {
-    // If no token provided, try to get from localStorage
-    const tokenToVerify = token || getToken();
-    
-    if (!tokenToVerify) {
-        return { valid: false };
-    }
-    
-    try {
-        const result = await apiCall('/auth/verify-token', {
-            method: 'POST',
-            body: JSON.stringify({ token: tokenToVerify })
-        });
-        
-        // Return the result directly - your backend should return { valid: true/false }
-        return result;
-    } catch (error) {
-        console.error('Token verification error:', error);
-        return { valid: false };
-    }
+// ===================== SHOP SERVICES (Private) =====================
+export async function createShop(shopData) {
+    const result = await privateApiCall('/auth/shops', {
+        method: 'POST',
+        body: JSON.stringify(shopData)
+    });
+    return result;
 }
 
-/**
- * Logout — clears local storage
- */
+export async function getUserShops() {
+    const result = await privateApiCall('/auth/shops');
+    return result.shops || [];
+}
+
+// ===================== HOUSE SERVICES (Private) =====================
+export async function createHouse(houseData) {
+    const result = await privateApiCall('/auth/houses', {
+        method: 'POST',
+        body: JSON.stringify(houseData)
+    });
+    return result;
+}
+
+export async function getUserHouses() {
+    const result = await privateApiCall('/auth/houses');
+    return result.houses || [];
+}
+
+// ===================== HELPER FUNCTIONS =====================
 export function logoutUser() {
     localStorage.removeItem('nearzo_role');
     localStorage.removeItem('nearzo_token');
@@ -175,9 +174,6 @@ export function logoutUser() {
     sessionStorage.clear();
 }
 
-/**
- * Get current user from localStorage
- */
 export function getCurrentUser() {
     const stored = localStorage.getItem('nearzo_user');
     if (!stored) return null;
@@ -189,76 +185,40 @@ export function getCurrentUser() {
     }
 }
 
-/**
- * Get auth token
- */
 export function getToken() {
     return localStorage.getItem('nearzo_token');
 }
 
-/**
- * Check if user is authenticated
- */
+export function getUserRole() {
+    return localStorage.getItem('nearzo_role');
+}
+
 export function isAuthenticated() {
     const token = getToken();
     const user = getCurrentUser();
     return !!(token && user);
 }
 
-/**
- * Get user role
- */
-export function getUserRole() {
-    return localStorage.getItem('nearzo_role');
-}
-
-/**
- * Check if user has specific role
- * @param {string|string[]} roles - Role or array of roles to check
- */
-export function hasRole(roles) {
-    const userRole = getUserRole();
-    if (!userRole) return false;
-    
-    if (Array.isArray(roles)) {
-        return roles.includes(userRole);
-    }
-    
-    return userRole === roles;
-}
-
-/**
- * Set auth headers for API calls
- */
-export function getAuthHeaders() {
-    const token = getToken();
-    return token ? {
-        'Authorization': `Bearer ${token}`
-    } : {};
-}
-
-/**
- * Refresh token (if using refresh tokens)
- */
-export async function refreshToken() {
-    // Implement if you have refresh token endpoint
-    throw new Error('Not implemented');
-}
-
-// Export all functions
 export default {
-    fetchCategories,
-    fetchKeywordsByCategory,
+    // Location
+    fetchCities,
+    fetchAreasByCity,
+    // Auth
     registerUser,
     loginUser,
-    getProfile,
-    updateProfile,
-    verifyToken,
+    checkAuth,
     logoutUser,
     getCurrentUser,
     getToken,
-    isAuthenticated,
     getUserRole,
-    hasRole,
-    getAuthHeaders
+    isAuthenticated,
+    // Profile
+    getProfile,
+    updateProfile,
+    // Shop
+    createShop,
+    getUserShops,
+    // House
+    createHouse,
+    getUserHouses
 };

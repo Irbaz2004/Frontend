@@ -1,9 +1,9 @@
 import React from 'react'
 
-export default function Business() {
+export default function Map() {
   return (
     <div>
-      Shops
+      Map view
     </div>
   )
 }
