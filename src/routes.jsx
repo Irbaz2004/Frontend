@@ -27,6 +27,8 @@ import UserProfile from './app/user/Profile';
 import UserShops from './app/user/Shops';
 import UserHouses from './app/user/House';
 import UserJobs from './app/user/Jobs';
+import CreateShop from './app/user/CreateShop';
+import CreateHouse from './app/user/CreateHouse';
 
 // Admin pages
 import AdminDashboard from './app/admin/Dashboard';
@@ -284,6 +286,19 @@ function AppRoutes() {
                     </AuthGuard>
                 } />
 
+                {/* Shop Routes */}
+                <Route path="shops/create" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}>
+                        <CreateShop />
+                    </AuthGuard>
+                } />
+
+                {/* House Routes */}
+                <Route path="houses/create" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}>
+                        <CreateHouse />
+                    </AuthGuard>
+                } />
 
                 {/* Admin Routes */}
                 <Route path="admin/dashboard" element={
