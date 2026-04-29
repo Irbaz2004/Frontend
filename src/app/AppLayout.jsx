@@ -65,13 +65,10 @@ const NAV_CONFIG = {
         { label: 'Shops', icon: <BusinessIcon />, path: '/app/admin/businesses' },
         { label: 'Categories', icon: <GridViewOutlined />, path: '/app/admin/categories' },
         { label: 'Jobs', icon: <WorkIcon />, path: '/app/admin/jobs' },
-                { label: 'Verify Shops', icon: <VerifiedIcon />, path: '/app/admin/verify-shops' },
-                                { label: 'Verify Houses', icon: <VerifiedIcon />, path: '/app/admin/verify-houses' },
-
-
-                { label: 'Locations', icon: <PlaceOutlined />, path: '/app/admin/locations' },
-                { label: 'Users', icon: <PeopleIcon />, path: '/app/admin/users' },
-
+        { label: 'Verify Shops', icon: <VerifiedIcon />, path: '/app/admin/verify-shops' },
+        { label: 'Verify Houses', icon: <VerifiedIcon />, path: '/app/admin/verify-houses' },
+        { label: 'Locations', icon: <PlaceOutlined />, path: '/app/admin/locations' },
+        { label: 'Users', icon: <PeopleIcon />, path: '/app/admin/users' },
     ],
 };
 
@@ -103,6 +100,7 @@ function AppLayout() {
         console.log('AppLayout - Token exists:', !!token);
         console.log('AppLayout - Current path:', location.pathname);
         
+        // If no token or role, redirect to login
         if (!token || !storedRole) {
             console.log('No auth found, redirecting to login');
             handleLogoutRedirect();
@@ -110,6 +108,19 @@ function AppLayout() {
         }
         
         setRole(storedRole);
+        
+        // Redirect from root /app to role-appropriate default page
+        if (location.pathname === '/app' || location.pathname === '/app/') {
+            let defaultPath = '/app/home';
+            if (storedRole === 'business') {
+                defaultPath = '/app/business/dashboard';
+            } else if (storedRole === 'admin') {
+                defaultPath = '/app/admin/dashboard';
+            }
+            console.log('Redirecting from root /app to:', defaultPath);
+            navigate(defaultPath, { replace: true });
+        }
+        
         setLoading(false);
     }, [navigate, location.pathname]);
 
@@ -223,7 +234,6 @@ function AppLayout() {
                     </IconButton>
                 </Box>
 
-
                 {/* Navigation Items */}
                 <List sx={{ flex: 1, pt: 2, px: 1.5 }}>
                     {navItems.map((item) => (
@@ -289,7 +299,7 @@ function AppLayout() {
 
                 <Divider sx={{ bgcolor: '#e8ecef', mx: 1.5 }} />
 
-                {/* Bottom Actions */}
+                {/* Bottom Actions - Logout button with theme color (no red) */}
                 <List sx={{ pt: 1, px: 1.5, pb: 2 }}>
                     <ListItem disablePadding sx={{ display: 'block' }}>
                         <ListItemButton
@@ -301,13 +311,13 @@ function AppLayout() {
                                 py: 1,
                                 borderRadius: 1,
                                 '&:hover': {
-                                    bgcolor: '#fef5f5',
+                                    bgcolor: '#e8f0fe',
                                 }
                             }}
                         >
                             <ListItemIcon
                                 sx={{
-                                    color: '#dc3545',
+                                    color: '#5a6e8a',
                                     minWidth: 0,
                                     mr: sidebarCollapsed ? 0 : 2,
                                     justifyContent: 'center',
@@ -324,7 +334,7 @@ function AppLayout() {
                                     primaryTypographyProps={{
                                         fontSize: '0.8rem',
                                         fontFamily: '"Inter", sans-serif',
-                                        color: '#dc3545'
+                                        color: '#5a6e8a'
                                     }}
                                 />
                             )}
@@ -536,7 +546,7 @@ function AppLayout() {
                         </IconButton>
                     </Tooltip>
                     
-                    {/* Dropdown Menu - Profile and Logout */}
+                    {/* Dropdown Menu - Profile and Logout (no red colors) */}
                     <Menu
                         anchorEl={anchorEl}
                         open={open}
@@ -569,9 +579,9 @@ function AppLayout() {
                             Profile
                         </MenuItem>
                         <Divider sx={{ my: 0.5 }} />
-                        <MenuItem onClick={handleLogoutClick} sx={{ color: '#dc3545' }}>
+                        <MenuItem onClick={handleLogoutClick}>
                             <ListItemIcon sx={{ minWidth: 32 }}>
-                                <LogoutIcon fontSize="small" sx={{ color: '#dc3545' }} />
+                                <LogoutIcon fontSize="small" sx={{ color: '#5a6e8a' }} />
                             </ListItemIcon>
                             Logout
                         </MenuItem>
@@ -691,7 +701,7 @@ function AppLayout() {
                     </Box>
                 </Box>
 
-                {/* Logout Confirmation Dialog */}
+                {/* Logout Confirmation Dialog - No red colors */}
                 <Dialog
                     open={logoutDialogOpen}
                     onClose={() => setLogoutDialogOpen(false)}
@@ -714,7 +724,7 @@ function AppLayout() {
                     <DialogActions sx={{ p: 2, pt: 0 }}>
                         <Button 
                             onClick={() => setLogoutDialogOpen(false)}
-                            sx={{ textTransform: 'none', borderRadius: 1 }}
+                            sx={{ textTransform: 'none', borderRadius: 1, color: '#5a6e8a' }}
                         >
                             Cancel
                         </Button>
@@ -724,8 +734,8 @@ function AppLayout() {
                             sx={{ 
                                 textTransform: 'none', 
                                 borderRadius: 1,
-                                bgcolor: '#dc3545',
-                                '&:hover': { bgcolor: '#c82333' }
+                                bgcolor: '#325fec',
+                                '&:hover': { bgcolor: '#1a4bcf' }
                             }}
                         >
                             Logout
@@ -758,7 +768,7 @@ function AppLayout() {
                 {renderBottomNav()}
             </Box>
 
-            {/* Logout Confirmation Dialog for User/Business */}
+            {/* Logout Confirmation Dialog for User/Business - No red colors */}
             <Dialog
                 open={logoutDialogOpen}
                 onClose={() => setLogoutDialogOpen(false)}
@@ -781,7 +791,7 @@ function AppLayout() {
                 <DialogActions sx={{ p: 2, pt: 0 }}>
                     <Button 
                         onClick={() => setLogoutDialogOpen(false)}
-                        sx={{ textTransform: 'none', borderRadius: 1 }}
+                        sx={{ textTransform: 'none', borderRadius: 1, color: '#5a6e8a' }}
                     >
                         Cancel
                     </Button>
@@ -791,8 +801,8 @@ function AppLayout() {
                         sx={{ 
                             textTransform: 'none', 
                             borderRadius: 1,
-                            bgcolor: '#dc3545',
-                            '&:hover': { bgcolor: '#c82333' }
+                            bgcolor: '#325fec',
+                            '&:hover': { bgcolor: '#1a4bcf' }
                         }}
                     >
                         Logout
