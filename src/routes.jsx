@@ -1,16 +1,13 @@
 // AppRoutes.jsx
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './app/context/AuthContext';
 import { Box, CircularProgress, Fade } from '@mui/material';
-import radar from './assets/Radar.gif'
+import radar from './assets/Radar.gif';
 import logo from './assets/nearzologo.png';
 
 // Landing
 import LandingPage from './landing/LandingPage';
-
-// Splash
-import SplashScreen from './app/SplashScreen';
 
 // Auth
 import Login from './app/auth/Login';
@@ -30,8 +27,6 @@ import UserProfile from './app/user/Profile';
 import UserShops from './app/user/Shops';
 import UserHouses from './app/user/House';
 import UserJobs from './app/user/Jobs';
-import CreateShop from './app/user/CreateShop';
-import CreateHouse from './app/user/CreateHouse';
 
 // Admin pages
 import AdminDashboard from './app/admin/Dashboard';
@@ -146,11 +141,70 @@ function WebsiteSplash({ onComplete }) {
     );
 }
 
-function AppRoutes() {
-    const { loading } = useAuth();
-    const [showWebsiteSplash, setShowWebsiteSplash] = useState(true);
+// Component to handle root route based on auth and platform
+function RootRedirect() {
+    const { isAuthenticated, user, loading } = useAuth();
+    const location = useLocation();
+    const [isApp, setIsApp] = useState(false);
 
     useEffect(() => {
+        // Check if running as a mobile app (PWA or WebView)
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+        const isPWA = window.navigator.standalone === true;
+        const isWebView = /wv|android.*(; wv)/i.test(navigator.userAgent);
+        const isMobileApp = isStandalone || isPWA || isWebView;
+        
+        setIsApp(isMobileApp);
+    }, []);
+
+    if (loading) {
+        return <LoadingScreen />;
+    }
+
+    // If user is authenticated, redirect to app home
+    if (isAuthenticated && user) {
+        const role = user.role || localStorage.getItem('nearzo_role');
+        if (role === 'admin') {
+            return <Navigate to="/app/admin/dashboard" replace />;
+        } else if (role === 'business') {
+            return <Navigate to="/app/business/dashboard" replace />;
+        }
+        return <Navigate to="/app/home" replace />;
+    }
+
+    // If running as mobile app and not authenticated, go to login
+    if (isApp && !isAuthenticated) {
+        return <Navigate to="/app/login" replace />;
+    }
+
+    // For web/browser, show landing page
+    return <LandingPage />;
+}
+
+function AppRoutes() {
+    const { loading, isAuthenticated } = useAuth();
+    const [showWebsiteSplash, setShowWebsiteSplash] = useState(true);
+    const [isApp, setIsApp] = useState(false);
+
+    useEffect(() => {
+        // Check if running as mobile app (PWA or WebView)
+        const checkIfApp = () => {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            const isPWA = window.navigator.standalone === true;
+            const isWebView = /wv|android.*(; wv)/i.test(navigator.userAgent);
+            const isMobileApp = isStandalone || isPWA || isWebView;
+            
+            setIsApp(isMobileApp);
+            
+            // If it's a mobile app, skip website splash
+            if (isMobileApp) {
+                setShowWebsiteSplash(false);
+                sessionStorage.setItem('hasSeenWebsiteSplash', 'true');
+            }
+        };
+        
+        checkIfApp();
+        
         const hasSeenSplash = sessionStorage.getItem('hasSeenWebsiteSplash');
         if (hasSeenSplash) {
             setShowWebsiteSplash(false);
@@ -166,17 +220,15 @@ function AppRoutes() {
         return <LoadingScreen />;
     }
 
-    if (showWebsiteSplash) {
+    // Show splash only on web, not in mobile app
+    if (showWebsiteSplash && !isApp) {
         return <WebsiteSplash onComplete={handleSplashComplete} />;
     }
 
     return (
         <Routes>
-            {/* Landing - Public */}
-            <Route path="/" element={<LandingPage />} />
-
-            {/* Splash - Public */}
-            {/* <Route path="/app/splash" element={<SplashScreen />} /> */}
+            {/* Root Route - Smart redirect based on auth and platform */}
+            <Route path="/" element={<RootRedirect />} />
 
             {/* Auth Routes - with redirect if already logged in */}
             <Route path="/app/login" element={
@@ -192,10 +244,10 @@ function AppRoutes() {
 
             {/* App Shell - Protected */}
             <Route path="/app" element={<AppLayout />}>
-                {/* Default redirect to home */}
+                {/* Default redirect to home based on role */}
                 <Route index element={<Navigate to="/app/home" replace />} />
 
-                {/* User Routes - MATCHING NAV_CONFIG paths */}
+                {/* User Routes */}
                 <Route path="home" element={
                     <AuthGuard allowedRoles={['user', 'admin']}>
                         <UserHome />
@@ -208,18 +260,19 @@ function AppRoutes() {
                     </AuthGuard>
                 } />
 
-                  <Route path="shops" element={
+                <Route path="shops" element={
                     <AuthGuard allowedRoles={['user', 'admin']}>
                         <UserShops />
                     </AuthGuard>
                 } />
-                  <Route path="house" element={
+                
+                <Route path="houses" element={
                     <AuthGuard allowedRoles={['user', 'admin']}>
                         <UserHouses />
                     </AuthGuard>
                 } />
 
-                    <Route path="jobs" element={
+                <Route path="jobs" element={
                     <AuthGuard allowedRoles={['user', 'admin']}>
                         <UserJobs />
                     </AuthGuard>
@@ -231,31 +284,6 @@ function AppRoutes() {
                     </AuthGuard>
                 } />
 
-                {/* Shop Routes */}
-                <Route path="shops" element={
-                    <AuthGuard allowedRoles={['user', 'admin']}>
-                        <UserShops />
-                    </AuthGuard>
-                } />
-                
-                <Route path="shops/create" element={
-                    <AuthGuard allowedRoles={['user', 'admin']}>
-                        <CreateShop />
-                    </AuthGuard>
-                } />
-
-                {/* House Routes */}
-                <Route path="houses" element={
-                    <AuthGuard allowedRoles={['user', 'admin']}>
-                        <UserHouses />
-                    </AuthGuard>
-                } />
-                
-                <Route path="houses/create" element={
-                    <AuthGuard allowedRoles={['user', 'admin']}>
-                        <CreateHouse />
-                    </AuthGuard>
-                } />
 
                 {/* Admin Routes */}
                 <Route path="admin/dashboard" element={
@@ -293,12 +321,14 @@ function AppRoutes() {
                         <AdminVerifyShops />
                     </AuthGuard>
                 } />
-                  <Route path="admin/verify-houses" element={
+                
+                <Route path="admin/verify-houses" element={
                     <AuthGuard allowedRoles={['admin']}>
                         <AdminVerifyHouses />
                     </AuthGuard>
                 } />
-                   <Route path="admin/categories" element={
+                
+                <Route path="admin/categories" element={
                     <AuthGuard allowedRoles={['admin']}>
                         <ShopCategory />
                     </AuthGuard>
@@ -311,27 +341,30 @@ function AppRoutes() {
     );
 }
 
-// Add styles to head
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes pulse {
-        0%, 100% {
-            transform: scale(1);
+// Add styles to head if not already added
+if (!document.getElementById('nearzo-styles')) {
+    const style = document.createElement('style');
+    style.id = 'nearzo-styles';
+    style.textContent = `
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
         }
-        50% {
-            transform: scale(1.05);
+        
+        @keyframes fadeInOut {
+            0%, 100% {
+                opacity: 0.6;
+            }
+            50% {
+                opacity: 1;
+            }
         }
-    }
-    
-    @keyframes fadeInOut {
-        0%, 100% {
-            opacity: 0.6;
-        }
-        50% {
-            opacity: 1;
-        }
-    }
-`;
-document.head.appendChild(style);
+    `;
+    document.head.appendChild(style);
+}
 
 export default AppRoutes;
