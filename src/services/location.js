@@ -107,11 +107,38 @@ export async function getLocationStats() {
 }
 
 // ===================== VERIFY LOCATION =====================
+// services/location.js - Update verifyLocation function
+
+// ===================== VERIFY LOCATION =====================
 export async function verifyLocation(latitude, longitude, city, area) {
-    return apiCall('/profile/verify-location', {
-        method: 'POST',
-        body: JSON.stringify({ latitude, longitude, city, area })
-    });
+    try {
+        const response = await fetch(`${API_BASE}/locations/verify-location`, {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ 
+                latitude: parseFloat(latitude), 
+                longitude: parseFloat(longitude), 
+                city: city.trim(), 
+                area: area.trim() 
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Location verification failed');
+        }
+        
+        return {
+            verified: data.verified,
+            message: data.message,
+            selected: data.selected,
+            actual: data.actual
+        };
+    } catch (error) {
+        console.error('Error verifying location:', error);
+        throw error;
+    }
 }
 
 // ===================== SHOP CATEGORIES =====================

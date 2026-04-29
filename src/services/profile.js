@@ -1,4 +1,4 @@
-// services/profile.js
+// services/profile.js - Add this new function
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 function authHeaders() {
@@ -60,6 +60,10 @@ export async function createShop(data) {
 
 export async function getUserShops() {
     return apiCall('/profile/shops');
+}
+
+export async function getUserShopsForJob() {
+    return apiCall('/profile/shops/for-job');
 }
 
 export async function updateShop(id, data) {
@@ -132,6 +136,7 @@ export default {
     deleteAccount,
     createShop,
     getUserShops,
+    getUserShopsForJob,
     updateShop,
     deleteShop,
     createHouse,

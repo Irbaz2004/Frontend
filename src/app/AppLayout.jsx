@@ -66,6 +66,8 @@ const NAV_CONFIG = {
         { label: 'Categories', icon: <GridViewOutlined />, path: '/app/admin/categories' },
         { label: 'Jobs', icon: <WorkIcon />, path: '/app/admin/jobs' },
                 { label: 'Verify Shops', icon: <VerifiedIcon />, path: '/app/admin/verify-shops' },
+                                { label: 'Verify Houses', icon: <VerifiedIcon />, path: '/app/admin/verify-houses' },
+
 
                 { label: 'Locations', icon: <PlaceOutlined />, path: '/app/admin/locations' },
                 { label: 'Users', icon: <PeopleIcon />, path: '/app/admin/users' },

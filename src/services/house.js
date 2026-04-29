@@ -1,4 +1,4 @@
-// services/shop.js
+// services/house.js
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 function authHeaders() {
@@ -24,40 +24,57 @@ async function apiCall(endpoint, options = {}) {
     }
 }
 
-// ===================== SHOP SERVICES =====================
+// ===================== HOUSE SERVICES =====================
 
 /**
- * Get shops by location with filters
+ * Get houses by location with filters
  * @param {Object} params - Query parameters
  * @param {number} params.latitude - User's latitude
  * @param {number} params.longitude - User's longitude
  * @param {number} params.radius - Radius in km (default: 10)
- * @param {string} params.category - Category filter
+ * @param {number} params.minRent - Minimum rent
+ * @param {number} params.maxRent - Maximum rent
+ * @param {number} params.rooms - Minimum rooms
+ * @param {string} params.furnished - Furnished status
  * @param {string} params.search - Search term
  * @param {number} params.page - Page number
  * @param {number} params.limit - Items per page
  */
-export async function getShopsByLocation({ latitude, longitude, radius = 10, category = '', search = '', page = 1, limit = 20 }) {
+export async function getHousesByLocation({ 
+    latitude, 
+    longitude, 
+    radius = 10, 
+    minRent = 0,
+    maxRent = 100000,
+    rooms = 0,
+    furnished = '',
+    search = '',
+    page = 1, 
+    limit = 12 
+}) {
     const params = new URLSearchParams({
         latitude,
         longitude,
         radius,
+        minRent,
+        maxRent,
+        rooms,
         page,
         limit
     });
-    if (category) params.append('category', category);
+    if (furnished && furnished !== 'all') params.append('furnished', furnished);
     if (search) params.append('search', search);
     
-    return apiCall(`/shops/nearby?${params}`);
+    return apiCall(`/houses/nearby?${params}`);
 }
 
 /**
- * Get shop by ID
- * @param {string} id - Shop ID
+ * Get house by ID
+ * @param {string} id - House ID
  * @param {Object} userLocation - User's location for distance calculation
  */
-export async function getShopById(id, userLocation = null) {
-    let url = `/shops/${id}`;
+export async function getHouseById(id, userLocation = null) {
+    let url = `/houses/${id}`;
     if (userLocation && userLocation.latitude && userLocation.longitude) {
         url += `?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}`;
     }
@@ -65,14 +82,14 @@ export async function getShopById(id, userLocation = null) {
 }
 
 /**
- * Get all shop categories with counts
+ * Get house filter options
  */
-export async function getShopCategoriesWithCount() {
-    return apiCall('/shops/categories');
+export async function getHouseFilterOptions() {
+    return apiCall('/houses/filters');
 }
 
 export default {
-    getShopsByLocation,
-    getShopById,
-    getShopCategoriesWithCount
+    getHousesByLocation,
+    getHouseById,
+    getHouseFilterOptions
 };

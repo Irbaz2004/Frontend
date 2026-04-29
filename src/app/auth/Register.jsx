@@ -179,9 +179,7 @@ function Register() {
                                 <Typography variant="h5" sx={styles.title}>
                                     Create Account
                                 </Typography>
-                                <Typography variant="body2" sx={styles.subtitle}>
-                                    Join NearZO to discover local shops and services
-                                </Typography>
+                               
 
                                 {/* Full Name and Phone Number Row */}
                                 <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
@@ -224,6 +222,8 @@ function Register() {
                                 </Box>
 
                                 {/* City Selection with Search */}
+                                                                <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
+
                                 <Autocomplete
                                     fullWidth
                                     options={cities}
@@ -284,7 +284,7 @@ function Register() {
                                         />
                                     )}
                                 />
-
+</Box>
                                 {/* State - Auto-populated from city selection, disabled */}
                                 <TextField
                                     fullWidth
@@ -473,13 +473,14 @@ const styles = {
     paper: {
         p: { xs: 2.5, sm: 3.5, md: 4.5 },
         borderRadius: { xs: '28px', sm: '36px' },
-        bgcolor: 'white',
+        bgcolor: 'transparent',
         position: 'relative',
         zIndex: 1,
         maxWidth: '550px',
-        margin: 'auto',
-        maxHeight: '85vh',
+        margin: '-20px auto',
+        maxHeight: '100vh',
         overflowY: 'auto',
+        border: 'none',
         '&::-webkit-scrollbar': {
             width: '6px',
         },
@@ -492,8 +493,8 @@ const styles = {
             borderRadius: '10px',
         },
         '@media (max-width: 600px)': {
-            bgcolor: 'rgba(255,255,255,0.95)',
-            maxHeight: '90vh',
+            bgcolor: 'transparent',
+            maxHeight: '100vh',
         }
     },
     formContainer: {
@@ -578,7 +579,7 @@ const styles = {
     },
     loginLink: {
         textAlign: 'center',
-        mt: 3,
+        mt: 1,
         pt: 2,
         borderTop: '1px solid rgba(0,0,0,0.05)',
     },

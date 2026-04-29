@@ -40,6 +40,7 @@ import AdminLocations from './app/admin/Location';
 import AdminJobs from './app/admin/Jobs';
 import AdminUsers from './app/admin/Users';
 import AdminVerifyShops from './app/admin/VerifyShops';
+import AdminVerifyHouses from './app/admin/VerifyHouses';
 import ShopCategory from './app/admin/ShopCategory';
 
 // Loading component
@@ -175,7 +176,7 @@ function AppRoutes() {
             <Route path="/" element={<LandingPage />} />
 
             {/* Splash - Public */}
-            <Route path="/app/splash" element={<SplashScreen />} />
+            {/* <Route path="/app/splash" element={<SplashScreen />} /> */}
 
             {/* Auth Routes - with redirect if already logged in */}
             <Route path="/app/login" element={
@@ -290,6 +291,11 @@ function AppRoutes() {
                 <Route path="admin/verify-shops" element={
                     <AuthGuard allowedRoles={['admin']}>
                         <AdminVerifyShops />
+                    </AuthGuard>
+                } />
+                  <Route path="admin/verify-houses" element={
+                    <AuthGuard allowedRoles={['admin']}>
+                        <AdminVerifyHouses />
                     </AuthGuard>
                 } />
                    <Route path="admin/categories" element={

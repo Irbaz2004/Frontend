@@ -1,4 +1,4 @@
-// app/admin/VerifyShops.jsx
+// app/admin/VerifyHouses.jsx
 import React, { useState, useEffect } from 'react';
 import {
     Box,
@@ -34,7 +34,8 @@ import {
     Grid,
     Avatar,
     Checkbox,
-    Stack
+    Stack,
+    Slider
 } from '@mui/material';
 import {
     Search as SearchIcon,
@@ -45,58 +46,65 @@ import {
     Visibility as VisibilityIcon,
     Verified as VerifiedIcon,
     Pending as PendingIcon,
-    Store as StoreIcon,
+    Home as HomeIcon,
     LocationOn as LocationOnIcon,
     Phone as PhoneIcon,
-    Close as CloseIcon
+    Close as CloseIcon,
+    Bed as BedIcon,
+    Bathtub as BathtubIcon,
+    Kitchen as KitchenIcon,
+    AttachMoney as MoneyIcon
 } from '@mui/icons-material';
 import {
-    getAllShops,
-    verifyShop,
-    deleteShop,
-    getShopStatistics,
-    bulkVerifyShops,
-    getShopCategoriesList
-} from '../../services/adminShop';
+    getAllHouses,
+    verifyHouse,
+    deleteHouse,
+    getHouseStatistics,
+    bulkVerifyHouses,
+    getHouseCitiesList
+} from '../../services/adminHouse';
 
-export default function VerifyShops() {
+export default function VerifyHouses() {
     const [loading, setLoading] = useState(false);
-    const [shops, setShops] = useState([]);
+    const [houses, setHouses] = useState([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [categoryFilter, setCategoryFilter] = useState('');
-    const [categories, setCategories] = useState([]);
+    const [cityFilter, setCityFilter] = useState('');
+    const [cities, setCities] = useState([]);
+    const [rentRange, setRentRange] = useState([0, 100000]);
     const [stats, setStats] = useState(null);
-    const [selectedShops, setSelectedShops] = useState([]);
+    const [selectedHouses, setSelectedHouses] = useState([]);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
     const [openViewDialog, setOpenViewDialog] = useState(false);
-    const [selectedShop, setSelectedShop] = useState(null);
+    const [selectedHouse, setSelectedHouse] = useState(null);
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-    const [shopToDelete, setShopToDelete] = useState(null);
+    const [houseToDelete, setHouseToDelete] = useState(null);
 
     useEffect(() => {
-        loadShops();
+        loadHouses();
         loadStats();
-        loadCategories();
-    }, [page, rowsPerPage, statusFilter, categoryFilter]);
+        loadCities();
+    }, [page, rowsPerPage, statusFilter, cityFilter, rentRange]);
 
-    const loadShops = async () => {
+    const loadHouses = async () => {
         setLoading(true);
         try {
-            const result = await getAllShops({
+            const result = await getAllHouses({
                 page: page + 1,
                 limit: rowsPerPage,
                 search,
                 status: statusFilter,
-                category: categoryFilter
+                city: cityFilter,
+                minRent: rentRange[0],
+                maxRent: rentRange[1]
             });
-            setShops(result.shops || []);
+            setHouses(result.houses || []);
             setTotal(result.total || 0);
         } catch (error) {
-            showSnackbar('Failed to load shops', 'error');
+            showSnackbar('Failed to load houses', 'error');
         } finally {
             setLoading(false);
         }
@@ -104,32 +112,32 @@ export default function VerifyShops() {
 
     const loadStats = async () => {
         try {
-            const result = await getShopStatistics();
+            const result = await getHouseStatistics();
             setStats(result.stats);
         } catch (error) {
             console.error('Failed to load stats:', error);
         }
     };
 
-    const loadCategories = async () => {
+    const loadCities = async () => {
         try {
-            const result = await getShopCategoriesList();
-            setCategories(result.categories || []);
+            const result = await getHouseCitiesList();
+            setCities(result.cities || []);
         } catch (error) {
-            console.error('Failed to load categories:', error);
+            console.error('Failed to load cities:', error);
         }
     };
 
     const handleSearch = () => {
         setPage(0);
-        loadShops();
+        loadHouses();
     };
 
     const handleVerify = async (id, isVerified) => {
         try {
-            await verifyShop(id, !isVerified);
-            showSnackbar(`Shop ${!isVerified ? 'verified' : 'unverified'} successfully`);
-            loadShops();
+            await verifyHouse(id, !isVerified);
+            showSnackbar(`House ${!isVerified ? 'verified' : 'unverified'} successfully`);
+            loadHouses();
             loadStats();
         } catch (error) {
             showSnackbar(error.message, 'error');
@@ -137,14 +145,14 @@ export default function VerifyShops() {
     };
 
     const handleDelete = async () => {
-        if (!shopToDelete) return;
+        if (!houseToDelete) return;
         
         try {
-            await deleteShop(shopToDelete.id);
-            showSnackbar('Shop deleted successfully');
+            await deleteHouse(houseToDelete.id);
+            showSnackbar('House deleted successfully');
             setOpenDeleteDialog(false);
-            setShopToDelete(null);
-            loadShops();
+            setHouseToDelete(null);
+            loadHouses();
             loadStats();
         } catch (error) {
             showSnackbar(error.message, 'error');
@@ -152,16 +160,16 @@ export default function VerifyShops() {
     };
 
     const handleBulkVerify = async () => {
-        if (selectedShops.length === 0) {
-            showSnackbar('No shops selected', 'warning');
+        if (selectedHouses.length === 0) {
+            showSnackbar('No houses selected', 'warning');
             return;
         }
 
         try {
-            await bulkVerifyShops(selectedShops, true);
-            showSnackbar(`${selectedShops.length} shops verified successfully`);
-            setSelectedShops([]);
-            loadShops();
+            await bulkVerifyHouses(selectedHouses, true);
+            showSnackbar(`${selectedHouses.length} houses verified successfully`);
+            setSelectedHouses([]);
+            loadHouses();
             loadStats();
         } catch (error) {
             showSnackbar(error.message, 'error');
@@ -170,22 +178,30 @@ export default function VerifyShops() {
 
     const handleSelectAll = (event) => {
         if (event.target.checked) {
-            setSelectedShops(shops.map(shop => shop.id));
+            setSelectedHouses(houses.map(house => house.id));
         } else {
-            setSelectedShops([]);
+            setSelectedHouses([]);
         }
     };
 
-    const handleSelectShop = (event, id) => {
+    const handleSelectHouse = (event, id) => {
         if (event.target.checked) {
-            setSelectedShops([...selectedShops, id]);
+            setSelectedHouses([...selectedHouses, id]);
         } else {
-            setSelectedShops(selectedShops.filter(shopId => shopId !== id));
+            setSelectedHouses(selectedHouses.filter(houseId => houseId !== id));
         }
     };
 
     const showSnackbar = (message, severity = 'success') => {
         setSnackbar({ open: true, message, severity });
+    };
+
+    const formatPrice = (price) => {
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0
+        }).format(price);
     };
 
     const StatCard = ({ title, value, icon, color }) => (
@@ -229,21 +245,29 @@ export default function VerifyShops() {
         );
     };
 
+    const getFurnishedLabel = (furnished) => {
+        switch(furnished) {
+            case 'furnished': return 'Fully Furnished';
+            case 'semi-furnished': return 'Semi Furnished';
+            default: return 'Unfurnished';
+        }
+    };
+
     return (
         <Container maxWidth="xl" sx={{ py: 3 }}>
             {/* Header */}
             <Typography variant="h4" sx={{ fontFamily: '"Alumni Sans", sans-serif', fontWeight: 600, mb: 3 }}>
-                Verify Shops
+                Verify Houses
             </Typography>
 
             {/* Statistics Cards */}
             {stats && (
                 <Grid container spacing={2} sx={{ mb: 3 }}>
                     <Grid item xs={12} sm={4}>
-                        <StatCard title="Total Shops" value={stats.total} icon={<StoreIcon />} color="#3b82f6" />
+                        <StatCard title="Total Houses" value={stats.total} icon={<HomeIcon />} color="#3b82f6" />
                     </Grid>
                     <Grid item xs={12} sm={4}>
-                        <StatCard title="Verified Shops" value={stats.verified} icon={<VerifiedIcon />} color="#10b981" />
+                        <StatCard title="Verified Houses" value={stats.verified} icon={<VerifiedIcon />} color="#10b981" />
                     </Grid>
                     <Grid item xs={12} sm={4}>
                         <StatCard title="Pending Verification" value={stats.unverified} icon={<PendingIcon />} color="#f59e0b" />
@@ -254,19 +278,19 @@ export default function VerifyShops() {
             {/* Filters */}
             <Paper sx={{ p: 2, mb: 3, border: '1px solid #e8ecef', boxShadow: 'none', borderRadius: 2 }}>
                 <Box display="flex" gap={2} flexWrap="wrap" alignItems="center">
-                    {selectedShops.length > 0 && (
+                    {selectedHouses.length > 0 && (
                         <Button
                             variant="contained"
                             startIcon={<CheckCircleIcon />}
                             onClick={handleBulkVerify}
                             sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
                         >
-                            Verify Selected ({selectedShops.length})
+                            Verify Selected ({selectedHouses.length})
                         </Button>
                     )}
                     
                     <TextField
-                        placeholder="Search by shop name, owner, city..."
+                        placeholder="Search by title, owner, city..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         size="small"
@@ -294,18 +318,30 @@ export default function VerifyShops() {
                     </FormControl>
                     
                     <FormControl size="small" sx={{ minWidth: 150 }}>
-                        <InputLabel>Category</InputLabel>
+                        <InputLabel>City</InputLabel>
                         <Select
-                            value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(e.target.value)}
-                            label="Category"
+                            value={cityFilter}
+                            onChange={(e) => setCityFilter(e.target.value)}
+                            label="City"
                         >
-                            <MenuItem value="">All Categories</MenuItem>
-                            {categories.map((cat) => (
-                                <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                            <MenuItem value="">All Cities</MenuItem>
+                            {cities.map((city) => (
+                                <MenuItem key={city} value={city}>{city}</MenuItem>
                             ))}
                         </Select>
                     </FormControl>
+                    
+                    <Box sx={{ minWidth: 200 }}>
+                        <Typography variant="caption" color="#5a6e8a">Rent Range (₹)</Typography>
+                        <Slider
+                            value={rentRange}
+                            onChange={(e, val) => setRentRange(val)}
+                            min={0}
+                            max={100000}
+                            valueLabelDisplay="auto"
+                            valueLabelFormat={(value) => `₹${value.toLocaleString()}`}
+                        />
+                    </Box>
                     
                     <Button
                         variant="contained"
@@ -320,9 +356,10 @@ export default function VerifyShops() {
                         onClick={() => {
                             setSearch('');
                             setStatusFilter('all');
-                            setCategoryFilter('');
+                            setCityFilter('');
+                            setRentRange([0, 100000]);
                             setPage(0);
-                            loadShops();
+                            loadHouses();
                         }}
                         startIcon={<RefreshIcon />}
                         sx={{ textTransform: 'none', borderRadius: 2 }}
@@ -332,7 +369,7 @@ export default function VerifyShops() {
                 </Box>
             </Paper>
 
-            {/* Shops Table */}
+            {/* Houses Table */}
             <Paper sx={{ border: '1px solid #e8ecef', boxShadow: 'none', borderRadius: 2, overflow: 'hidden' }}>
                 <TableContainer sx={{ maxHeight: 'calc(100vh - 350px)', overflow: 'auto' }}>
                     <Table stickyHeader>
@@ -340,14 +377,15 @@ export default function VerifyShops() {
                             <TableRow>
                                 <TableCell padding="checkbox" sx={{ bgcolor: '#f8f9fa' }}>
                                     <Checkbox
-                                        checked={selectedShops.length === shops.length && shops.length > 0}
-                                        indeterminate={selectedShops.length > 0 && selectedShops.length < shops.length}
+                                        checked={selectedHouses.length === houses.length && houses.length > 0}
+                                        indeterminate={selectedHouses.length > 0 && selectedHouses.length < houses.length}
                                         onChange={handleSelectAll}
                                     />
                                 </TableCell>
-                                <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 600 }}>Shop Details</TableCell>
+                                <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 600 }}>House Details</TableCell>
                                 <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 600 }}>Owner</TableCell>
                                 <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 600 }}>Location</TableCell>
+                                <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 600 }}>Rent</TableCell>
                                 <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 600 }}>Status</TableCell>
                                 <TableCell sx={{ bgcolor: '#f8f9fa', fontWeight: 600 }}>Posted Date</TableCell>
                                 <TableCell align="center" sx={{ bgcolor: '#f8f9fa', fontWeight: 600 }}>Actions</TableCell>
@@ -356,64 +394,69 @@ export default function VerifyShops() {
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                                         <CircularProgress sx={{ color: '#325fec' }} />
                                     </TableCell>
                                 </TableRow>
-                            ) : shops.length === 0 ? (
+                            ) : houses.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                                        <Typography color="#6b7280">No shops found</Typography>
+                                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                                        <Typography color="#6b7280">No houses found</Typography>
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                shops.map((shop) => (
-                                    <TableRow key={shop.id} hover>
+                                houses.map((house) => (
+                                    <TableRow key={house.id} hover>
                                         <TableCell padding="checkbox">
                                             <Checkbox
-                                                checked={selectedShops.includes(shop.id)}
-                                                onChange={(e) => handleSelectShop(e, shop.id)}
+                                                checked={selectedHouses.includes(house.id)}
+                                                onChange={(e) => handleSelectHouse(e, house.id)}
                                             />
                                         </TableCell>
                                         <TableCell>
                                             <Box display="flex" alignItems="center" gap={2}>
-                                                {shop.shop_image_base64 ? (
+                                                {house.house_image_base64 ? (
                                                     <Avatar
-                                                        src={`data:image/jpeg;base64,${shop.shop_image_base64}`}
+                                                        src={`data:image/jpeg;base64,${house.house_image_base64}`}
                                                         variant="rounded"
                                                         sx={{ width: 48, height: 48 }}
                                                     />
                                                 ) : (
                                                     <Avatar variant="rounded" sx={{ width: 48, height: 48, bgcolor: '#e8f0fe' }}>
-                                                        <StoreIcon sx={{ color: '#325fec' }} />
+                                                        <HomeIcon sx={{ color: '#325fec' }} />
                                                     </Avatar>
                                                 )}
                                                 <Box>
                                                     <Typography variant="body2" fontWeight={600}>
-                                                        {shop.business_name}
+                                                        {house.title || `${house.rooms} BHK House`}
                                                     </Typography>
                                                     <Typography variant="caption" color="#6b7280">
-                                                        {shop.category}
+                                                        {house.rooms} Bed • {house.bathrooms || 1} Bath • {house.kitchens} Kitchen
                                                     </Typography>
                                                 </Box>
                                             </Box>
                                         </TableCell>
                                         <TableCell>
-                                            <Typography variant="body2">{shop.owner_name}</Typography>
+                                            <Typography variant="body2">{house.owner_name}</Typography>
                                             <Typography variant="caption" color="#6b7280">
-                                                {shop.owner_phone}
+                                                {house.owner_phone}
                                             </Typography>
                                         </TableCell>
                                         <TableCell>
-                                            <Typography variant="body2">{shop.area}</Typography>
+                                            <Typography variant="body2">{house.area}</Typography>
                                             <Typography variant="caption" color="#6b7280">
-                                                {shop.city}, {shop.state}
+                                                {house.city}, {house.state}
                                             </Typography>
                                         </TableCell>
-                                        <TableCell>{getStatusChip(shop.is_verified)}</TableCell>
+                                        <TableCell>
+                                            <Typography variant="body2" fontWeight={600} color="#325fec">
+                                                {formatPrice(house.rent_per_month)}/month
+                                            </Typography>
+                                        </TableCell>
+                                        <TableCell>{getStatusChip(house.is_verified)}</TableCell>
                                         <TableCell>
                                             <Typography variant="body2">
-                                                {new Date(shop.created_at).toLocaleDateString()}
+                                                {new Date(house.created_at).toLocaleDateString()}
                                             </Typography>
                                         </TableCell>
                                         <TableCell align="center">
@@ -422,7 +465,7 @@ export default function VerifyShops() {
                                                     <IconButton 
                                                         size="small" 
                                                         onClick={() => {
-                                                            setSelectedShop(shop);
+                                                            setSelectedHouse(house);
                                                             setOpenViewDialog(true);
                                                         }}
                                                         sx={{ color: '#325fec' }}
@@ -430,20 +473,20 @@ export default function VerifyShops() {
                                                         <VisibilityIcon fontSize="small" />
                                                     </IconButton>
                                                 </Tooltip>
-                                                <Tooltip title={shop.is_verified ? "Unverify" : "Verify"}>
+                                                <Tooltip title={house.is_verified ? "Unverify" : "Verify"}>
                                                     <IconButton 
                                                         size="small" 
-                                                        onClick={() => handleVerify(shop.id, shop.is_verified)}
-                                                        sx={{ color: shop.is_verified ? '#f59e0b' : '#10b981' }}
+                                                        onClick={() => handleVerify(house.id, house.is_verified)}
+                                                        sx={{ color: house.is_verified ? '#f59e0b' : '#10b981' }}
                                                     >
-                                                        {shop.is_verified ? <CancelIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
+                                                        {house.is_verified ? <CancelIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
                                                     </IconButton>
                                                 </Tooltip>
                                                 <Tooltip title="Delete">
                                                     <IconButton 
                                                         size="small" 
                                                         onClick={() => {
-                                                            setShopToDelete(shop);
+                                                            setHouseToDelete(house);
                                                             setOpenDeleteDialog(true);
                                                         }}
                                                         sx={{ color: '#ef4444' }}
@@ -474,74 +517,98 @@ export default function VerifyShops() {
                 />
             </Paper>
 
-            {/* View Shop Dialog */}
+            {/* View House Dialog */}
             <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="md" fullWidth>
                 <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    Shop Details
+                    House Details
                     <IconButton onClick={() => setOpenViewDialog(false)}>
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>
                 <DialogContent dividers>
-                    {selectedShop && (
+                    {selectedHouse && (
                         <Box>
-                            {/* Shop Image */}
-                            {selectedShop.shop_image_base64 && (
+                            {/* House Image */}
+                            {selectedHouse.house_image_base64 && (
                                 <Box sx={{ mb: 3, textAlign: 'center' }}>
                                     <img 
-                                        src={`data:image/jpeg;base64,${selectedShop.shop_image_base64}`}
-                                        alt={selectedShop.business_name}
+                                        src={`data:image/jpeg;base64,${selectedHouse.house_image_base64}`}
+                                        alt={selectedHouse.title || 'House'}
                                         style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8, objectFit: 'cover' }}
                                     />
                                 </Box>
                             )}
                             
                             <Grid container spacing={2}>
-                                <Grid item xs={12} sm={6}>
-                                    <Typography variant="caption" color="#6b7280">Business Name</Typography>
-                                    <Typography variant="body1" fontWeight={600}>{selectedShop.business_name}</Typography>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Typography variant="caption" color="#6b7280">Category</Typography>
-                                    <Typography variant="body1">{selectedShop.category}</Typography>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Typography variant="caption" color="#6b7280">Additional Phone</Typography>
-                                    <Typography variant="body1">{selectedShop.additional_phone || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Typography variant="caption" color="#6b7280">Status</Typography>
-                                    <Box mt={0.5}>{getStatusChip(selectedShop.is_verified)}</Box>
-                                </Grid>
                                 <Grid item xs={12}>
-                                    <Typography variant="caption" color="#6b7280">Key Items</Typography>
-                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                                        {selectedShop.keywords && selectedShop.keywords.length > 0 ? (
-                                            selectedShop.keywords.map((item, idx) => (
-                                                <Chip key={idx} label={item} size="small" />
-                                            ))
-                                        ) : (
-                                            <Typography variant="body2" color="#6b7280">No key items listed</Typography>
-                                        )}
+                                    <Typography variant="caption" color="#6b7280">Title</Typography>
+                                    <Typography variant="body1" fontWeight={600}>{selectedHouse.title || `${selectedHouse.rooms} BHK House`}</Typography>
+                                </Grid>
+                                
+                                <Grid item xs={12} sm={6}>
+                                    <Typography variant="caption" color="#6b7280">Property Details</Typography>
+                                    <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
+                                        <Chip icon={<BedIcon />} label={`${selectedHouse.rooms} Beds`} size="small" />
+                                        <Chip icon={<BathtubIcon />} label={`${selectedHouse.bathrooms || 1} Baths`} size="small" />
+                                        <Chip icon={<KitchenIcon />} label={`${selectedHouse.kitchens} Kitchens`} size="small" />
                                     </Box>
                                 </Grid>
+                                
+                                <Grid item xs={12} sm={6}>
+                                    <Typography variant="caption" color="#6b7280">Furnishing</Typography>
+                                    <Typography variant="body1">{getFurnishedLabel(selectedHouse.furnished)}</Typography>
+                                </Grid>
+                                
+                                <Grid item xs={12} sm={6}>
+                                    <Typography variant="caption" color="#6b7280">Floor</Typography>
+                                    <Typography variant="body1">{selectedHouse.floor}</Typography>
+                                </Grid>
+                                
+                                <Grid item xs={12} sm={6}>
+                                    <Typography variant="caption" color="#6b7280">Status</Typography>
+                                    <Box mt={0.5}>{getStatusChip(selectedHouse.is_verified)}</Box>
+                                </Grid>
+                                
+                                <Grid item xs={12} sm={6}>
+                                    <Typography variant="caption" color="#6b7280">Rent</Typography>
+                                    <Typography variant="body1" fontWeight={600} color="#325fec">
+                                        {formatPrice(selectedHouse.rent_per_month)}/month
+                                    </Typography>
+                                </Grid>
+                                
+                                <Grid item xs={12} sm={6}>
+                                    <Typography variant="caption" color="#6b7280">Deposit / Advance</Typography>
+                                    <Typography variant="body1">
+                                        {selectedHouse.deposit_amount ? formatPrice(selectedHouse.deposit_amount) : 'N/A'}
+                                    </Typography>
+                                </Grid>
+                                
+                                {selectedHouse.description && (
+                                    <Grid item xs={12}>
+                                        <Typography variant="caption" color="#6b7280">Description</Typography>
+                                        <Typography variant="body2">{selectedHouse.description}</Typography>
+                                    </Grid>
+                                )}
+                                
                                 <Grid item xs={12}>
                                     <Typography variant="caption" color="#6b7280">Location</Typography>
-                                    <Typography variant="body1">{selectedShop.area}, {selectedShop.city}, {selectedShop.state}</Typography>
-                                    {selectedShop.latitude && selectedShop.longitude && (
+                                    <Typography variant="body1">{selectedHouse.area}, {selectedHouse.city}, {selectedHouse.state}</Typography>
+                                    {selectedHouse.latitude && selectedHouse.longitude && (
                                         <Typography variant="caption" color="#6b7280">
-                                            Lat: {selectedShop.latitude}, Lng: {selectedShop.longitude}
+                                            Lat: {selectedHouse.latitude}, Lng: {selectedHouse.longitude}
                                         </Typography>
                                     )}
                                 </Grid>
+                                
                                 <Grid item xs={12}>
                                     <Typography variant="caption" color="#6b7280">Owner Information</Typography>
-                                    <Typography variant="body1">{selectedShop.owner_name}</Typography>
-                                    <Typography variant="body2" color="#6b7280">{selectedShop.owner_phone}</Typography>
+                                    <Typography variant="body1">{selectedHouse.owner_name}</Typography>
+                                    <Typography variant="body2" color="#6b7280">{selectedHouse.owner_phone}</Typography>
                                 </Grid>
+                                
                                 <Grid item xs={12}>
                                     <Typography variant="caption" color="#6b7280">Posted Date</Typography>
-                                    <Typography variant="body1">{new Date(selectedShop.created_at).toLocaleString()}</Typography>
+                                    <Typography variant="body1">{new Date(selectedHouse.created_at).toLocaleString()}</Typography>
                                 </Grid>
                             </Grid>
                         </Box>
@@ -549,16 +616,16 @@ export default function VerifyShops() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpenViewDialog(false)}>Close</Button>
-                    {selectedShop && !selectedShop.is_verified && (
+                    {selectedHouse && !selectedHouse.is_verified && (
                         <Button 
                             variant="contained" 
                             onClick={() => {
-                                handleVerify(selectedShop.id, selectedShop.is_verified);
+                                handleVerify(selectedHouse.id, selectedHouse.is_verified);
                                 setOpenViewDialog(false);
                             }}
                             sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
                         >
-                            Verify Shop
+                            Verify House
                         </Button>
                     )}
                 </DialogActions>
@@ -569,7 +636,7 @@ export default function VerifyShops() {
                 <DialogTitle>Confirm Delete</DialogTitle>
                 <DialogContent>
                     <Typography>
-                        Are you sure you want to delete <strong>{shopToDelete?.business_name}</strong>?
+                        Are you sure you want to delete <strong>{houseToDelete?.title || `${houseToDelete?.rooms} BHK House`}</strong>?
                         This action cannot be undone.
                     </Typography>
                 </DialogContent>
