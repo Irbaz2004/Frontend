@@ -1,5 +1,5 @@
 // services/user.js
-const API_BASE = import.meta.env.VITE_API_URL || 'https://backend-qb4v.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_URL;
 
 function authHeaders() {
     const token = localStorage.getItem('nearzo_token');
