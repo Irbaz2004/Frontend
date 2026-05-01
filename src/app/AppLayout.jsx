@@ -3,9 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     Box,
-    BottomNavigation,
-    BottomNavigationAction,
-    Paper,
     Avatar,
     Typography,
     Button,
@@ -27,7 +24,8 @@ import {
     DialogContentText,
     DialogActions,
     Menu,
-    MenuItem
+    MenuItem,
+    Badge,
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -39,26 +37,22 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import SearchIcon from '@mui/icons-material/Search';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import { LocationOnOutlined, HouseOutlined, StoreOutlined, GridViewOutlined } from '@mui/icons-material';
 import { PlaceOutlined } from '@mui/icons-material';
 import logo from '../assets/nearzologo.png';
 
-// Role-based nav config - Profile removed from bottom nav (only in avatar menu)
 const NAV_CONFIG = {
     user: [
         { label: 'Home', icon: <GridViewOutlined />, path: '/app/home' },
-        { label: 'Map View', icon: <LocationOnOutlined />, path: '/app/map' },
+        { label: 'Map', icon: <LocationOnOutlined />, path: '/app/map' },
         { label: 'Shops', icon: <StoreOutlined />, path: '/app/shops' },
         { label: 'Houses', icon: <HouseOutlined />, path: '/app/houses' },
         { label: 'Jobs', icon: <WorkIcon />, path: '/app/jobs' },
-        // Profile removed from here - now only in avatar dropdown
     ],
     business: [
         { label: 'Dashboard', icon: <DashboardIcon />, path: '/app/business/dashboard' },
         { label: 'Jobs', icon: <WorkIcon />, path: '/app/business/jobs' },
-        // Profile removed from here
     ],
     admin: [
         { label: 'Dashboard', icon: <DashboardIcon />, path: '/app/admin/dashboard' },
@@ -72,55 +66,39 @@ const NAV_CONFIG = {
     ],
 };
 
-// Sidebar width
-const DRAWER_WIDTH = 260;
-const COLLAPSED_DRAWER_WIDTH = 70;
+const DRAWER_WIDTH = 256;
+const COLLAPSED_DRAWER_WIDTH = 68;
+const BOTTOM_NAV_HEIGHT = 60;
+const TOP_BAR_HEIGHT = 64;
 
 function AppLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    
+
     const [role, setRole] = useState(null);
     const [loading, setLoading] = useState(true);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-    
-    // Avatar menu state
     const [anchorEl, setAnchorEl] = useState(null);
     const open = Boolean(anchorEl);
 
     useEffect(() => {
         const storedRole = localStorage.getItem('nearzo_role');
         const token = localStorage.getItem('nearzo_token');
-        
-        console.log('AppLayout - Stored role:', storedRole);
-        console.log('AppLayout - Token exists:', !!token);
-        console.log('AppLayout - Current path:', location.pathname);
-        
-        // If no token or role, redirect to login
         if (!token || !storedRole) {
-            console.log('No auth found, redirecting to login');
             handleLogoutRedirect();
             return;
         }
-        
         setRole(storedRole);
-        
-        // Redirect from root /app to role-appropriate default page
         if (location.pathname === '/app' || location.pathname === '/app/') {
             let defaultPath = '/app/home';
-            if (storedRole === 'business') {
-                defaultPath = '/app/business/dashboard';
-            } else if (storedRole === 'admin') {
-                defaultPath = '/app/admin/dashboard';
-            }
-            console.log('Redirecting from root /app to:', defaultPath);
+            if (storedRole === 'business') defaultPath = '/app/business/dashboard';
+            else if (storedRole === 'admin') defaultPath = '/app/admin/dashboard';
             navigate(defaultPath, { replace: true });
         }
-        
         setLoading(false);
     }, [navigate, location.pathname]);
 
@@ -129,10 +107,7 @@ function AppLayout() {
         localStorage.removeItem('nearzo_role');
         localStorage.removeItem('nearzo_user');
         sessionStorage.clear();
-        
-        setTimeout(() => {
-            window.location.href = '/app/login';
-        }, 100);
+        setTimeout(() => { window.location.href = '/app/login'; }, 100);
     };
 
     const handleLogout = () => {
@@ -140,207 +115,148 @@ function AppLayout() {
         handleLogoutRedirect();
     };
 
-    const handleDrawerToggle = () => {
-        setMobileOpen(!mobileOpen);
-    };
-
-    const toggleSidebarCollapse = () => {
-        setSidebarCollapsed(!sidebarCollapsed);
-    };
-
-    // Avatar menu handlers
-    const handleAvatarClick = (event) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleMenuClose = () => {
-        setAnchorEl(null);
-    };
-
-    const handleProfileClick = () => {
-        handleMenuClose();
-        navigate('/app/profile');
-    };
-
-    const handleLogoutClick = () => {
-        handleMenuClose();
-        setLogoutDialogOpen(true);
-    };
-
     const isAdmin = role === 'admin';
     const navItems = role ? (NAV_CONFIG[role] || NAV_CONFIG.user) : [];
 
-    const isActivePath = (path) => {
-        return location.pathname === path || location.pathname.startsWith(path + '/');
-    };
+    const isActivePath = (path) =>
+        location.pathname === path || location.pathname.startsWith(path + '/');
 
-    // Render Sidebar for Admin
+    // ─── SIDEBAR (Admin) ───────────────────────────────────────────────────────
     const renderSidebar = () => {
         const sidebarContent = (
-            <Box sx={{ 
-                height: '100%', 
-                display: 'flex', 
+            <Box sx={{
+                height: '100%',
+                display: 'flex',
                 flexDirection: 'column',
-                bgcolor: '#ffffff',
-                borderRight: '1px solid #e8ecef',
+                bgcolor: '#fff',
+                borderRight: '1px solid #f0f0f0',
             }}>
-                {/* Logo Section */}
-                <Box sx={{ 
-                    p: sidebarCollapsed ? 1.5 : 2.5, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    borderBottom: '1px solid #e8ecef'
+                {/* Logo */}
+                <Box sx={{
+                    p: sidebarCollapsed ? 1.5 : 2.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+                    borderBottom: '1px solid #f0f0f0',
+                    minHeight: TOP_BAR_HEIGHT,
                 }}>
                     {!sidebarCollapsed && (
                         <Box
-                            component="img"
-                            src={logo}
-                            alt="NearZO"
-                            sx={{
-                                width: '110px',
-                                height: 'auto',
-                                objectFit: 'contain',
-                                cursor: 'pointer'
-                            }}
+                            component="img" src={logo} alt="NearZO"
+                            sx={{ width: 100, height: 'auto', cursor: 'pointer', objectFit: 'contain' }}
                             onClick={() => navigate('/')}
                         />
                     )}
                     {sidebarCollapsed && (
                         <Box
-                            component="img"
-                            src={logo}
-                            alt="NearZO"
-                            sx={{
-                                width: '35px',
-                                height: 'auto',
-                                objectFit: 'contain',
-                                cursor: 'pointer',
-                                mx: 'auto'
-                            }}
+                            component="img" src={logo} alt="NearZO"
+                            sx={{ width: 32, height: 'auto', cursor: 'pointer', objectFit: 'contain' }}
                             onClick={() => navigate('/')}
                         />
                     )}
-                    <IconButton 
-                        onClick={toggleSidebarCollapse} 
-                        size="small"
-                        sx={{ color: '#5a6e8a' }}
-                    >
-                        <ChevronLeftIcon sx={{ 
-                            transform: sidebarCollapsed ? 'rotate(180deg)' : 'none',
-                            transition: 'transform 0.3s',
-                            fontSize: '1.2rem'
-                        }} />
-                    </IconButton>
+                    {!sidebarCollapsed && (
+                        <IconButton onClick={() => setSidebarCollapsed(true)} size="small"
+                            sx={{ color: '#aaa', '&:hover': { color: '#325fec', bgcolor: '#f0f4ff' } }}>
+                            <ChevronLeftIcon sx={{ fontSize: '1.1rem' }} />
+                        </IconButton>
+                    )}
+                    {sidebarCollapsed && (
+                        <Box />
+                    )}
                 </Box>
 
-                {/* Navigation Items */}
-                <List sx={{ flex: 1, pt: 2, px: 1.5 }}>
-                    {navItems.map((item) => (
-                        <ListItem key={item.label} disablePadding sx={{ display: 'block', mb: 0.5 }}>
-                            <ListItemButton
-                                onClick={() => {
-                                    navigate(item.path);
-                                    if (isMobile) setMobileOpen(false);
-                                }}
-                                selected={isActivePath(item.path)}
-                                sx={{
-                                    minHeight: 40,
-                                    justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                                    px: sidebarCollapsed ? 1 : 2,
-                                    py: 1,
-                                    borderRadius: 1,
-                                    '&.Mui-selected': {
-                                        bgcolor: '#e8f0fe',
-                                        '&:hover': {
-                                            bgcolor: '#dce8fb',
-                                        },
-                                        '& .MuiListItemIcon-root': {
-                                            color: '#325fec',
-                                        },
-                                        '& .MuiListItemText-primary': {
-                                            color: '#325fec',
-                                            fontWeight: 600,
-                                        }
-                                    },
-                                    '&:hover': {
-                                        bgcolor: '#f5f5f5',
-                                    }
-                                }}
-                            >
-                                <ListItemIcon
-                                    sx={{
-                                        color: isActivePath(item.path) ? '#325fec' : '#5a6e8a',
-                                        minWidth: 0,
-                                        mr: sidebarCollapsed ? 0 : 2,
-                                        justifyContent: 'center',
-                                        '& svg': {
-                                            fontSize: '1.25rem'
-                                        }
-                                    }}
-                                >
-                                    {item.icon}
-                                </ListItemIcon>
-                                {!sidebarCollapsed && (
-                                    <ListItemText 
-                                        primary={item.label} 
-                                        primaryTypographyProps={{
-                                            fontSize: '0.8rem',
-                                            fontFamily: '"Inter", sans-serif',
-                                            fontWeight: isActivePath(item.path) ? 600 : 400,
-                                            color: '#020402'
+                {sidebarCollapsed && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5 }}>
+                        <IconButton onClick={() => setSidebarCollapsed(false)} size="small"
+                            sx={{ color: '#aaa', '&:hover': { color: '#325fec', bgcolor: '#f0f4ff' } }}>
+                            <ChevronLeftIcon sx={{ fontSize: '1.1rem', transform: 'rotate(180deg)' }} />
+                        </IconButton>
+                    </Box>
+                )}
+
+                {/* Nav Items */}
+                <List sx={{ flex: 1, pt: 1.5, px: 1 }}>
+                    {navItems.map((item) => {
+                        const active = isActivePath(item.path);
+                        return (
+                            <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
+                                <Tooltip title={sidebarCollapsed ? item.label : ''} placement="right">
+                                    <ListItemButton
+                                        onClick={() => { navigate(item.path); if (isMobile) setMobileOpen(false); }}
+                                        sx={{
+                                            minHeight: 42,
+                                            borderRadius: '10px',
+                                            justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                                            px: sidebarCollapsed ? 1.2 : 1.5,
+                                            py: 1,
+                                            bgcolor: active ? '#f0f4ff' : 'transparent',
+                                            '&:hover': { bgcolor: active ? '#e8effe' : '#f8f8f8' },
+                                            transition: 'all 0.15s ease',
                                         }}
-                                    />
-                                )}
-                            </ListItemButton>
-                        </ListItem>
-                    ))}
+                                    >
+                                        <ListItemIcon sx={{
+                                            minWidth: 0,
+                                            mr: sidebarCollapsed ? 0 : 1.5,
+                                            color: active ? '#325fec' : '#9aa',
+                                            '& svg': { fontSize: '1.2rem' }
+                                        }}>
+                                            {item.icon}
+                                        </ListItemIcon>
+                                        {!sidebarCollapsed && (
+                                            <ListItemText
+                                                primary={item.label}
+                                                primaryTypographyProps={{
+                                                    fontSize: '0.825rem',
+                                                    fontFamily: '"Inter", sans-serif',
+                                                    fontWeight: active ? 600 : 400,
+                                                    color: active ? '#325fec' : '#444',
+                                                    letterSpacing: '-0.01em',
+                                                }}
+                                            />
+                                        )}
+                                        {!sidebarCollapsed && active && (
+                                            <Box sx={{
+                                                width: 5, height: 5, borderRadius: '50%',
+                                                bgcolor: '#325fec', ml: 'auto', flexShrink: 0
+                                            }} />
+                                        )}
+                                    </ListItemButton>
+                                </Tooltip>
+                            </ListItem>
+                        );
+                    })}
                 </List>
 
-                <Divider sx={{ bgcolor: '#e8ecef', mx: 1.5 }} />
-
-                {/* Bottom Actions - Logout button with theme color (no red) */}
-                <List sx={{ pt: 1, px: 1.5, pb: 2 }}>
-                    <ListItem disablePadding sx={{ display: 'block' }}>
+                <Box sx={{ px: 1, pb: 2 }}>
+                    <Divider sx={{ mb: 1.5, borderColor: '#f0f0f0' }} />
+                    <Tooltip title={sidebarCollapsed ? 'Logout' : ''} placement="right">
                         <ListItemButton
                             onClick={() => setLogoutDialogOpen(true)}
                             sx={{
-                                minHeight: 40,
+                                borderRadius: '10px',
                                 justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                                px: sidebarCollapsed ? 1 : 2,
+                                px: sidebarCollapsed ? 1.2 : 1.5,
                                 py: 1,
-                                borderRadius: 1,
-                                '&:hover': {
-                                    bgcolor: '#e8f0fe',
-                                }
+                                '&:hover': { bgcolor: '#fff1f0' },
                             }}
                         >
-                            <ListItemIcon
-                                sx={{
-                                    color: '#5a6e8a',
-                                    minWidth: 0,
-                                    mr: sidebarCollapsed ? 0 : 2,
-                                    justifyContent: 'center',
-                                    '& svg': {
-                                        fontSize: '1.25rem'
-                                    }
-                                }}
-                            >
+                            <ListItemIcon sx={{ minWidth: 0, mr: sidebarCollapsed ? 0 : 1.5, color: '#ccc', '& svg': { fontSize: '1.2rem' } }}>
                                 <LogoutIcon />
                             </ListItemIcon>
                             {!sidebarCollapsed && (
-                                <ListItemText 
-                                    primary="Logout" 
+                                <ListItemText
+                                    primary="Logout"
                                     primaryTypographyProps={{
-                                        fontSize: '0.8rem',
+                                        fontSize: '0.825rem',
                                         fontFamily: '"Inter", sans-serif',
-                                        color: '#5a6e8a'
+                                        fontWeight: 400,
+                                        color: '#999',
                                     }}
                                 />
                             )}
                         </ListItemButton>
-                    </ListItem>
-                </List>
+                    </Tooltip>
+                </Box>
             </Box>
         );
 
@@ -355,11 +271,11 @@ function AppLayout() {
                         '& .MuiDrawer-paper': {
                             width: sidebarCollapsed ? COLLAPSED_DRAWER_WIDTH : DRAWER_WIDTH,
                             boxSizing: 'border-box',
-                            borderRight: '1px solid #e8ecef',
-                            bgcolor: '#ffffff',
-                            transition: 'width 0.3s ease',
+                            border: 'none',
+                            borderRight: '1px solid #f0f0f0',
+                            bgcolor: '#fff',
+                            transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                             overflowX: 'hidden',
-                            boxShadow: 'none'
                         },
                     }}
                     open
@@ -370,15 +286,14 @@ function AppLayout() {
                 <Drawer
                     variant="temporary"
                     open={mobileOpen}
-                    onClose={handleDrawerToggle}
+                    onClose={() => setMobileOpen(false)}
                     ModalProps={{ keepMounted: true }}
                     sx={{
                         display: { xs: 'block', md: 'none' },
                         '& .MuiDrawer-paper': {
                             width: DRAWER_WIDTH,
                             boxSizing: 'border-box',
-                            bgcolor: '#ffffff',
-                            borderRight: '1px solid #e8ecef'
+                            bgcolor: '#fff',
                         },
                     }}
                 >
@@ -388,202 +303,226 @@ function AppLayout() {
         );
     };
 
-    // Render Bottom Navigation for User/Business
+    // ─── BOTTOM NAV (User/Business) ────────────────────────────────────────────
     const renderBottomNav = () => {
         const currentIndex = navItems.findIndex(item =>
             location.pathname === item.path || location.pathname.startsWith(item.path + '/')
         );
 
-        const handleNavChange = (_, newValue) => {
-            if (navItems[newValue]) {
-                console.log('Navigating to:', navItems[newValue].path);
-                navigate(navItems[newValue].path);
-            }
-        };
-
         return (
-            <Paper
-                elevation={0}
+            <Box
                 sx={{
                     position: 'fixed',
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    zIndex: 1000,
-                    borderRadius: 0,
-                    borderTop: '1px solid #e8ecef',
-                    background: '#ffffff',
-                    boxShadow: 'none',
+                    zIndex: 1200,
+                    px: 2,
+                    pb: 'env(safe-area-inset-bottom, 8px)',
+                    pt: '8px',
+                    bgcolor: 'transparent',
+                    pointerEvents: 'none',
                 }}
             >
-                <BottomNavigation
-                    value={currentIndex >= 0 ? currentIndex : 0}
-                    onChange={handleNavChange}
-                    showLabels
+                <Box
                     sx={{
-                        height: 60,
-                        background: 'transparent',
-                        '& .MuiBottomNavigationAction-root': {
-                            color: '#9e9e9e',
-                            minWidth: 'auto',
-                            padding: '6px 0',
-                            transition: 'all 0.2s ease',
-                            '&.Mui-selected': {
-                                color: '#325fec',
-                                '& .MuiBottomNavigationAction-label': {
-                                    fontSize: '0.7rem',
-                                    fontWeight: 600,
-                                    fontFamily: '"Inter", sans-serif',
-                                }
-                            },
-                            '&:hover': {
-                                color: '#325fec',
-                                transform: 'translateY(-2px)',
-                            }
-                        },
-                        '& .MuiBottomNavigationAction-label': {
-                            fontFamily: '"Inter", sans-serif',
-                            fontSize: '0.65rem',
-                            fontWeight: 500,
-                            marginTop: '4px',
-                        },
-                        '& .MuiSvgIcon-root': {
-                            fontSize: '1.3rem',
-                        }
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-around',
+                        bgcolor: 'rgba(255,255,255,0.92)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        borderRadius: '20px',
+                        border: '1px solid rgba(0,0,0,0.07)',
+                        boxShadow: '0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)',
+                        px: 1,
+                        mb: 1.5,
+                        pointerEvents: 'all',
                     }}
                 >
-                    {navItems.map((item) => (
-                        <BottomNavigationAction
-                            key={item.label}
-                            label={item.label}
-                            icon={item.icon}
-                        />
-                    ))}
-                </BottomNavigation>
-            </Paper>
+                    {navItems.map((item, index) => {
+                        const active = index === (currentIndex >= 0 ? currentIndex : 0);
+                        return (
+                            <Box
+                                key={item.label}
+                                onClick={() => navigate(item.path)}
+                                sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '3px',
+                                    px: 1.5,
+                                    py: 1,
+                                    borderRadius: '14px',
+                                    cursor: 'pointer',
+                                    minWidth: 52,
+                                    bgcolor: active ? '#f0f4ff' : 'transparent',
+                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    '&:active': { transform: 'scale(0.93)' },
+                                    userSelect: 'none',
+                                }}
+                            >
+                                <Box sx={{
+                                    color: active ? '#325fec' : '#bbbfc9',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    transition: 'color 0.2s ease',
+                                    '& svg': {
+                                        fontSize: active ? '1.35rem' : '1.25rem',
+                                        transition: 'all 0.2s ease',
+                                    }
+                                }}>
+                                    {item.icon}
+                                </Box>
+                                <Typography sx={{
+                                    fontSize: '0.6rem',
+                                    fontFamily: '"Inter", sans-serif',
+                                    fontWeight: active ? 700 : 500,
+                                    color: active ? '#325fec' : '#bbbfc9',
+                                    letterSpacing: '-0.01em',
+                                    lineHeight: 1,
+                                    transition: 'all 0.2s ease',
+                                }}>
+                                    {item.label}
+                                </Typography>
+                            </Box>
+                        );
+                    })}
+                </Box>
+            </Box>
         );
     };
 
-    // Render Top App Bar (for non-admin)
+    // ─── TOP BAR (User/Business) ───────────────────────────────────────────────
     const renderTopBar = () => {
         if (isAdmin) return null;
 
         return (
             <Box
                 sx={{
+                    height: TOP_BAR_HEIGHT,
                     px: 2.5,
-                    py: 1.5,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    bgcolor: '#ffffff',
-                    borderBottom: '1px solid #e8ecef',
+                    bgcolor: 'rgba(255,255,255,0.95)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    borderBottom: '1px solid rgba(0,0,0,0.06)',
                     position: 'sticky',
                     top: 0,
                     zIndex: 1100,
-                    boxShadow: 'none'
                 }}
             >
+                {/* Logo */}
                 <Box
-                    component="img"
-                    src={logo}
-                    alt="NearZO"
-                    sx={{
-                        width: '100px',
-                        height: 'auto',
-                        objectFit: 'contain',
-                        cursor: 'pointer'
-                    }}
+                    component="img" src={logo} alt="NearZO"
+                    sx={{ width: 90, height: 'auto', objectFit: 'contain', cursor: 'pointer' }}
                     onClick={() => navigate('/')}
                 />
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Tooltip title="Notifications">
-                        <IconButton size="small" sx={{ color: '#5a6e8a' }}>
-                            <NotificationsIcon sx={{ fontSize: '1.2rem' }} />
-                        </IconButton>
-                    </Tooltip>
-                    
-                    <Typography 
-                        variant="caption" 
-                        sx={{ 
-                            color: '#5a6e8a',
-                            textTransform: 'capitalize',
-                            fontFamily: '"Inter", sans-serif',
-                            fontSize: '0.7rem',
-                            display: { xs: 'none', sm: 'block' }
+                {/* Right actions */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {/* Notification Bell */}
+                    <IconButton
+                        size="small"
+                        sx={{
+                            width: 38, height: 38,
+                            borderRadius: '12px',
+                            color: '#888',
+                            bgcolor: '#f7f7f7',
+                            '&:hover': { bgcolor: '#f0f4ff', color: '#325fec' },
+                            transition: 'all 0.15s ease',
                         }}
                     >
-                        {role}
-                    </Typography>
-                    
-                    {/* Avatar with dropdown menu */}
-                    <Tooltip title="Account">
-                        <IconButton
-                            onClick={handleAvatarClick}
-                            size="small"
-                            sx={{ p: 0 }}
+                        <Badge badgeContent={0} color="error" invisible>
+                            <NotificationsIcon sx={{ fontSize: '1.15rem' }} />
+                        </Badge>
+                    </IconButton>
+
+                    {/* Avatar */}
+                    <Box
+                        onClick={(e) => setAnchorEl(e.currentTarget)}
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            ml: 0.5,
+                            pl: 1,
+                            pr: 1.2,
+                            py: 0.6,
+                            borderRadius: '12px',
+                            bgcolor: '#f7f7f7',
+                            cursor: 'pointer',
+                            border: '1px solid transparent',
+                            transition: 'all 0.15s ease',
+                            '&:hover': { bgcolor: '#f0f4ff', borderColor: '#d6e0ff' },
+                        }}
+                    >
+                        <Avatar
+                            sx={{
+                                width: 26, height: 26,
+                                bgcolor: '#325fec',
+                                color: '#fff',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                fontFamily: '"Inter", sans-serif',
+                            }}
                         >
-                            <Avatar
-                                sx={{
-                                    width: 32,
-                                    height: 32,
-                                    bgcolor: '#e8f0fe',
-                                    color: '#325fec',
-                                    fontSize: '0.75rem',
-                                    fontWeight: 600,
-                                    fontFamily: '"Inter", sans-serif',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s ease',
-                                    '&:hover': {
-                                        transform: 'scale(1.05)',
-                                        bgcolor: '#dce8fb',
-                                    }
-                                }}
-                            >
-                                {role ? role[0].toUpperCase() : 'U'}
-                            </Avatar>
-                        </IconButton>
-                    </Tooltip>
-                    
-                    {/* Dropdown Menu - Profile and Logout (no red colors) */}
+                            {role ? role[0].toUpperCase() : 'U'}
+                        </Avatar>
+                        <Typography sx={{
+                            fontSize: '0.75rem',
+                            fontFamily: '"Inter", sans-serif',
+                            fontWeight: 500,
+                            color: '#555',
+                            textTransform: 'capitalize',
+                            display: { xs: 'none', sm: 'block' },
+                        }}>
+                            {role}
+                        </Typography>
+                    </Box>
+
+                    {/* Dropdown */}
                     <Menu
                         anchorEl={anchorEl}
                         open={open}
-                        onClose={handleMenuClose}
-                        onClick={handleMenuClose}
+                        onClose={() => setAnchorEl(null)}
+                        onClick={() => setAnchorEl(null)}
                         PaperProps={{
                             elevation: 0,
                             sx: {
-                                overflow: 'visible',
-                                filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.08))',
-                                mt: 1.5,
-                                borderRadius: 2,
-                                border: '1px solid #e8ecef',
-                                minWidth: 160,
+                                mt: 1,
+                                borderRadius: '14px',
+                                border: '1px solid #f0f0f0',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
+                                minWidth: 170,
+                                overflow: 'hidden',
                                 '& .MuiMenuItem-root': {
-                                    px: 2,
-                                    py: 1,
-                                    fontSize: '0.8rem',
+                                    px: 2, py: 1.2,
+                                    fontSize: '0.82rem',
                                     fontFamily: '"Inter", sans-serif',
-                                }
+                                    fontWeight: 500,
+                                    color: '#333',
+                                    gap: 1.5,
+                                    '&:hover': { bgcolor: '#f5f7ff' },
+                                },
                             },
                         }}
                         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                     >
-                        <MenuItem onClick={handleProfileClick}>
-                            <ListItemIcon sx={{ minWidth: 32 }}>
-                                <AccountCircleIcon fontSize="small" sx={{ color: '#325fec' }} />
-                            </ListItemIcon>
+                        <MenuItem onClick={() => navigate('/app/profile')}>
+                            <AccountCircleIcon sx={{ fontSize: '1.1rem', color: '#325fec' }} />
                             Profile
                         </MenuItem>
-                        <Divider sx={{ my: 0.5 }} />
-                        <MenuItem onClick={handleLogoutClick}>
-                            <ListItemIcon sx={{ minWidth: 32 }}>
-                                <LogoutIcon fontSize="small" sx={{ color: '#5a6e8a' }} />
-                            </ListItemIcon>
-                            Logout
+                        <Divider sx={{ my: 0.5, borderColor: '#f5f5f5' }} />
+                        <MenuItem onClick={() => { setAnchorEl(null); setLogoutDialogOpen(true); }}>
+                            <LogoutIcon sx={{ fontSize: '1.1rem', color: '#aaa' }} />
+                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.82rem', color: '#888' }}>
+                                Logout
+                            </Typography>
                         </MenuItem>
                     </Menu>
                 </Box>
@@ -591,106 +530,182 @@ function AppLayout() {
         );
     };
 
-    // Show loading spinner while checking auth
+    // ─── LOGOUT DIALOG ─────────────────────────────────────────────────────────
+    const renderLogoutDialog = () => (
+        <Dialog
+            open={logoutDialogOpen}
+            onClose={() => setLogoutDialogOpen(false)}
+            PaperProps={{
+                sx: {
+                    borderRadius: '18px',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.12)',
+                    border: '1px solid #f0f0f0',
+                    p: 0.5,
+                    minWidth: 300,
+                }
+            }}
+        >
+            <DialogTitle sx={{
+                fontFamily: '"Inter", sans-serif',
+                fontWeight: 700,
+                fontSize: '1rem',
+                color: '#1a1a1a',
+                pb: 0.5,
+            }}>
+                Log out?
+            </DialogTitle>
+            <DialogContent>
+                <DialogContentText sx={{
+                    fontFamily: '"Inter", sans-serif',
+                    fontSize: '0.85rem',
+                    color: '#888',
+                    lineHeight: 1.6,
+                }}>
+                    You'll need to sign in again to access your account.
+                </DialogContentText>
+            </DialogContent>
+            <DialogActions sx={{ p: 2, pt: 1, gap: 1 }}>
+                <Button
+                    onClick={() => setLogoutDialogOpen(false)}
+                    sx={{
+                        textTransform: 'none',
+                        borderRadius: '10px',
+                        color: '#666',
+                        fontFamily: '"Inter", sans-serif',
+                        fontWeight: 500,
+                        fontSize: '0.85rem',
+                        px: 2,
+                        bgcolor: '#f5f5f5',
+                        '&:hover': { bgcolor: '#eee' },
+                    }}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    onClick={handleLogout}
+                    variant="contained"
+                    sx={{
+                        textTransform: 'none',
+                        borderRadius: '10px',
+                        fontFamily: '"Inter", sans-serif',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        px: 2.5,
+                        bgcolor: '#325fec',
+                        boxShadow: 'none',
+                        '&:hover': { bgcolor: '#1a4bcf', boxShadow: 'none' },
+                    }}
+                >
+                    Log out
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+
+    // ─── LOADING ───────────────────────────────────────────────────────────────
     if (loading) {
         return (
-            <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                minHeight: '100vh',
-                bgcolor: '#ffffff'
-            }}>
-                <CircularProgress sx={{ color: '#325fec' }} />
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#fff' }}>
+                <CircularProgress sx={{ color: '#325fec' }} size={28} thickness={3} />
             </Box>
         );
     }
 
-    // Don't render if no role (will redirect in useEffect)
-    if (!role) {
-        return null;
-    }
+    if (!role) return null;
 
-    // Admin Layout with Sidebar
+    // ─── ADMIN LAYOUT ──────────────────────────────────────────────────────────
     if (isAdmin) {
         return (
             <>
                 <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f8f9fa' }}>
                     {renderSidebar()}
-                    
-                    <Box
-                        component="main"
-                        sx={{
-                            flexGrow: 1,
-                            ml: { xs: 0, md: 0 },
-                            transition: 'margin 0.3s ease',
-                            bgcolor: '#f8f9fa'
-                        }}
-                    >
+
+                    <Box component="main" sx={{ flexGrow: 1, bgcolor: '#f8f9fa', minWidth: 0 }}>
                         {/* Admin Top Bar */}
                         <Box
                             sx={{
+                                height: TOP_BAR_HEIGHT,
                                 px: 3,
-                                py: 1.5,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                bgcolor: '#ffffff',
-                                borderBottom: '1px solid #e8ecef',
+                                bgcolor: 'rgba(255,255,255,0.95)',
+                                backdropFilter: 'blur(12px)',
+                                borderBottom: '1px solid #f0f0f0',
                                 position: 'sticky',
                                 top: 0,
                                 zIndex: 1100,
-                                boxShadow: 'none'
                             }}
                         >
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                 <IconButton
-                                    onClick={handleDrawerToggle}
-                                    sx={{ display: { xs: 'flex', md: 'none' }, color: '#5a6e8a' }}
-                                >
-                                    <MenuIcon />
-                                </IconButton>
-                                <Typography
-                                    variant="h6"
+                                    onClick={() => setMobileOpen(!mobileOpen)}
                                     sx={{
-                                        fontWeight: 600,
-                                        fontFamily: '"Alumni Sans", sans-serif',
-                                        color: '#020402',
-                                        fontSize: '1.3rem',
-                                        letterSpacing: '1px'
+                                        display: { xs: 'flex', md: 'none' },
+                                        color: '#888',
+                                        width: 36, height: 36,
+                                        borderRadius: '10px',
+                                        bgcolor: '#f5f5f5',
                                     }}
                                 >
+                                    <MenuIcon sx={{ fontSize: '1.1rem' }} />
+                                </IconButton>
+                                <Typography sx={{
+                                    fontWeight: 700,
+                                    fontFamily: '"Inter", sans-serif',
+                                    color: '#1a1a1a',
+                                    fontSize: '1rem',
+                                    letterSpacing: '-0.02em',
+                                }}>
                                     {navItems.find(item => isActivePath(item.path))?.label || 'Dashboard'}
                                 </Typography>
                             </Box>
 
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                <Tooltip title="Notifications">
-                                    <IconButton size="small" sx={{ color: '#5a6e8a' }}>
-                                        <NotificationsIcon sx={{ fontSize: '1.2rem' }} />
-                                    </IconButton>
-                                </Tooltip>
-                                <Typography variant="caption" sx={{ 
-                                    color: '#5a6e8a',
-                                    fontFamily: '"Inter", sans-serif',
-                                    fontSize: '0.7rem'
-                                }}>
-                                    Admin
-                                </Typography>
-                                <Avatar
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <IconButton
+                                    size="small"
                                     sx={{
-                                        width: 32,
-                                        height: 32,
-                                        bgcolor: '#e8f0fe',
-                                        color: '#325fec',
-                                        fontSize: '0.75rem',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
+                                        width: 38, height: 38,
+                                        borderRadius: '12px',
+                                        color: '#888',
+                                        bgcolor: '#f7f7f7',
+                                        '&:hover': { bgcolor: '#f0f4ff', color: '#325fec' },
                                     }}
-                                    onClick={() => navigate('/app/admin/profile')}
                                 >
-                                    A
-                                </Avatar>
+                                    <NotificationsIcon sx={{ fontSize: '1.15rem' }} />
+                                </IconButton>
+
+                                <Box
+                                    onClick={() => navigate('/app/admin/profile')}
+                                    sx={{
+                                        display: 'flex', alignItems: 'center', gap: 1,
+                                        pl: 1, pr: 1.2, py: 0.6,
+                                        borderRadius: '12px',
+                                        bgcolor: '#f7f7f7',
+                                        cursor: 'pointer',
+                                        '&:hover': { bgcolor: '#f0f4ff' },
+                                    }}
+                                >
+                                    <Avatar sx={{
+                                        width: 26, height: 26,
+                                        bgcolor: '#325fec',
+                                        color: '#fff',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 700,
+                                        fontFamily: '"Inter", sans-serif',
+                                    }}>
+                                        A
+                                    </Avatar>
+                                    <Typography sx={{
+                                        fontSize: '0.75rem',
+                                        fontFamily: '"Inter", sans-serif',
+                                        fontWeight: 500,
+                                        color: '#555',
+                                        display: { xs: 'none', sm: 'block' },
+                                    }}>
+                                        Admin
+                                    </Typography>
+                                </Box>
                             </Box>
                         </Box>
 
@@ -701,52 +716,12 @@ function AppLayout() {
                     </Box>
                 </Box>
 
-                {/* Logout Confirmation Dialog - No red colors */}
-                <Dialog
-                    open={logoutDialogOpen}
-                    onClose={() => setLogoutDialogOpen(false)}
-                    PaperProps={{
-                        sx: {
-                            borderRadius: 2,
-                            boxShadow: 'none',
-                            border: '1px solid #e8ecef'
-                        }
-                    }}
-                >
-                    <DialogTitle sx={{ fontFamily: '"Alumni Sans", sans-serif', fontWeight: 600 }}>
-                        Confirm Logout
-                    </DialogTitle>
-                    <DialogContent>
-                        <DialogContentText sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.875rem' }}>
-                            Are you sure you want to logout?
-                        </DialogContentText>
-                    </DialogContent>
-                    <DialogActions sx={{ p: 2, pt: 0 }}>
-                        <Button 
-                            onClick={() => setLogoutDialogOpen(false)}
-                            sx={{ textTransform: 'none', borderRadius: 1, color: '#5a6e8a' }}
-                        >
-                            Cancel
-                        </Button>
-                        <Button 
-                            onClick={handleLogout}
-                            variant="contained"
-                            sx={{ 
-                                textTransform: 'none', 
-                                borderRadius: 1,
-                                bgcolor: '#325fec',
-                                '&:hover': { bgcolor: '#1a4bcf' }
-                            }}
-                        >
-                            Logout
-                        </Button>
-                    </DialogActions>
-                </Dialog>
+                {renderLogoutDialog()}
             </>
         );
     }
 
-    // User/Business Layout with Bottom Navigation
+    // ─── USER / BUSINESS LAYOUT ────────────────────────────────────────────────
     return (
         <>
             <Box
@@ -754,61 +729,20 @@ function AppLayout() {
                     display: 'flex',
                     flexDirection: 'column',
                     minHeight: '100vh',
-                    background: '#f8f9fa',
-                    pb: '60px',
+                    bgcolor: '#f8f9fa',
+                    // Add bottom padding equal to bottom nav height so content is never hidden
+                    pb: `${BOTTOM_NAV_HEIGHT + 8}px`,
                 }}
             >
                 {renderTopBar()}
 
-                {/* Page Content */}
                 <Box sx={{ flex: 1 }}>
                     <Outlet />
                 </Box>
-
-                {renderBottomNav()}
             </Box>
 
-            {/* Logout Confirmation Dialog for User/Business - No red colors */}
-            <Dialog
-                open={logoutDialogOpen}
-                onClose={() => setLogoutDialogOpen(false)}
-                PaperProps={{
-                    sx: {
-                        borderRadius: 2,
-                        boxShadow: 'none',
-                        border: '1px solid #e8ecef'
-                    }
-                }}
-            >
-                <DialogTitle sx={{ fontFamily: '"Alumni Sans", sans-serif', fontWeight: 600 }}>
-                    Confirm Logout
-                </DialogTitle>
-                <DialogContent>
-                    <DialogContentText sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.875rem' }}>
-                        Are you sure you want to logout?
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions sx={{ p: 2, pt: 0 }}>
-                    <Button 
-                        onClick={() => setLogoutDialogOpen(false)}
-                        sx={{ textTransform: 'none', borderRadius: 1, color: '#5a6e8a' }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button 
-                        onClick={handleLogout}
-                        variant="contained"
-                        sx={{ 
-                            textTransform: 'none', 
-                            borderRadius: 1,
-                            bgcolor: '#325fec',
-                            '&:hover': { bgcolor: '#1a4bcf' }
-                        }}
-                    >
-                        Logout
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            {renderBottomNav()}
+            {renderLogoutDialog()}
         </>
     );
 }

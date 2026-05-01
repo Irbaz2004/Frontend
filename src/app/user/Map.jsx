@@ -47,6 +47,10 @@ const TYPE = {
   job:   { color: C.amber,   bg: C.amberLight,  emoji: '💼', label: 'Job'   },
 };
 
+// Bottom nav height — must match AppLayout.jsx BOTTOM_NAV_HEIGHT + padding
+// The floating pill nav is 56px tall, sits at bottom:0 with 8px top padding + 8px bottom padding = ~72px total
+const BOTTOM_NAV_OFFSET = 80; // px to clear the floating bottom nav
+
 // ─── SVG Markers ───────────────────────────────────────────────────────────
 const MARKER_SVG = {
   shop:  (color) => `<svg width="36" height="46" viewBox="0 0 36 46" xmlns="http://www.w3.org/2000/svg"><defs><filter id="ds"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="${color}" flood-opacity="0.4"/></filter></defs><path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 28 18 28S36 31.5 36 18C36 8.06 27.94 0 18 0z" fill="${color}" filter="url(#ds)"/><circle cx="18" cy="18" r="11" fill="white" opacity="0.96"/><text x="18" y="23" text-anchor="middle" font-size="13">🛒</text></svg>`,
@@ -248,6 +252,9 @@ const injectCSS = () => {
       .m-sheet { display:none !important; }
       .m-fabs { left:356px !important; bottom:20px !important; }
       .m-statusbar { left:356px !important; }
+      /* On desktop sidebar is shown, no bottom nav — drawer can go to bottom:0 */
+      .m-detail-drawer { bottom: 0 !important; }
+      .m-detail-backdrop { bottom: 0 !important; }
     }
     @media (max-width: 599px) {
       .m-sidebar { display:none !important; }
@@ -275,11 +282,11 @@ export default function Map() {
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState('');
 
-  const [viewMode, setViewMode]       = useState('map'); // map | list
+  const [viewMode, setViewMode]       = useState('map');
   const [filterOpen, setFilterOpen]   = useState(false);
   const [detailItem, setDetailItem]   = useState(null);
 
-  const [radius, setRadius]           = useState(0.2); // default 200m
+  const [radius, setRadius]           = useState(0.2);
   const [search, setSearch]           = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [typeFilter, setTypeFilter]   = useState({ shops:true, houses:true, jobs:true });
@@ -294,7 +301,6 @@ export default function Map() {
 
   useEffect(() => { injectCSS(); }, []);
 
-  // Geolocation
   useEffect(() => {
     if (!navigator.geolocation) {
       setUserLocation({ latitude: 12.9165, longitude: 79.1325 });
@@ -308,7 +314,6 @@ export default function Map() {
     );
   }, []);
 
-  // Init map
   useEffect(() => {
     if (phase !== 'ready' || !mapContRef.current || mapRef.current) return;
     mapRef.current = L.map(mapContRef.current, {
@@ -323,7 +328,6 @@ export default function Map() {
     return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
   }, [phase]);
 
-  // Fetch
   useEffect(() => {
     if (!userLocation) return;
     fetchData();
@@ -332,20 +336,17 @@ export default function Map() {
     return () => clearInterval(intervalRef.current);
   }, [userLocation, radius, typeFilter, search]);
 
-  // Markers
   useEffect(() => {
     if (!mapRef.current || !userLocation) return;
     renderMarkers();
   }, [shops, houses, jobs, userLocation, radius]);
 
-  // Detail event from popup button
   useEffect(() => {
     const h = (e) => { setDetailItem(e.detail); };
     window.addEventListener('m:detail', h);
     return () => window.removeEventListener('m:detail', h);
   }, []);
 
-  // Route event from popup
   useEffect(() => {
     const h = (e) => { showRoute(e.detail); };
     window.addEventListener('m:route', h);
@@ -397,7 +398,6 @@ export default function Map() {
         fitSelectedRoutes: true,
       }).addTo(mapRef.current);
     } catch (err) {
-      // LRM not available, fallback to Google Maps
       window.open(
         `https://www.google.com/maps/dir/?api=1&origin=${userLocation.latitude},${userLocation.longitude}&destination=${item.latitude},${item.longitude}&travelmode=walking`,
         '_blank'
@@ -445,7 +445,6 @@ export default function Map() {
         ? `<div style="color:${C.amber};font-weight:700;font-size:13px;margin:6px 0">${fmtINR(item.salary)}/${item.salary_type==='month'?'mo':'day'}</div>`
         : '';
 
-      const itemEncoded = encodeURIComponent(JSON.stringify({ ...item, _type: type }));
       const popup = `
         <div class="m-popup">
           <div style="display:flex;gap:9px;align-items:flex-start;margin-bottom:4px">
@@ -536,7 +535,6 @@ export default function Map() {
           padding:'10px 10px 0',
           display:'flex', alignItems:'center', gap:8,
         }}>
-          {/* Brand */}
           <div style={{
             background:C.surface, border:`1.5px solid ${C.border}`,
             borderRadius:100, padding:'7px 13px',
@@ -549,7 +547,6 @@ export default function Map() {
             </span>
           </div>
 
-          {/* Search */}
           <div style={{ flex:1, position:'relative', minWidth:0 }}>
             <span style={{ position:'absolute', left:11, top:'50%', transform:'translateY(-50%)',
               color:C.textMuted, pointerEvents:'none', display:'flex' }}>
@@ -603,9 +600,9 @@ export default function Map() {
           </div>
         )}
 
-        {/* MAP FABs */}
+        {/* MAP FABs — raised above bottom nav on mobile */}
         <div className="m-fabs" style={{
-          position:'absolute', right:10, bottom:86, zIndex:100,
+          position:'absolute', right:10, bottom: BOTTOM_NAV_OFFSET + 16, zIndex:100,
           display:'flex', flexDirection:'column', gap:7,
         }}>
           <button className="fab" title="My location" onClick={() => {
@@ -629,10 +626,10 @@ export default function Map() {
           </button>
         </div>
 
-        {/* STATUS BAR */}
+        {/* STATUS BAR — raised above bottom nav on mobile */}
         {viewMode === 'map' && (
           <div className="m-statusbar fi" style={{
-            position:'absolute', bottom:16, left:'50%', transform:'translateX(-50%)',
+            position:'absolute', bottom: BOTTOM_NAV_OFFSET + 8, left:'50%', transform:'translateX(-50%)',
             zIndex:100, display:'flex', alignItems:'center', gap:9,
             background:C.surface, border:`1.5px solid ${C.border}`,
             borderRadius:100, padding:'8px 16px',
@@ -656,9 +653,12 @@ export default function Map() {
           </div>
         )}
 
-        {/* Legend */}
+        {/* Legend — raised above bottom nav on mobile */}
         {viewMode === 'map' && (
-          <div style={{ position:'absolute', bottom:54, left:10, zIndex:100, display:'flex', flexDirection:'column', gap:4 }}>
+          <div style={{
+            position:'absolute', bottom: BOTTOM_NAV_OFFSET + 8, left:10, zIndex:100,
+            display:'flex', flexDirection:'column', gap:4,
+          }}>
             {Object.entries(TYPE).map(([k, m]) => (
               <div key={k} style={{
                 display:'flex', alignItems:'center', gap:5,
@@ -674,17 +674,20 @@ export default function Map() {
           </div>
         )}
 
-        {/* MOBILE LIST SHEET */}
+        {/* MOBILE LIST SHEET — sits above bottom nav, not behind it */}
         {viewMode === 'list' && (
           <div className="m-sheet su" style={{
-            position:'absolute', bottom:0, left:0, right:0, zIndex:300,
+            position:'absolute',
+            bottom: BOTTOM_NAV_OFFSET,  // ← clears the floating nav
+            left:0, right:0,
+            zIndex:300,
             background:C.surface, borderRadius:'22px 22px 0 0',
-            height:'70vh', display:'flex', flexDirection:'column',
+            height:`calc(70vh - ${BOTTOM_NAV_OFFSET}px)`,
+            display:'flex', flexDirection:'column',
             boxShadow:`0 -8px 32px ${C.shadowLg}`,
             border:`1.5px solid ${C.border}`,
           }}>
             <div className="handle" />
-            {/* Sheet header */}
             <div style={{ padding:'6px 14px 12px', borderBottom:`1.5px solid ${C.borderLight}` }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
                 <div>
@@ -696,7 +699,6 @@ export default function Map() {
                 <button className="fab" style={{ width:32, height:32, fontSize:14 }}
                   onClick={() => setViewMode('map')}>✕</button>
               </div>
-              {/* Category chips */}
               <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:2 }}>
                 {['All','Shop','House','Job'].map(cat => (
                   <button key={cat} className={`fchip ${activeCategory===cat?'on':''}`}
@@ -715,7 +717,7 @@ export default function Map() {
         )}
       </div>
 
-      {/* DETAIL DRAWER */}
+      {/* DETAIL DRAWER — sits above bottom nav, not behind it */}
       {detailItem && (
         <DetailDrawer
           item={detailItem}
@@ -751,13 +753,12 @@ function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, s
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
-      {/* Header */}
       <div style={{ padding:'18px 18px 14px', borderBottom:`1.5px solid ${C.borderLight}` }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
           <div style={{ display:'flex', alignItems:'center', gap:9 }}>
             <div style={{
               width:36, height:36, borderRadius:10,
-              background:`linear-gradient(135deg,${C.accent},${C.accentDark})`,
+              // background:`linear-gradient(135deg,${C.accent},${C.accentDark})`,
               display:'flex', alignItems:'center', justifyContent:'center', fontSize:18,
             }}>📍</div>
             <div>
@@ -787,7 +788,6 @@ function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, s
         </div>
       </div>
 
-      {/* Filters */}
       <div style={{ padding:'12px 18px 10px', borderBottom:`1.5px solid ${C.borderLight}` }}>
         <div style={{ display:'flex', gap:6, marginBottom:12, flexWrap:'wrap' }}>
           {[
@@ -803,7 +803,6 @@ function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, s
           ))}
         </div>
 
-        {/* Radius slider */}
         <div>
           <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
             <span style={{ color:C.textSub, fontSize:12, fontWeight:500 }}>Search Radius</span>
@@ -819,7 +818,6 @@ function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, s
           </div>
         </div>
 
-        {/* Type toggles */}
         <div style={{ marginTop:12 }}>
           {[
             { key:'shops',  label:'Shops',  emoji:'🛒', color:C.accent },
@@ -842,7 +840,6 @@ function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, s
         </div>
       </div>
 
-      {/* Count + View toggle */}
       <div style={{ padding:'10px 18px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:`1px solid ${C.borderLight}` }}>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <div style={{ width:7, height:7, borderRadius:'50%', background:loading?C.accent:C.green, animation:loading?'pulse 1s ease infinite':'none' }} />
@@ -890,7 +887,7 @@ function FilterPanel({ radius, setRadius, typeFilter, setTypeFilter, onApply }) 
           value={radius} onChange={e => setRadius(Number(e.target.value))} />
       </div>
       <div style={{ marginBottom:14 }}>
-        <div style={{ color:C.textSub, fontSize:11.5, fontWeight:600, marginBottom:8, textTransform:'uppercase', letterSpacing:'.05em' }}>Show</div>
+        <div style={{ color:C.textMuted, fontSize:11.5, fontWeight:600, marginBottom:8, textTransform:'uppercase', letterSpacing:'.05em' }}>Show</div>
         {[
           { key:'shops', label:'Shops', emoji:'🛒' },
           { key:'houses', label:'Houses', emoji:'🏠' },
@@ -969,6 +966,8 @@ function ListView({ items, onSelect, onRoute, openGoogleMaps }) {
 }
 
 // ─── DETAIL DRAWER ─────────────────────────────────────────────────────────
+// KEY FIX: bottom is set to BOTTOM_NAV_OFFSET so the drawer sits
+// above the floating pill bottom nav and nothing gets hidden behind it.
 function DetailDrawer({ item, onClose, onRoute, openGoogleMaps }) {
   const m     = TYPE[item._type] || {};
   const name  = getName(item);
@@ -977,26 +976,69 @@ function DetailDrawer({ item, onClose, onRoute, openGoogleMaps }) {
 
   return (
     <>
-      <div style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(15,23,42,0.4)', backdropFilter:'blur(3px)' }}
-        onClick={onClose} />
-      <div className="su" style={{
-        position:'fixed', bottom:0, left:0, right:0, zIndex:500,
-        background:C.surface, borderRadius:'24px 24px 0 0',
-        maxHeight:'84vh', display:'flex', flexDirection:'column',
-        boxShadow:`0 -12px 50px ${C.shadowLg}`, border:`1.5px solid ${C.border}`,
-      }}>
+      {/* Backdrop — also ends at BOTTOM_NAV_OFFSET so it doesn't cover the nav */}
+      <div
+        className="m-detail-backdrop"
+        style={{
+          position:'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,   // ← stop above nav
+          zIndex: 400,
+          background:'rgba(15,23,42,0.4)',
+          backdropFilter:'blur(3px)',
+        }}
+        onClick={onClose}
+      />
+
+      {/* Drawer panel */}
+      <div
+        className="su m-detail-drawer"
+        style={{
+          position:'fixed',
+          bottom: BOTTOM_NAV_OFFSET,   // ← sits just above floating nav
+          left: 0,
+          right: 0,
+          zIndex: 500,
+          background: C.surface,
+          borderRadius: '24px',
+          margin: '0 15px',
+          // Max height = screen - top bar (64px) - nav offset, leaving map visible above
+          maxHeight: `calc(100dvh - 64px - ${BOTTOM_NAV_OFFSET}px)`,
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: `0 -12px 50px ${C.shadowLg}`,
+          border: `1.5px solid ${C.border}`,
+          borderBottom: 'none',
+        }}
+      >
         <div className="handle" />
-        <button style={{ position:'absolute', top:14, right:14, background:C.surfaceAlt,
-          border:`1.5px solid ${C.border}`, borderRadius:'50%', width:30, height:30,
-          display:'flex', alignItems:'center', justifyContent:'center',
-          cursor:'pointer', color:C.textSub, fontSize:15, zIndex:10 }}
-          onClick={onClose}>✕</button>
+
+        {/* Close button */}
+        <button
+          style={{
+            position:'absolute', top:14, right:14,
+            background:C.surfaceAlt, border:`1.5px solid ${C.border}`,
+            borderRadius:'50%', width:30, height:30,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            cursor:'pointer', color:C.textSub, fontSize:15, zIndex:10,
+          }}
+          onClick={onClose}
+        >✕</button>
 
         {/* Banner */}
-        <div style={{ padding:'12px 18px 16px', background:`linear-gradient(135deg,${m.bg},transparent)`, borderBottom:`1.5px solid ${C.borderLight}` }}>
+        <div style={{
+          padding:'12px 18px 16px',
+          // background:`linear-gradient(135deg,${m.bg},transparent)`,
+          borderBottom:`1.5px solid ${C.borderLight}`,
+          flexShrink: 0,
+        }}>
           <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
-            <div style={{ width:52, height:52, borderRadius:16, background:m.bg, border:`2px solid ${m.color}28`,
-              display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>
+            <div style={{
+              width:52, height:52, borderRadius:16, background:m.bg, border:`2px solid ${m.color}28`,
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0,
+            }}>
               {m.emoji}
             </div>
             <div style={{ flex:1, minWidth:0 }}>
@@ -1015,14 +1057,18 @@ function DetailDrawer({ item, onClose, onRoute, openGoogleMaps }) {
           </div>
         </div>
 
-        {/* Body */}
+        {/* Scrollable body */}
         <div style={{ flex:1, overflowY:'auto', padding:'16px 18px' }}>
           {item._type === 'shop'  && <ShopBody  item={item} />}
           {item._type === 'house' && <HouseBody item={item} />}
           {item._type === 'job'   && <JobBody   item={item} />}
 
           {/* Contact + Actions */}
-          <div style={{ marginTop:18, padding:14, background:C.surfaceAlt, border:`1.5px solid ${C.borderLight}`, borderRadius:16 }}>
+          <div style={{
+            marginTop:18, padding:14,
+            background:C.surfaceAlt, border:`1.5px solid ${C.borderLight}`,
+            borderRadius:16,
+          }}>
             <div style={{ color:C.textMuted, fontSize:10, fontWeight:700, letterSpacing:'.07em', textTransform:'uppercase', marginBottom:10 }}>Contact</div>
             {(item.owner_name || item.employer_name) && (
               <div style={{ fontWeight:700, fontSize:14, color:C.text, marginBottom:2 }}>
