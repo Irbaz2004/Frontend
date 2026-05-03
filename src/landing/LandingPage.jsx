@@ -63,8 +63,8 @@ function LandingPage() {
           setShowInstallBanner(false);
         }
       } else {
-        // If not installable, just go to the app
-        navigate('/app/login');
+        // If not installable, just alert the user
+        alert('To install the app, please select "Add to Home Screen" from your browser menu.');
       }
     };
 

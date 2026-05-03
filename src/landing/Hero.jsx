@@ -234,8 +234,8 @@ const Hero = () => {
                         justifyContent: 'center',
                     }}
                 >
-                    <img 
-                        src="/logo.png" 
+                    <img
+                        src="/logo.png"
                         alt="NearZO Logo"
                         style={{
                             width: '100%',
@@ -272,19 +272,19 @@ const Hero = () => {
                                     variant="h1"
                                     sx={{
                                         mb: 2,
-                                        fontSize: { xs: '2rem', sm: '2.5rem', md: '6rem' },
+                                        fontSize: { xs: '2rem', sm: '2.5rem', md: '3.5rem' },
                                         fontWeight: 'bold',
                                         lineHeight: 1.2,
                                         position: 'relative',
                                         zIndex: 10,
                                         color: '#020402',
-                                        fontFamily: '"Alumni Sans", sans-serif',
+                                        fontFamily: '"Inter", sans-serif',
                                     }}
                                 >
                                     Made Simple with,{' '}
-                                    <span style={{ 
+                                    <span style={{
                                         color: '#325fec',
-                                        fontFamily: '"Alumni Sans", sans-serif',
+                                        fontFamily: '"Inter", sans-serif',
                                         fontWeight: 900,
                                         display: 'inline-block',
                                     }}>
@@ -357,7 +357,7 @@ const Hero = () => {
                     </Grid>
 
                     {/* Phone with GIF - Right side */}
-                    <Grid item xs={12} md={6}ml={{xs:23,md:30}}>
+                    <Grid item xs={12} md={6} ml={{ xs: 23, md: 30 }}>
                         {!isMobile ? (
                             <Box
                                 ref={phoneContainerRef}

@@ -285,7 +285,7 @@ const ProblemSolution = () => {
                             color: '#1a1a1a',
                             mt: 1,
                             fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3rem', lg: '3.5rem' },
-                            fontFamily: '"Alumni Sans", sans-serif',
+                            fontFamily: '"Inter", sans-serif',
                             px: { xs: 2, sm: 0 }
                         }}
                     >
@@ -429,7 +429,7 @@ const ProblemSolution = () => {
                                         variant="h6"
                                         fontWeight={900}
                                         sx={{
-                                            fontFamily: '"Alumni Sans", sans-serif',
+                                            fontFamily: '"Inter", sans-serif',
                                             mb: 1.5,
                                             fontSize: { xs: '1.2rem', md: '1.3rem', lg: '1.5rem' },
                                             lineHeight: 1.2
@@ -480,7 +480,7 @@ const ProblemSolution = () => {
                                     lineHeight: 1,
                                     letterSpacing: '2px',
                                     mb: 0.5,
-                                    fontFamily: '"Alumni Sans", sans-serif',
+                                    fontFamily: '"Inter", sans-serif',
                                 }}>
                                     THE<br />GAP
                                 </Typography>
@@ -837,7 +837,7 @@ const ProblemSolution = () => {
                                 fontWeight: 900,
                                 mt: 3,
                                 mb: 3,
-                                fontFamily: '"Alumni Sans", sans-serif',
+                                fontFamily: '"Inter", sans-serif',
                                 fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3.5rem' },
                                 lineHeight: 1.1,
                                 color: 'black'
@@ -887,7 +887,7 @@ const ProblemSolution = () => {
                             fontWeight: 900,
                             mb: 2,
                             color: '#1a1a1a',
-                            fontFamily: '"Alumni Sans", sans-serif',
+                            fontFamily: '"Inter", sans-serif',
                             lineHeight: 1
                         }}>
                             How <span style={{ color: '#325fec' }}>NearZO</span> Works
@@ -942,7 +942,7 @@ const ProblemSolution = () => {
                                     whiteSpace: 'nowrap',
                                     zIndex: 0,
                                     pointerEvents: 'none',
-                                    fontFamily: '"Alumni Sans", sans-serif'
+                                    fontFamily: '"Inter", sans-serif'
                                 }}>
                                     0{index + 1}
                                 </Typography>
@@ -1003,7 +1003,7 @@ const ProblemSolution = () => {
                                         fontWeight: 900,
                                         color: '#1a1a1a',
                                         mb: 2,
-                                        fontFamily: '"Alumni Sans", sans-serif',
+                                        fontFamily: '"Inter", sans-serif',
                                         lineHeight: 1.1
                                     }}>
                                         {sol.title}
@@ -1066,7 +1066,7 @@ const ProblemSolution = () => {
                                                 color: sol.color,
                                                 fontSize: { xs: '2rem', sm: '2.5rem' },
                                                 lineHeight: 1,
-                                                fontFamily: '"Alumni Sans", sans-serif',
+                                                fontFamily: '"Inter", sans-serif',
                                             }}
                                         >
                                             {sol.stats}

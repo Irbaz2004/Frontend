@@ -53,6 +53,7 @@ const Navbar = () => {
                     transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     background: 'transparent',
                     zIndex: 1100,
+                    border: 'none'
                 }}
             >
                 <Toolbar
@@ -67,7 +68,7 @@ const Navbar = () => {
                         transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
                         margin: '0 auto',
                         boxShadow: trigger ? '0 10px 40px rgba(0,0,0,0.1)' : 'none',
-                        border: trigger ? '1px solid rgba(50, 95, 236, 0.15)' : 'none',
+                        // border: trigger ? '1px solid rgba(50, 95, 236, 0.15)' : 'none',
                         borderBottom: !trigger ? '1px solid rgba(0,0,0,0.05)' : 'none',
                         background: trigger ? 'rgba(255, 255, 255, 0.85)' : '#ffffff',
                         backdropFilter: trigger ? 'blur(12px)' : 'none',

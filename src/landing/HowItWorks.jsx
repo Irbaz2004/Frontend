@@ -124,7 +124,7 @@ const HowItWorks = () => {
                     </Typography>
                     <Typography variant="h2" sx={{
                         fontWeight: 900,
-                        fontFamily: '"Alumni Sans", sans-serif',
+                        fontFamily: '"Inter", sans-serif',
                         fontSize: { xs: '1.8rem', sm: '2.5rem', md: '4rem' },
                         mt: 1,
                         color: '#020402'
@@ -233,7 +233,7 @@ const HowItWorks = () => {
                                                 color: '#325fec',
                                                 fontWeight: 900,
                                                 fontSize: '2rem',
-                                                fontFamily: '"Alumni Sans", sans-serif',
+                                                fontFamily: '"Inter", sans-serif',
                                             }}>
                                                 0{index + 1}
                                             </Typography>
@@ -241,7 +241,7 @@ const HowItWorks = () => {
                                         
                                         <Typography variant="h6" sx={{
                                             fontWeight: 800,
-                                            fontFamily: '"Alumni Sans", sans-serif',
+                                            fontFamily: '"Inter", sans-serif',
                                             mb: 0,
                                             fontSize: '1.3rem',
                                             color: '#020402'
@@ -328,14 +328,14 @@ const HowItWorks = () => {
                                                 color: '#325fec',
                                                 fontWeight: 900,
                                                 fontSize: '1.3rem',
-                                                fontFamily: '"Alumni Sans", sans-serif',
+                                                fontFamily: '"Inter", sans-serif',
                                             }}>
                                                 0{index + 1}
                                             </Typography>
                                         </Box>
                                         <Typography variant="h6" sx={{
                                             fontWeight: 800,
-                                            fontFamily: '"Alumni Sans", sans-serif',
+                                            fontFamily: '"Inter", sans-serif',
                                             mb: 1,
                                             fontSize: '1.1rem',
                                             color: '#020402'

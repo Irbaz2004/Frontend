@@ -121,7 +121,7 @@ const Footer = () => {
           <Grid item xs={6} md={3}>
             <Typography variant="h6" fontWeight={800} sx={{
               mb: 2,
-              fontFamily: '"Alumni Sans", sans-serif',
+              fontFamily: '"Inter", sans-serif',
               fontSize: { xs: '0.9rem', sm: '1.1rem' },
               color: '#020402'
             }}>
@@ -150,7 +150,7 @@ const Footer = () => {
           <Grid item xs={6} md={3}>
             <Typography variant="h6" fontWeight={800} sx={{
               mb: 2,
-              fontFamily: '"Alumni Sans", sans-serif',
+              fontFamily: '"Inter", sans-serif',
               fontSize: { xs: '0.9rem', sm: '1.1rem' },
               color: '#020402'
             }}>

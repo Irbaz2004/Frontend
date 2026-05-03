@@ -299,7 +299,7 @@ const WhyForEasy = () => {
                                         fontWeight: 900,
                                         color: '#020402',
                                         mt: 3,
-                                        fontFamily: '"Alumni Sans", sans-serif',
+                                        fontFamily: '"Inter", sans-serif',
                                         fontSize: { xs: '3rem', md: '3.8rem' },
                                         lineHeight: 1.1,
                                         position: 'relative',
@@ -419,7 +419,7 @@ const WhyForEasy = () => {
                                                 fontWeight={800}
                                                 sx={{
                                                     color: '#020402',
-                                                    fontFamily: '"Alumni Sans", sans-serif',
+                                                    fontFamily: '"Inter", sans-serif',
                                                     position: 'relative',
                                                     display: 'inline-block',
                                                     fontSize: '1.5rem',

@@ -330,7 +330,7 @@ const DownloadCTA = () => {
                     <Box sx={{ position: 'relative', zIndex: 2 }}>
                         <Typography variant="h2" mb={3} sx={{ 
                             fontWeight: 900, 
-                            fontFamily: '"Alumni Sans", sans-serif',
+                            fontFamily: '"Inter", sans-serif',
                             fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem', lg: '3.5rem' },
                             color: '#ffffff'
                         }}>

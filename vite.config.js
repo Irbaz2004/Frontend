@@ -12,7 +12,7 @@ export default defineConfig({
         name: 'NearZO — Find What\'s Near You',
         short_name: 'NearZO',
         description: 'Find nearby jobs and shops in your area',
-        theme_color: '#C00C0C',
+        theme_color: '#325fec',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
