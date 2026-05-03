@@ -14,8 +14,6 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    TextField,
-    InputAdornment,
     CircularProgress,
     Alert,
     Button,
@@ -26,7 +24,6 @@ import {
     Drawer,
     useMediaQuery,
     useTheme,
-    Paper
 } from '@mui/material';
 import {
     LocationOn as LocationIcon,
@@ -42,17 +39,20 @@ import {
     Clear as ClearIcon,
     Verified as VerifiedIcon,
     Pending as PendingIcon,
-    FavoriteBorder as FavoriteIcon,
-    SortOutlined as SortIcon
+    SortOutlined as SortIcon,
+    Person as PersonIcon,
+    FamilyRestroom as FamilyIcon,
+    Favorite as CoupleIcon,
+    SquareFoot as SqftIcon
 } from '@mui/icons-material';
 import { getHousesByLocation, getHouseById, getHouseFilterOptions } from '../../services/house';
 import { useNavigate } from 'react-router-dom';
 
 // ─── Tenant Type Config ────────────────────────────────────────────────────────
 const TENANT_TYPES = [
-    { value: 'bachelor', label: 'Bachelor', color: '#4f9ef8', bg: '#eaf3ff', icon: '👤' },
-    { value: 'family',   label: 'Family',   color: '#3bbf7e', bg: '#e8faf2', icon: '👨‍👩‍👧' },
-    { value: 'couple',   label: 'Couple',   color: '#f06292', bg: '#fce4ec', icon: '👫' },
+    { value: 'bachelor', label: 'Bachelor', color: '#4f9ef8', bg: '#eaf3ff', Icon: PersonIcon },
+    { value: 'family',   label: 'Family',   color: '#3bbf7e', bg: '#e8faf2', Icon: FamilyIcon },
+    { value: 'couple',   label: 'Couple',   color: '#f06292', bg: '#fce4ec', Icon: CoupleIcon },
 ];
 
 // ─── Price Range Config ────────────────────────────────────────────────────────
@@ -206,12 +206,17 @@ export default function Houses() {
     // ── Skeleton ────────────────────────────────────────────────────────────────
     const HouseSkeleton = () => (
         <Card sx={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'none', border: '1px solid #f0f0f0' }}>
-            <Skeleton variant="rectangular" height={170} />
-            <CardContent sx={{ p: 1.5 }}>
-                <Skeleton variant="text" width="55%" height={24} />
-                <Skeleton variant="text" width="80%" height={20} />
-                <Skeleton variant="text" width="70%" height={16} />
-                <Skeleton variant="rectangular" height={36} sx={{ mt: 1, borderRadius: 2 }} />
+            <Skeleton variant="rectangular" height={200} />
+            <CardContent sx={{ p: '12px 14px 14px' }}>
+                <Skeleton variant="text" width="40%" height={26} />
+                <Skeleton variant="text" width="65%" height={22} sx={{ mt: 0.5 }} />
+                <Skeleton variant="text" width="50%" height={18} />
+                <Box sx={{ display: 'flex', gap: 1.5, mt: 1, mb: 1.5 }}>
+                    <Skeleton variant="text" width={60} height={18} />
+                    <Skeleton variant="text" width={60} height={18} />
+                    <Skeleton variant="text" width={70} height={18} />
+                </Box>
+                <Skeleton variant="rectangular" height={40} sx={{ borderRadius: '10px' }} />
             </CardContent>
         </Card>
     );
@@ -299,11 +304,8 @@ export default function Houses() {
                 {/* Title Row */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
                     <Box>
-                        <Typography sx={{ fontWeight: 800, fontSize: 22, color: '#111', lineHeight: 1.2 }}>
+                        <Typography sx={{ fontWeight: 700, fontSize: 18, color: '#111827', lineHeight: 1.2 }}>
                             Rental Homes
-                        </Typography>
-                        <Typography sx={{ fontSize: 13, color: '#888', mt: 0.2 }}>
-                            Find your next home nearby
                         </Typography>
                     </Box>
                     <IconButton
@@ -321,36 +323,6 @@ export default function Houses() {
                     </IconButton>
                 </Box>
 
-                {/* Search Bar */}
-                <TextField
-                    fullWidth
-                    placeholder="Search by area, city or description..."
-                    value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                    size="small"
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <SearchIcon sx={{ color: '#aaa', fontSize: 20 }} />
-                            </InputAdornment>
-                        ),
-                        endAdornment: searchTerm ? (
-                            <InputAdornment position="end">
-                                <IconButton size="small" onClick={() => setSearchTerm('')}>
-                                    <CloseIcon sx={{ fontSize: 16 }} />
-                                </IconButton>
-                            </InputAdornment>
-                        ) : null,
-                        sx: {
-                            borderRadius: '12px',
-                            bgcolor: '#f5f6fa',
-                            fontSize: 14,
-                            '& fieldset': { border: 'none' },
-                        }
-                    }}
-                    sx={{ mb: 1.5 }}
-                />
-
                 {/* Tenant Type Filter */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflowX: 'auto', pb: 0.5,
                     '&::-webkit-scrollbar': { display: 'none' } }}>
@@ -367,8 +339,8 @@ export default function Houses() {
                                     display: 'flex', alignItems: 'center', gap: 0.6,
                                     px: 1.5, py: 0.6,
                                     borderRadius: '20px',
-                                    border: active ? `1.5px solid ${t.color}` : '1.5px solid #e8e8e8',
-                                    bgcolor: active ? t.bg : '#fff',
+                                    border: `1.5px solid ${t.color}`,
+                                    bgcolor: active ? t.color : t.bg,
                                     cursor: 'pointer',
                                     whiteSpace: 'nowrap',
                                     transition: 'all 0.15s',
@@ -376,10 +348,10 @@ export default function Houses() {
                                     flexShrink: 0,
                                 }}
                             >
-                                <Typography sx={{ fontSize: 14 }}>{t.icon}</Typography>
+                                <t.Icon sx={{ fontSize: 15, color: active ? '#fff' : t.color }} />
                                 <Typography sx={{
-                                    fontSize: 13, fontWeight: active ? 600 : 400,
-                                    color: active ? t.color : '#555'
+                                    fontSize: 13, fontWeight: 600,
+                                    color: active ? '#fff' : t.color
                                 }}>
                                     {t.label}
                                 </Typography>
@@ -403,8 +375,8 @@ export default function Houses() {
                                 sx={{
                                     px: 1.4, py: 0.55,
                                     borderRadius: '20px',
-                                    border: active ? '1.5px solid #325fec' : '1.5px solid #e8e8e8',
-                                    bgcolor: active ? '#eaf0ff' : '#fff',
+                                    border: `1.5px solid ${active ? '#1a6ef5' : '#c7d2fe'}`,
+                                    bgcolor: active ? '#1a6ef5' : '#eef2ff',
                                     cursor: 'pointer',
                                     whiteSpace: 'nowrap',
                                     flexShrink: 0,
@@ -413,8 +385,8 @@ export default function Houses() {
                                 }}
                             >
                                 <Typography sx={{
-                                    fontSize: 12.5, fontWeight: active ? 700 : 400,
-                                    color: active ? '#325fec' : '#555'
+                                    fontSize: 12.5, fontWeight: active ? 700 : 500,
+                                    color: active ? '#fff' : '#1a6ef5'
                                 }}>
                                     {pr.label}
                                 </Typography>
@@ -426,13 +398,13 @@ export default function Houses() {
 
             {/* ── Results Count + Sort ── */}
             <Box sx={{ px: 2, pt: 1.5, pb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#222' }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>
                     {houses.length > 0 ? `${houses.length}+ Rental Homes Found` : 'No homes found'}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                    <Typography sx={{ fontSize: 13, color: '#888' }}>Sort by:</Typography>
-                    <Typography sx={{ fontSize: 13, color: '#325fec', fontWeight: 600 }}>Relevance</Typography>
-                    <SortIcon sx={{ fontSize: 16, color: '#325fec' }} />
+                    <Typography sx={{ fontSize: 13, color: '#6b7280' }}>Sort by:</Typography>
+                    <Typography sx={{ fontSize: 13, color: '#1a6ef5', fontWeight: 600 }}>Relevance</Typography>
+                    <SortIcon sx={{ fontSize: 16, color: '#1a6ef5' }} />
                 </Box>
             </Box>
 
@@ -449,7 +421,7 @@ export default function Houses() {
                 <Grid container spacing={1.5}>
                     {loading ? (
                         Array.from({ length: 6 }).map((_, i) => (
-                            <Grid item xs={6} key={i}>
+                            <Grid item xs={12} key={i}>
                                 <HouseSkeleton />
                             </Grid>
                         ))
@@ -472,7 +444,7 @@ export default function Houses() {
                             const verification = getVerificationBadge(house.is_verified);
                             const tenantBadge = getTenantBadge(house.tenant_type);
                             return (
-                                <Grid item xs={6} key={house.id}>
+                                <Grid item xs={12} key={house.id}>
                                     <Card
                                         onClick={() => handleHouseClick(house)}
                                         sx={{
@@ -486,7 +458,7 @@ export default function Houses() {
                                         }}
                                     >
                                         {/* Image */}
-                                        <Box sx={{ position: 'relative', height: 170, overflow: 'hidden' }}>
+                                        <Box sx={{ position: 'relative', height: 200, overflow: 'hidden' }}>
                                             {house.house_image_base64 ? (
                                                 <img
                                                     src={`data:image/jpeg;base64,${house.house_image_base64}`}
@@ -496,35 +468,26 @@ export default function Houses() {
                                             ) : (
                                                 <Box sx={{ width: '100%', height: '100%', bgcolor: '#f0f3f8',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <HomeIcon sx={{ fontSize: 40, color: '#c0c8d8' }} />
+                                                    <HomeIcon sx={{ fontSize: 48, color: '#c0c8d8' }} />
                                                 </Box>
                                             )}
-
-                                            {/* Favorite Button */}
-                                            <Box sx={{
-                                                position: 'absolute', top: 8, right: 8,
-                                                width: 30, height: 30, borderRadius: '50%',
-                                                bgcolor: 'rgba(255,255,255,0.9)',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                boxShadow: '0 1px 4px rgba(0,0,0,0.15)'
-                                            }}>
-                                                <FavoriteIcon sx={{ fontSize: 15, color: '#555' }} />
-                                            </Box>
 
                                             {/* Bottom overlay: type badge + distance */}
                                             <Box sx={{
                                                 position: 'absolute', bottom: 0, left: 0, right: 0,
                                                 display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-                                                px: 1, pb: 0.8,
+                                                px: 1.2, pb: 1,
                                             }}>
                                                 {tenantBadge && (
                                                     <Box sx={{
-                                                        px: 1, py: 0.3,
-                                                        borderRadius: '6px',
+                                                        display: 'flex', alignItems: 'center', gap: 0.4,
+                                                        px: 1.2, py: 0.4,
+                                                        borderRadius: '8px',
                                                         bgcolor: tenantBadge.bg,
-                                                        border: `1px solid ${tenantBadge.color}22`
+                                                        border: `1px solid ${tenantBadge.color}33`
                                                     }}>
-                                                        <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: tenantBadge.color }}>
+                                                        <tenantBadge.Icon sx={{ fontSize: 12, color: tenantBadge.color }} />
+                                                        <Typography sx={{ fontSize: 11, fontWeight: 700, color: tenantBadge.color }}>
                                                             {tenantBadge.label}
                                                         </Typography>
                                                     </Box>
@@ -532,14 +495,14 @@ export default function Houses() {
                                                 {house.distance && (
                                                     <Box sx={{
                                                         display: 'flex', alignItems: 'center', gap: 0.3,
-                                                        px: 0.8, py: 0.3,
-                                                        borderRadius: '6px',
+                                                        px: 1, py: 0.4,
+                                                        borderRadius: '8px',
                                                         bgcolor: 'rgba(255,255,255,0.92)',
                                                         ml: 'auto'
                                                     }}>
-                                                        <LocationIcon sx={{ fontSize: 10, color: '#555' }} />
-                                                        <Typography sx={{ fontSize: 10.5, fontWeight: 600, color: '#333' }}>
-                                                            {house.distance.toFixed(1)} km
+                                                        <LocationIcon sx={{ fontSize: 12, color: '#325fec', flexShrink: 0 }} />
+                                                        <Typography sx={{ fontSize: 12, fontWeight: 500, color: '#555' }}>
+                                                            {house.distance.toFixed(2)} km away
                                                         </Typography>
                                                     </Box>
                                                 )}
@@ -547,42 +510,48 @@ export default function Houses() {
                                         </Box>
 
                                         {/* Card Content */}
-                                        <CardContent sx={{ p: '10px 10px 4px', '&:last-child': { pb: '10px' } }}>
+                                        <CardContent sx={{ p: '12px 14px 14px', '&:last-child': { pb: '14px' } }}>
                                             {/* Price */}
-                                            <Typography sx={{ fontWeight: 800, fontSize: 15, color: '#325fec', lineHeight: 1.2 }}>
+                                            <Typography sx={{ fontWeight: 700, fontSize: 18, color: '#325fec', lineHeight: 1.2 }}>
                                                 ₹{(house.rent_per_month || 0).toLocaleString('en-IN')}
-                                                <Typography component="span" sx={{ fontWeight: 400, fontSize: 11, color: '#888' }}>
+                                                <Typography component="span" sx={{ fontWeight: 400, fontSize: 12, color: '#6b7280' }}>
                                                     {' '}/month
                                                 </Typography>
                                             </Typography>
 
                                             {/* Title */}
-                                            <Typography sx={{ fontWeight: 600, fontSize: 13, color: '#111', mt: 0.3,
+                                            <Typography sx={{ fontWeight: 700, fontSize: 14, color: '#111827', mt: 0.4, lineHeight: 1.3,
                                                 overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                                                 {house.title || `${house.rooms} BHK House`}
                                             </Typography>
 
                                             {/* Location */}
-                                            <Typography sx={{ fontSize: 11.5, color: '#888', mt: 0.2,
-                                                overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                                                {house.area}, {house.city}
-                                            </Typography>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, mt: 0.4, mb: 0.6 }}>
+                                                <LocationIcon sx={{ fontSize: 12, color: '#325fec', flexShrink: 0 }} />
+                                                <Typography sx={{ fontSize: 12, color: '#6b7280', fontWeight: 500,
+                                                    overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                                                    {house.area}, {house.city}
+                                                </Typography>
+                                            </Box>
 
                                             {/* Specs Row */}
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.8, flexWrap: 'nowrap', overflow: 'hidden' }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1.5, flexWrap: 'nowrap', overflow: 'hidden' }}>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
-                                                    <BedIcon sx={{ fontSize: 12, color: '#888' }} />
-                                                    <Typography sx={{ fontSize: 11, color: '#666' }}>{house.rooms} Bed</Typography>
+                                                    <BedIcon sx={{ fontSize: 13, color: '#6b7280' }} />
+                                                    <Typography sx={{ fontSize: 12, color: '#6b7280' }}>{house.rooms} Bed</Typography>
                                                 </Box>
-                                                <Typography sx={{ fontSize: 11, color: '#ccc' }}>•</Typography>
+                                                <Typography sx={{ fontSize: 11, color: '#d1d5db' }}>·</Typography>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
-                                                    <BathtubIcon sx={{ fontSize: 12, color: '#888' }} />
-                                                    <Typography sx={{ fontSize: 11, color: '#666' }}>{house.bathrooms || 1} Bath</Typography>
+                                                    <BathtubIcon sx={{ fontSize: 13, color: '#6b7280' }} />
+                                                    <Typography sx={{ fontSize: 12, color: '#6b7280' }}>{house.bathrooms || 1} Bath</Typography>
                                                 </Box>
                                                 {house.area_sqft && (
                                                     <>
-                                                        <Typography sx={{ fontSize: 11, color: '#ccc' }}>•</Typography>
-                                                        <Typography sx={{ fontSize: 11, color: '#666' }}>{house.area_sqft} sq.ft</Typography>
+                                                        <Typography sx={{ fontSize: 11, color: '#d1d5db' }}>·</Typography>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
+                                                            <SqftIcon sx={{ fontSize: 13, color: '#6b7280' }} />
+                                                            <Typography sx={{ fontSize: 12, color: '#6b7280' }}>{house.area_sqft} sq.ft</Typography>
+                                                        </Box>
                                                     </>
                                                 )}
                                             </Box>
@@ -597,16 +566,15 @@ export default function Houses() {
                                                     handleCallOwner(house.phone || house.owner_phone);
                                                 }}
                                                 sx={{
-                                                    mt: 1,
                                                     textTransform: 'none',
                                                     borderRadius: '10px',
                                                     fontSize: 13,
                                                     fontWeight: 600,
                                                     color: '#325fec',
                                                     borderColor: '#d0daf5',
-                                                    py: 0.55,
-                                                    bgcolor: '#f4f7ff',
-                                                    '&:hover': { bgcolor: '#e8effe', borderColor: '#325fec' }
+                                                    py: 0.7,
+                                                    bgcolor: '#e8f0fe',
+                                                    '&:hover': { bgcolor: '#c7d9fd', borderColor: '#325fec' }
                                                 }}
                                             >
                                                 Call
@@ -755,9 +723,12 @@ export default function Houses() {
                                 </Typography>
                             )}
                             {selectedHouse.distance && (
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                                    📍 {selectedHouse.distance.toFixed(1)} km from your location
-                                </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
+                                    <LocationIcon sx={{ fontSize: 15, color: '#888' }} />
+                                    <Typography variant="body2" color="text.secondary">
+                                        {selectedHouse.distance.toFixed(1)} km from your location
+                                    </Typography>
+                                </Box>
                             )}
 
                             {selectedHouse.description && (
