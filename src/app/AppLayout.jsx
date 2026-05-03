@@ -6,7 +6,6 @@ import {
     Avatar,
     Typography,
     Button,
-    CircularProgress,
     Drawer,
     List,
     ListItem,
@@ -41,6 +40,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import { LocationOnOutlined, HouseOutlined, StoreOutlined, GridViewOutlined } from '@mui/icons-material';
 import { PlaceOutlined } from '@mui/icons-material';
 import logo from '../assets/nearzologo.png';
+import loadingGif from '../assets/Radar.gif'; // Import your loading GIF
 
 const NAV_CONFIG = {
     user: [
@@ -68,7 +68,7 @@ const NAV_CONFIG = {
 
 const DRAWER_WIDTH = 256;
 const COLLAPSED_DRAWER_WIDTH = 68;
-const BOTTOM_NAV_HEIGHT = 60;
+const BOTTOM_NAV_HEIGHT = 66; // Increased from 60 to 76 for better touch targets
 const TOP_BAR_HEIGHT = 64;
 
 function AppLayout() {
@@ -318,10 +318,11 @@ function AppLayout() {
                     right: 0,
                     zIndex: 1200,
                     px: 2,
-                    pb: 'env(safe-area-inset-bottom, 8px)',
-                    pt: '8px',
+                    pb: 'env(safe-area-inset-bottom, 12px)',
+                    pt: '12px',
                     bgcolor: 'transparent',
                     pointerEvents: 'none',
+                    mb:1
                 }}
             >
                 <Box
@@ -329,14 +330,15 @@ function AppLayout() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-around',
-                        bgcolor: 'rgba(255,255,255,0.92)',
-                        backdropFilter: 'blur(20px)',
-                        WebkitBackdropFilter: 'blur(20px)',
-                        borderRadius: '20px',
-                        border: '1px solid rgba(0,0,0,0.07)',
-                        boxShadow: '0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)',
-                        px: 1,
-                        mb: 1.5,
+                        bgcolor: 'rgba(255,255,255,0.94)',
+                        backdropFilter: 'blur(24px)',
+                        WebkitBackdropFilter: 'blur(24px)',
+                        borderRadius: '28px',
+                        border: '1px solid rgba(0,0,0,0.08)',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.05)',
+                        px: 1.5,
+                        py: 0.75,
+                        minHeight: BOTTOM_NAV_HEIGHT,
                         pointerEvents: 'all',
                     }}
                 >
@@ -351,15 +353,15 @@ function AppLayout() {
                                     flexDirection: 'column',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    gap: '3px',
+                                    gap: '4px',
                                     px: 1.5,
                                     py: 1,
-                                    borderRadius: '14px',
+                                    borderRadius: '10px',
                                     cursor: 'pointer',
-                                    minWidth: 52,
+                                    minWidth: 60,
                                     bgcolor: active ? '#f0f4ff' : 'transparent',
                                     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    '&:active': { transform: 'scale(0.93)' },
+                                    '&:active': { transform: 'scale(0.94)' },
                                     userSelect: 'none',
                                 }}
                             >
@@ -369,19 +371,19 @@ function AppLayout() {
                                     alignItems: 'center',
                                     transition: 'color 0.2s ease',
                                     '& svg': {
-                                        fontSize: active ? '1.35rem' : '1.25rem',
+                                        fontSize: active ? '1.45rem' : '1.35rem',
                                         transition: 'all 0.2s ease',
                                     }
                                 }}>
                                     {item.icon}
                                 </Box>
                                 <Typography sx={{
-                                    fontSize: '0.6rem',
+                                    fontSize: '0.68rem',
                                     fontFamily: '"Inter", sans-serif',
                                     fontWeight: active ? 700 : 500,
-                                    color: active ? '#325fec' : '#bbbfc9',
+                                    color: active ? '#325fec' : '#9aa2b5',
                                     letterSpacing: '-0.01em',
-                                    lineHeight: 1,
+                                    lineHeight: 1.2,
                                     transition: 'all 0.2s ease',
                                 }}>
                                     {item.label}
@@ -605,8 +607,23 @@ function AppLayout() {
     // ─── LOADING ───────────────────────────────────────────────────────────────
     if (loading) {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#fff' }}>
-                <CircularProgress sx={{ color: '#325fec' }} size={28} thickness={3} />
+            <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                minHeight: '100vh', 
+                bgcolor: '#fff' 
+            }}>
+                <Box
+                    component="img"
+                    src={loadingGif}
+                    alt="Loading..."
+                    sx={{
+                        width: 120,
+                        height: 'auto',
+                        objectFit: 'contain',
+                    }}
+                />
             </Box>
         );
     }
@@ -730,8 +747,8 @@ function AppLayout() {
                     flexDirection: 'column',
                     minHeight: '100vh',
                     bgcolor: '#f8f9fa',
-                    // Add bottom padding equal to bottom nav height so content is never hidden
-                    pb: `${BOTTOM_NAV_HEIGHT + 8}px`,
+                    // Increased bottom padding to match the new bottom nav height
+                    pb: `${BOTTOM_NAV_HEIGHT + 16}px`,
                 }}
             >
                 {renderTopBar()}
