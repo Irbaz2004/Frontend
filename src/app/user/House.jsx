@@ -304,23 +304,34 @@ export default function Houses() {
                 {/* Title Row */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
                     <Box>
-                        <Typography sx={{ fontWeight: 700, fontSize: 18, color: '#111827', lineHeight: 1.2 }}>
+                        <Typography sx={{ fontFamily: '"Roboto", sans-serif', fontWeight: 700, fontSize: 18,color:'#111827'}}>
                             Rental Homes
                         </Typography>
                     </Box>
-                    <IconButton
-                        onClick={() => setFilterDrawerOpen(true)}
-                        sx={{
-                            width: 38, height: 38,
-                            border: '1.5px solid #e0e6f5',
-                            borderRadius: '10px',
-                            color: '#325fec',
-                            bgcolor: '#f4f7ff',
-                            '&:hover': { bgcolor: '#e8effe' }
-                        }}
-                    >
-                        <FilterIcon sx={{ fontSize: 20 }} />
-                    </IconButton>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                         <Button
+                                             onClick={() => setFilterDrawerOpen(true)}
+                                             startIcon={<FilterIcon sx={{ fontSize: '18px !important' }} />}
+                                             sx={{
+                                                 minWidth: 0,
+                                                 flexDirection: 'column',
+                                                 gap: 0,
+                                                 px: 1,
+                                                 py: 0.5,
+                                                 color: '#6b7280',
+                                                 fontSize: 11,
+                                                 fontFamily:'"Roboto", sans-serif',
+                                                 textTransform: 'none',
+                                                 lineHeight: 1.3,
+                                                 borderRadius: '8px',
+                                                 '&:hover': { color: '#1a6ef5', background: '#e8f0fe' },
+                                             }}
+                                         >
+                                             Filter
+                                         </Button>
+                 
+                                       
+                                     </Box>
                 </Box>
 
                 {/* Tenant Type Filter */}

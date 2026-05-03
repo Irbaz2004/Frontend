@@ -477,25 +477,7 @@ export default function Shops() {
                             Filter
                         </Button>
 
-                        <Button
-                            startIcon={<SortIcon sx={{ fontSize: '18px !important' }} />}
-                            sx={{
-                                minWidth: 0,
-                                flexDirection: 'column',
-                                gap: 0,
-                                px: 1,
-                                py: 0.5,
-                                color: T.textMuted,
-                                fontSize: 11,
-                                fontFamily: T.font,
-                                textTransform: 'none',
-                                lineHeight: 1.3,
-                                borderRadius: '8px',
-                                '&:hover': { color: T.brand, background: T.brandLight },
-                            }}
-                        >
-                            Sort
-                        </Button>
+                      
                     </Box>
                 </Box>
 
