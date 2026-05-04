@@ -220,7 +220,7 @@ function JobCard({ job, index, onApply, onView }) {
                         '&:hover': { boxShadow: '0 4px 12px rgba(26,110,245,0.3)', background: '#1558d6' },
                     }}
                 >
-                    Apply
+                    Call
                 </Button>
             </Box>
         </Box>
