@@ -996,10 +996,11 @@ function DetailDrawer({ item, onClose, onRoute, openGoogleMaps }) {
           top: 0,
           left: 0,
           right: 0,
-          bottom: BOTTOM_NAV_OFFSET,
+          // bottom: BOTTOM_NAV_OFFSET,
           zIndex: 400,
           background:'rgba(15,23,42,0.4)',
           backdropFilter:'blur(3px)',
+          marginBottom:'0px'
         }}
         onClick={onClose}
       />
@@ -1008,7 +1009,7 @@ function DetailDrawer({ item, onClose, onRoute, openGoogleMaps }) {
         className="su m-detail-drawer"
         style={{
           position:'fixed',
-          bottom: BOTTOM_NAV_OFFSET,
+          bottom: 0,
           left: 0,
           right: 0,
           zIndex: 500,
@@ -1021,6 +1022,8 @@ function DetailDrawer({ item, onClose, onRoute, openGoogleMaps }) {
           boxShadow: `0 -12px 50px ${C.shadowLg}`,
           border: `1.5px solid ${C.border}`,
           borderBottom: 'none',
+                    marginBottom:'90px'
+
         }}
       >
         <div className="handle" />
