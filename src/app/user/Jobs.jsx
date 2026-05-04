@@ -395,8 +395,9 @@ export default function Jobs() {
     };
 
     const handleApplyIntent = (job) => {
-        setSelectedJob(job);
-        setApplyDialogOpen(true);
+        window.open(`tel:${job.contact_number}`, '_self');
+        // setSelectedJob(job);
+        // setApplyDialogOpen(true);
     };
 
     const handleApplyConfirm = async () => {
@@ -614,48 +615,6 @@ export default function Jobs() {
                     ))
                 )}
 
-                {/* Can't find banner */}
-                {!loading && (
-                    <Box
-                        sx={{
-                            mx: { xs: 1.5, md: 2 },
-                            mt: 0.5,
-                            mb: 2,
-                            px: 2,
-                            py: 1.5,
-                            background: '#eef2ff',
-                            borderRadius: T.radius,
-                            border: '1px solid #c7d2fe',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1.5,
-                        }}
-                    >
-                        <Box sx={{ width: 42, height: 42, borderRadius: '10px', background: T.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <DescriptionIcon sx={{ color: 'white', fontSize: 22 }} />
-                        </Box>
-                        <Box sx={{ flex: 1 }}>
-                            <Typography variant="body2" sx={{ fontFamily: T.font, fontWeight: 700, color: T.textPrimary, fontSize: 13, lineHeight: 1.3 }}>
-                                Can't find the right job?
-                            </Typography>
-                            <Typography variant="caption" sx={{ fontFamily: T.font, color: T.textMuted, fontSize: 11 }}>
-                                Tell us your preferences and we'll notify you.
-                            </Typography>
-                        </Box>
-                        <Button
-                            variant="outlined"
-                            size="small"
-                            sx={{
-                                fontFamily: T.font, textTransform: 'none', borderRadius: '20px',
-                                borderColor: T.brand, color: T.brand, fontWeight: 600, fontSize: 12,
-                                px: 1.5, py: 0.6, flexShrink: 0, whiteSpace: 'nowrap',
-                                background: T.surface, '&:hover': { background: T.brandLight },
-                            }}
-                        >
-                            Notify Me
-                        </Button>
-                    </Box>
-                )}
             </Box>
             {/* ══ END SCROLLABLE BODY ══ */}
 
@@ -831,11 +790,11 @@ export default function Jobs() {
 
                             <Button
                                 fullWidth variant="contained"
-                                startIcon={<SendIcon />}
-                                onClick={() => setApplyDialogOpen(true)}
+                                startIcon={<PhoneIcon />}
+                                onClick={() => handleApplyIntent(selectedJob)}
                                 sx={{ fontFamily: T.font, textTransform: 'none', borderRadius: '10px', background: T.brand, fontWeight: 600, py: 1.2 }}
                             >
-                                Apply Now
+                                Call Now
                             </Button>
                         </Box>
                     </Box>

@@ -665,7 +665,7 @@ export default function Shops() {
                                 boxShadow: 'none',
                             }}
                         >
-                            Request Item
+                            Search Items
                         </Button>
                     </Box>
                 )}

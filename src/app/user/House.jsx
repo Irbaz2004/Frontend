@@ -207,7 +207,7 @@ export default function Houses() {
     const HouseSkeleton = () => (
         <Card sx={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'none', border: '1px solid #f0f0f0' }}>
             <Skeleton variant="rectangular" height={200} />
-            <CardContent sx={{ p: '12px 14px 14px' }}>
+            <CardContent sx={{ p: '12px 14px 14px',maxWidth:'185px' }}>
                 <Skeleton variant="text" width="40%" height={26} />
                 <Skeleton variant="text" width="65%" height={22} sx={{ mt: 0.5 }} />
                 <Skeleton variant="text" width="50%" height={18} />
