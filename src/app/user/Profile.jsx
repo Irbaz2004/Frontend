@@ -1,4 +1,4 @@
-// app/user/Profile.jsx - Mobile UI matching the provided design image
+// app/user/Profile.jsx - Redesigned to match provided UI design
 import React, { useState, useEffect } from 'react';
 import {
     getProfile,
@@ -19,31 +19,46 @@ import { useAuth } from '../context/AuthContext';
    GLOBAL STYLES
 ───────────────────────────────────────────── */
 const GLOBAL_STYLE = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --blue: #3366FF;
-    --blue-light: #EEF2FF;
-    --green: #22C55E;
-    --green-light: #DCFCE7;
-    --orange: #F97316;
+    --blue: #2563EB;
+    --blue-light: #EFF6FF;
+    --blue-mid: #DBEAFE;
+    --green: #16A34A;
+    --green-light: #F0FDF4;
+    --green-mid: #DCFCE7;
+    --red: #DC2626;
+    --red-light: #FEF2F2;
+    --red-mid: #FEE2E2;
+    --orange: #EA580C;
     --orange-light: #FFF7ED;
-    --red: #EF4444;
-    --red-light: #FEE2E2;
-    --purple: #8B5CF6;
-    --purple-light: #EDE9FE;
+    --orange-mid: #FFEDD5;
+    --purple: #7C3AED;
+    --purple-light: #F5F3FF;
+    --purple-mid: #EDE9FE;
+    --yellow: #CA8A04;
+    --yellow-light: #FEFCE8;
     --border: #E5E7EB;
+    --border-light: #F3F4F6;
     --text: #111827;
-    --text-2: #6B7280;
-    --text-3: #9CA3AF;
-    --bg: #F5F6FA;
+    --text-2: #374151;
+    --text-3: #6B7280;
+    --text-4: #9CA3AF;
+    --bg: #F9FAFB;
     --card: #FFFFFF;
+    --radius: 16px;
     --font: 'Inter', sans-serif;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+    --shadow: 0 4px 16px rgba(0,0,0,.08);
+    --shadow-lg: 0 10px 40px rgba(0,0,0,.12);
   }
 
-  body { font-family: var(--font); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+  html, body { font-family: var(--font); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+
   input, select, textarea, button { font-family: var(--font); }
 
   ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -54,19 +69,44 @@ const GLOBAL_STYLE = `
     from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes sheetUp {
-    from { transform: translateY(100%); }
-    to   { transform: translateY(0); }
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  .mi { font-family: 'Material Icons'; font-style: normal; font-weight: normal; font-size: 20px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; user-select: none; }
+  .icon-btn { background: none; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 8px; border-radius: 50%; transition: background .15s; }
+  .icon-btn:hover { background: var(--border-light); }
+
+  /* Responsive grid */
+  @media (min-width: 768px) {
+    .profile-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
+    .profile-sidebar { position: sticky; top: 24px; }
+  }
+
+  @media (min-width: 1200px) {
+    .profile-layout { grid-template-columns: 340px 1fr; }
   }
 `;
 
-if (!document.getElementById('profile-styles')) {
+if (!document.getElementById('profile-styles-v2')) {
     const s = document.createElement('style');
-    s.id = 'profile-styles';
+    s.id = 'profile-styles-v2';
     s.textContent = GLOBAL_STYLE;
     document.head.appendChild(s);
 }
+
+/* ─────────────────────────────────────────────
+   MATERIAL ICON
+───────────────────────────────────────────── */
+const Icon = ({ name, size = 20, color, style = {} }) => (
+    <span className="mi" style={{ fontSize: size, color, ...style }}>{name}</span>
+);
 
 /* ─────────────────────────────────────────────
    LOCATION SERVICE
@@ -98,7 +138,7 @@ class LocationService {
 const locationService = new LocationService();
 
 /* ─────────────────────────────────────────────
-   PRIMITIVES
+   PRIMITIVE COMPONENTS
 ───────────────────────────────────────────── */
 const Spinner = ({ size = 18, color = '#fff' }) => (
     <span style={{
@@ -108,8 +148,19 @@ const Spinner = ({ size = 18, color = '#fff' }) => (
     }} />
 );
 
+const Badge = ({ label, color = '#2563EB', bg = '#EFF6FF', dot }) => (
+    <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        padding: '3px 10px', borderRadius: 99,
+        fontSize: 11, fontWeight: 600, color, background: bg, whiteSpace: 'nowrap'
+    }}>
+        {dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />}
+        {label}
+    </span>
+);
+
 const FieldLabel = ({ children }) => (
-    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#6B7280', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.5px' }}>
+    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.5px' }}>
         {children}
     </label>
 );
@@ -120,13 +171,14 @@ const Input = ({ label, style = {}, wrapStyle = {}, ...props }) => (
         <input
             {...props}
             style={{
-                width: '100%', padding: '11px 14px',
-                border: '1.5px solid #E5E7EB', borderRadius: 10, fontSize: 14,
-                color: '#111827', background: '#FAFAFA', outline: 'none',
-                transition: 'border-color .15s', ...style
+                width: '100%', padding: '10px 14px',
+                border: '1.5px solid #E5E7EB', borderRadius: 10,
+                fontSize: 14, fontWeight: 400, color: '#111827',
+                background: '#FAFAFA', outline: 'none',
+                transition: 'border-color .15s, box-shadow .15s', ...style
             }}
-            onFocus={e => e.target.style.borderColor = '#3366FF'}
-            onBlur={e => e.target.style.borderColor = '#E5E7EB'}
+            onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px #DBEAFE'; }}
+            onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
         />
     </div>
 );
@@ -134,16 +186,14 @@ const Input = ({ label, style = {}, wrapStyle = {}, ...props }) => (
 const Textarea = ({ label, wrapStyle = {}, ...props }) => (
     <div style={{ ...wrapStyle }}>
         {label && <FieldLabel>{label}</FieldLabel>}
-        <textarea
-            {...props} rows={3}
-            style={{
-                width: '100%', padding: '11px 14px',
-                border: '1.5px solid #E5E7EB', borderRadius: 10, fontSize: 14,
-                color: '#111827', background: '#FAFAFA', outline: 'none', resize: 'vertical',
-                transition: 'border-color .15s'
-            }}
-            onFocus={e => e.target.style.borderColor = '#3366FF'}
-            onBlur={e => e.target.style.borderColor = '#E5E7EB'}
+        <textarea {...props} rows={3} style={{
+            width: '100%', padding: '10px 14px',
+            border: '1.5px solid #E5E7EB', borderRadius: 10,
+            fontSize: 14, color: '#111827', background: '#FAFAFA',
+            outline: 'none', resize: 'vertical', transition: 'border-color .15s'
+        }}
+            onFocus={e => { e.target.style.borderColor = '#2563EB'; }}
+            onBlur={e => { e.target.style.borderColor = '#E5E7EB'; }}
         />
     </div>
 );
@@ -151,16 +201,14 @@ const Textarea = ({ label, wrapStyle = {}, ...props }) => (
 const SelectField = ({ label, options = [], wrapStyle = {}, ...props }) => (
     <div style={{ ...wrapStyle }}>
         {label && <FieldLabel>{label}</FieldLabel>}
-        <select
-            {...props}
-            style={{
-                width: '100%', padding: '11px 14px',
-                border: '1.5px solid #E5E7EB', borderRadius: 10, fontSize: 14,
-                color: '#111827', background: '#FAFAFA', outline: 'none', appearance: 'none',
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-                backgroundRepeat: 'no-repeat', backgroundPosition: 'calc(100% - 12px) center', paddingRight: 36
-            }}
-        >
+        <select {...props} style={{
+            width: '100%', padding: '10px 14px',
+            border: '1.5px solid #E5E7EB', borderRadius: 10,
+            fontSize: 14, color: '#111827', background: '#FAFAFA',
+            outline: 'none', appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat', backgroundPosition: 'calc(100% - 12px) center', paddingRight: 36
+        }}>
             {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
     </div>
@@ -168,22 +216,25 @@ const SelectField = ({ label, options = [], wrapStyle = {}, ...props }) => (
 
 const Btn = ({ children, onClick, variant = 'primary', size = 'md', loading, disabled, style = {}, icon, fullWidth }) => {
     const base = {
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        gap: 6, borderRadius: 10, border: 'none',
-        cursor: disabled || loading ? 'not-allowed' : 'pointer',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        borderRadius: 10, border: 'none', cursor: disabled || loading ? 'not-allowed' : 'pointer',
         fontWeight: 600, fontFamily: 'var(--font)', transition: 'all .15s',
-        opacity: disabled ? .5 : 1, width: fullWidth ? '100%' : undefined, whiteSpace: 'nowrap',
+        opacity: disabled ? .55 : 1, width: fullWidth ? '100%' : undefined, whiteSpace: 'nowrap',
     };
-    const sizes = { sm: { padding: '8px 16px', fontSize: 13 }, md: { padding: '12px 20px', fontSize: 14 }, lg: { padding: '14px 26px', fontSize: 15 } };
+    const sizes = {
+        sm: { padding: '7px 14px', fontSize: 13 },
+        md: { padding: '11px 20px', fontSize: 14 },
+        lg: { padding: '14px 28px', fontSize: 15 },
+    };
     const variants = {
-        primary:   { background: '#3366FF', color: '#fff' },
+        primary: { background: '#2563EB', color: '#fff' },
         secondary: { background: '#F3F4F6', color: '#374151', border: '1.5px solid #E5E7EB' },
-        danger:    { background: '#FEE2E2', color: '#EF4444' },
-        ghost:     { background: 'transparent', color: '#3366FF', border: '1.5px solid #3366FF' },
-        success:   { background: '#DCFCE7', color: '#16A34A' },
-        green:     { background: '#22C55E', color: '#fff' },
-        purple:    { background: '#8B5CF6', color: '#fff' },
-        orange:    { background: '#F97316', color: '#fff' },
+        danger: { background: '#FEE2E2', color: '#DC2626' },
+        ghost: { background: 'transparent', color: '#2563EB', border: '1.5px solid #2563EB' },
+        success: { background: '#DCFCE7', color: '#16A34A' },
+        green: { background: '#16A34A', color: '#fff' },
+        orange: { background: '#EA580C', color: '#fff' },
+        purple: { background: '#7C3AED', color: '#fff' },
     };
     return (
         <button onClick={!disabled && !loading ? onClick : undefined} style={{ ...base, ...sizes[size], ...variants[variant], ...style }}>
@@ -195,24 +246,42 @@ const Btn = ({ children, onClick, variant = 'primary', size = 'md', loading, dis
 
 const Toggle = ({ checked, onChange, label }) => (
     <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
-        <div onClick={() => onChange(!checked)} style={{ width: 44, height: 24, borderRadius: 99, background: checked ? '#3366FF' : '#D1D5DB', position: 'relative', transition: 'background .2s', flexShrink: 0 }}>
-            <div style={{ position: 'absolute', top: 3, left: checked ? 23 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.2)', transition: 'left .2s' }} />
+        <div onClick={() => onChange(!checked)} style={{
+            width: 44, height: 24, borderRadius: 99, background: checked ? '#2563EB' : '#D1D5DB',
+            position: 'relative', transition: 'background .2s', flexShrink: 0
+        }}>
+            <div style={{
+                position: 'absolute', top: 3, left: checked ? 23 : 3,
+                width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                boxShadow: '0 1px 3px rgba(0,0,0,.2)', transition: 'left .2s'
+            }} />
         </div>
         {label && <span style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>{label}</span>}
     </label>
 );
 
 /* ─────────────────────────────────────────────
-   MODAL (bottom sheet)
+   MODAL
 ───────────────────────────────────────────── */
 const Modal = ({ open, onClose, title, children, footer }) => {
     if (!open) return null;
     return (
-        <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'flex-end', backdropFilter: 'blur(3px)' }}>
-            <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 430, margin: '0 auto', maxHeight: '92vh', background: '#fff', borderRadius: '22px 22px 0 0', display: 'flex', flexDirection: 'column', animation: 'sheetUp .28s ease' }}>
+        <div onClick={onClose} style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'flex-end',
+            backdropFilter: 'blur(2px)', animation: 'fadeIn .2s ease'
+        }}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width: '100%', maxWidth: 560, margin: '0 auto',
+                maxHeight: '93vh', background: '#fff',
+                borderRadius: '20px 20px 0 0', display: 'flex', flexDirection: 'column',
+                animation: 'slideUp .25s ease'
+            }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid #F3F4F6' }}>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>{title}</span>
-                    <button onClick={onClose} style={{ background: '#F3F4F6', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#6B7280' }}>✕</button>
+                    <span style={{ fontSize: 16, fontWeight: 700 }}>{title}</span>
+                    <button onClick={onClose} style={{ background: '#F3F4F6', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon name="close" size={18} color="#374151" />
+                    </button>
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px' }}>{children}</div>
                 {footer && (
@@ -228,12 +297,12 @@ const Modal = ({ open, onClose, title, children, footer }) => {
 /* ─────────────────────────────────────────────
    TOAST
 ───────────────────────────────────────────── */
-const Toast = ({ msg, type = 'success' }) => {
+const Toast = ({ msg, type = 'success', onClose }) => {
     if (!msg) return null;
-    const c = { success: { bg: '#DCFCE7', color: '#16A34A' }, error: { bg: '#FEE2E2', color: '#EF4444' } };
+    const colors = { success: { bg: '#DCFCE7', color: '#16A34A' }, error: { bg: '#FEE2E2', color: '#DC2626' } };
     return (
         <div style={{ position: 'fixed', top: 16, left: 0, right: 0, zIndex: 2000, display: 'flex', justifyContent: 'center', padding: '0 16px', animation: 'fadeUp .25s ease', pointerEvents: 'none' }}>
-            <div style={{ background: c[type].bg, color: c[type].color, padding: '12px 20px', borderRadius: 12, fontWeight: 600, fontSize: 14, boxShadow: '0 4px 20px rgba(0,0,0,.12)', maxWidth: 360 }}>
+            <div style={{ background: colors[type].bg, color: colors[type].color, padding: '12px 20px', borderRadius: 12, fontWeight: 600, fontSize: 14, boxShadow: '0 4px 20px rgba(0,0,0,.12)', maxWidth: 380 }}>
                 {msg}
             </div>
         </div>
@@ -241,11 +310,92 @@ const Toast = ({ msg, type = 'success' }) => {
 };
 
 /* ─────────────────────────────────────────────
-   FORM HELPERS
+   FORM GRID
 ───────────────────────────────────────────── */
-const FormGrid = ({ children }) => <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>{children}</div>;
+const FormGrid = ({ children }) => (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>{children}</div>
+);
 const FormItem = ({ half, full, children }) => (
-    <div style={{ flex: full ? '1 1 100%' : '1 1 calc(50% - 6px)', minWidth: half ? 130 : '100%' }}>{children}</div>
+    <div style={{ flex: full ? '1 1 100%' : '1 1 calc(50% - 7px)', minWidth: 180 }}>{children}</div>
+);
+
+/* ─────────────────────────────────────────────
+   DETAIL ROW (settings-style)
+───────────────────────────────────────────── */
+const DetailRow = ({ iconName, iconColor = '#2563EB', iconBg = '#EFF6FF', label, rightText, onClick, danger, last }) => (
+    <button onClick={onClick} style={{
+        display: 'flex', alignItems: 'center', gap: 14,
+        padding: '14px 0', background: 'none', border: 'none', cursor: 'pointer',
+        width: '100%', textAlign: 'left',
+        borderBottom: last ? 'none' : '1px solid #F3F4F6',
+        color: danger ? '#DC2626' : '#111827',
+    }}>
+        <div style={{ width: 38, height: 38, borderRadius: 10, background: danger ? '#FEE2E2' : iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name={iconName} size={20} color={danger ? '#DC2626' : iconColor} />
+        </div>
+        <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: danger ? '#DC2626' : '#111827' }}>{label}</span>
+        {rightText && <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{rightText}</span>}
+        <Icon name="chevron_right" size={20} color={danger ? '#DC2626' : '#9CA3AF'} />
+    </button>
+);
+
+/* ─────────────────────────────────────────────
+   STAT CARD (top row)
+───────────────────────────────────────────── */
+const StatCard = ({ iconName, count, label, iconColor, iconBg }) => (
+    <div style={{ flex: '1 1 0', minWidth: 70, background: '#F8FAFF', borderRadius: 14, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, border: '1px solid #E8EFFE' }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={iconName} size={20} color={iconColor} />
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: '#111827', lineHeight: 1 }}>{count ?? '—'}</div>
+        <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 500, textAlign: 'center', lineHeight: 1.3 }}>{label}</div>
+    </div>
+);
+
+/* ─────────────────────────────────────────────
+   LISTING SECTION CARD
+───────────────────────────────────────────── */
+const ListingSection = ({ iconName, iconColor, iconBg, title, subtitle, badgeCount, badgeColor, badgeBg, onAdd, addLabel, liveCount, verifiedCount, unverifiedCount, onManage }) => (
+    <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+        {/* Header row */}
+        <button onClick={onManage} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', width: '100%', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #F3F4F6', textAlign: 'left' }}>
+            <div style={{ width: 46, height: 46, borderRadius: 14, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name={iconName} size={22} color={iconColor} />
+            </div>
+            <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>{title}</div>
+                <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{subtitle}</div>
+            </div>
+            <Badge label={`${badgeCount} Active`} color={badgeColor} bg={badgeBg} />
+            <Icon name="chevron_right" size={20} color="#9CA3AF" />
+        </button>
+        {/* Stats + Add row */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 18px', gap: 8 }}>
+            <MiniStat iconName="check_circle" color="#2563EB" count={liveCount} label="Live" />
+            <div style={{ width: 1, height: 28, background: '#E5E7EB' }} />
+            <MiniStat iconName="verified" color="#16A34A" count={verifiedCount} label="Verified" />
+            <div style={{ width: 1, height: 28, background: '#E5E7EB' }} />
+            <MiniStat iconName="cancel" color="#DC2626" count={unverifiedCount} label="Unverified" />
+            <div style={{ flex: 1 }} />
+            <button onClick={onAdd} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '7px 14px', borderRadius: 8, border: '1.5px solid #2563EB',
+                background: '#EFF6FF', color: '#2563EB', fontWeight: 600, fontSize: 13,
+                cursor: 'pointer', fontFamily: 'var(--font)'
+            }}>
+                <Icon name="add" size={16} color="#2563EB" />
+                {addLabel}
+            </button>
+        </div>
+    </div>
+);
+
+const MiniStat = ({ iconName, color, count, label }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <Icon name={iconName} size={16} color={color} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{count ?? 0}</span>
+        <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>{label}</span>
+    </div>
 );
 
 /* ─────────────────────────────────────────────
@@ -253,87 +403,25 @@ const FormItem = ({ half, full, children }) => (
 ───────────────────────────────────────────── */
 const Empty = ({ label }) => (
     <div style={{ textAlign: 'center', padding: '32px 16px', color: '#9CA3AF', fontSize: 14, fontWeight: 500 }}>
-        <div style={{ fontSize: 36, marginBottom: 10 }}>📭</div>
+        <Icon name="inbox" size={40} color="#D1D5DB" style={{ display: 'block', margin: '0 auto 10px' }} />
         {label}
     </div>
 );
 
 /* ─────────────────────────────────────────────
-   STAT PILL (top row of profile)
+   AVATAR
 ───────────────────────────────────────────── */
-const StatPill = ({ icon, iconBg, iconColor, count, label }) => (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 44, height: 44, borderRadius: '50%', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, color: iconColor }}>
-            {icon}
+const Avatar = ({ profile, size = 72, fontSize = 28 }) => (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+        <div style={{ width: size, height: size, borderRadius: '50%', background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize, fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0, border: '3px solid #fff', boxShadow: '0 2px 12px rgba(37,99,235,.25)' }}>
+            {profile?.avatar
+                ? <img src={profile.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : (profile?.full_name?.charAt(0)?.toUpperCase() || 'U')}
         </div>
-        <div>
-            <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.1, color: '#111827' }}>{count}</div>
-            <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 500 }}>{label}</div>
-        </div>
+        <button style={{ position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: '50%', background: '#2563EB', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Icon name="photo_camera" size={13} color="#fff" />
+        </button>
     </div>
-);
-
-/* ─────────────────────────────────────────────
-   MANAGE LISTING ROW
-───────────────────────────────────────────── */
-const ManageRow = ({ icon, iconBg, iconColor, title, subtitle, badgeCount, badgeLabel, onAdd, addLabel, verified, unverified, onClick }) => (
-    <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #E5E7EB', overflow: 'hidden', marginBottom: 12 }}>
-        {/* Header */}
-        <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', cursor: onClick ? 'pointer' : 'default' }}>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0, color: iconColor }}>
-                {icon}
-            </div>
-            <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>{title}</div>
-                <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 1 }}>{subtitle}</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ background: '#EEF2FF', color: '#3366FF', fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 99 }}>
-                    {badgeCount} {badgeLabel}
-                </span>
-                <span style={{ color: '#9CA3AF', fontSize: 18 }}>›</span>
-            </div>
-        </div>
-        {/* Sub row */}
-        <div style={{ borderTop: '1px solid #F3F4F6', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} />
-                <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{verified ?? 0} Verified</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F97316', display: 'inline-block' }} />
-                <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>{unverified ?? 0} Unverified</span>
-            </div>
-            <div style={{ flex: 1 }} />
-            <button onClick={onAdd} style={{ background: 'none', border: 'none', color: '#3366FF', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> {addLabel}
-            </button>
-        </div>
-    </div>
-);
-
-/* ─────────────────────────────────────────────
-   OTHER DETAIL ROW
-───────────────────────────────────────────── */
-const DetailRow = ({ icon, label, value, onClick, last }) => (
-    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '15px 0', borderBottom: last ? 'none' : '1px solid #F3F4F6', cursor: onClick ? 'pointer' : 'default' }}>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: '#F5F6FA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
-            {icon}
-        </div>
-        <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: '#111827' }}>{label}</span>
-        {value && <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{value}</span>}
-        <span style={{ color: '#C4C9D4', fontSize: 18 }}>›</span>
-    </div>
-);
-
-/* ─────────────────────────────────────────────
-   BOTTOM NAV
-───────────────────────────────────────────── */
-const NavItem = ({ icon, label, active, onClick }) => (
-    <button onClick={onClick} style={{ flex: 1, padding: '10px 0 12px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, fontFamily: 'var(--font)' }}>
-        <span style={{ fontSize: 22 }}>{icon}</span>
-        <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? '#3366FF' : '#9CA3AF' }}>{label}</span>
-    </button>
 );
 
 /* ─────────────────────────────────────────────
@@ -349,6 +437,7 @@ export default function Profile() {
     const [houses, setHouses] = useState([]);
     const [jobs, setJobs] = useState([]);
     const [userShopsForJob, setUserShopsForJob] = useState([]);
+    const [activeTab, setActiveTab] = useState('shops');
     const [toast, setToast] = useState({ msg: '', type: 'success' });
     const [cities, setCities] = useState([]);
     const [shopAreas, setShopAreas] = useState([]);
@@ -360,10 +449,12 @@ export default function Profile() {
     const [modal, setModal] = useState('');
     const [editingHouse, setEditingHouse] = useState(null);
     const [editingJob, setEditingJob] = useState(null);
+
     const [shopLocationVerified, setShopLocationVerified] = useState(false);
     const [houseLocationVerified, setHouseLocationVerified] = useState(false);
     const [shopVerifying, setShopVerifying] = useState(false);
     const [houseVerifying, setHouseVerifying] = useState(false);
+
     const [passwordData, setPasswordData] = useState({ current_password: '', new_password: '', confirm_password: '' });
     const [deletePassword, setDeletePassword] = useState('');
 
@@ -382,13 +473,30 @@ export default function Profile() {
     const formatPrice = p => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(p);
     const b64 = file => new Promise((res, rej) => { const r = new FileReader(); r.readAsDataURL(file); r.onload = () => res(r.result); r.onerror = rej; });
 
+    /* Derived counts from live data */
+    const shopLive = shops.length;
+    const shopVerified = shops.filter(s => s.is_verified).length;
+    const shopUnverified = shops.filter(s => !s.is_verified).length;
+
+    const houseLive = houses.length;
+    const houseVerified = houses.filter(h => h.is_verified).length;
+    const houseUnverified = houses.filter(h => !h.is_verified).length;
+
+    const jobLive = jobs.filter(j => j.is_open).length;
+    const jobVerified = jobs.filter(j => j.is_verified).length;
+    const jobUnverified = jobs.filter(j => !j.is_verified).length;
+
+    const totalListings = shops.length + houses.length + jobs.length;
+
     useEffect(() => { loadProfile(); loadCities(); loadCategories(); loadUserShopsForJob(); }, []);
     useEffect(() => { if (shopForm.city) loadAreasFor(shopForm.city, setShopAreas); else setShopAreas([]); }, [shopForm.city]);
     useEffect(() => { if (houseForm.city) loadAreasFor(houseForm.city, setHouseAreas); else setHouseAreas([]); }, [houseForm.city]);
     useEffect(() => { if (jobForm.city) loadAreasFor(jobForm.city, setJobAreas); else setJobAreas([]); }, [jobForm.city]);
     useEffect(() => {
-        if (shopForm.category) { const cat = shopCategories.find(c => c.name === shopForm.category); setSelectedCategoryItems(cat?.key_items || []); }
-        else setSelectedCategoryItems([]);
+        if (shopForm.category) {
+            const cat = shopCategories.find(c => c.name === shopForm.category);
+            setSelectedCategoryItems(cat?.key_items || []);
+        } else setSelectedCategoryItems([]);
     }, [shopForm.category, shopCategories]);
 
     const loadProfile = async () => {
@@ -488,176 +596,320 @@ export default function Profile() {
         } catch (e) { showToast(e.message, 'error'); }
     };
     const handleUpdateJob = async () => {
-        try { await updateJob(editingJob.id, { ...jobForm, salary: +jobForm.salary }); showToast('Job updated!'); closeModal(); loadProfile(); }
-        catch (e) { showToast(e.message, 'error'); }
+        try {
+            await updateJob(editingJob.id, { ...jobForm, salary: +jobForm.salary });
+            showToast('Job updated!'); closeModal(); loadProfile();
+        } catch (e) { showToast(e.message, 'error'); }
     };
-    const openEditHouse = (h) => {
-        setEditingHouse(h);
-        setHouseForm({ rooms: h.rooms, halls: h.halls, kitchens: h.kitchens, floor: h.floor, rent_per_month: h.rent_per_month, advance_amount: h.advance_amount || '', latitude: h.latitude || '', longitude: h.longitude || '', area: h.area || '', city: h.city || '', state: h.state || '', description: h.description || '', is_available: h.is_available, house_image_base64: null, house_image_preview: '' });
-        setModal('editHouse');
-    };
-    const openEditJob = (j) => {
-        setEditingJob(j);
-        setJobForm({ shop_id: j.shop_id || '', company_name: j.company_name, job_title: j.job_title, salary: j.salary, salary_type: j.salary_type, qualification: j.qualification || '', job_type: j.job_type, area: j.area || '', city: j.city || '', state: j.state || '', is_open: j.is_open });
-        setModal('editJob');
-    };
+    const openEditHouse = (h) => { setEditingHouse(h); setHouseForm({ rooms: h.rooms, halls: h.halls, kitchens: h.kitchens, floor: h.floor, rent_per_month: h.rent_per_month, advance_amount: h.advance_amount || '', latitude: h.latitude || '', longitude: h.longitude || '', area: h.area || '', city: h.city || '', state: h.state || '', description: h.description || '', is_available: h.is_available, house_image_base64: null, house_image_preview: '' }); setModal('editHouse'); };
+    const openEditJob = (j) => { setEditingJob(j); setJobForm({ shop_id: j.shop_id || '', company_name: j.company_name, job_title: j.job_title, salary: j.salary, salary_type: j.salary_type, qualification: j.qualification || '', job_type: j.job_type, area: j.area || '', city: j.city || '', state: j.state || '', is_open: j.is_open }); setModal('editJob'); };
     const handleShopSelect = (id) => {
         const s = userShopsForJob.find(x => x.id === id);
         setJobForm(p => ({ ...p, shop_id: id, company_name: s ? s.business_name : '', area: s?.area || '', city: s?.city || '', state: s?.state || '' }));
     };
 
-    // Derived counts
-    const shopVerified = shops.filter(s => s.is_verified).length;
-    const shopUnverified = shops.length - shopVerified;
-    const houseVerifiedCount = houses.filter(h => h.is_verified).length;
-    const houseUnverifiedCount = houses.length - houseVerifiedCount;
-    const jobVerifiedCount = jobs.filter(j => j.is_verified).length;
-    const jobUnverifiedCount = jobs.length - jobVerifiedCount;
-    const totalListings = shops.length + houses.length + jobs.length;
-    const totalViews = (profile?.total_views || 0);
-
+    /* ── LOADING ── */
     if (loading) {
         return (
-            <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F5F6FA' }}>
-                <Spinner size={34} color="#3366FF" />
+            <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB' }}>
+                <Spinner size={36} color="#2563EB" />
             </div>
         );
     }
 
+    /* ── RENDER ── */
     return (
-        <div style={{ maxWidth: 430, margin: '0 auto', minHeight: '100dvh', background: '#F5F6FA', fontFamily: 'var(--font)', paddingBottom: 90 }}>
+        <div style={{ minHeight: '100dvh', background: '#F9FAFB', fontFamily: 'var(--font)' }}>
             <Toast msg={toast.msg} type={toast.type} />
 
-            {/* ── Top Bar ── */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', background: '#fff', borderBottom: '1px solid #F3F4F6' }}>
-                <span style={{ fontSize: 17, fontWeight: 700, color: '#111827' }}>My Profile</span>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    {/* Bell */}
-                    <div style={{ position: 'relative' }}>
-                        <button style={{ width: 38, height: 38, borderRadius: '50%', background: '#F5F6FA', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: 'pointer' }}>🔔</button>
-                        <span style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, background: '#EF4444', borderRadius: '50%', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 700 }}>3</span>
+            {/* ─── MAIN LAYOUT ─── */}
+            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px 100px' }}>
+                <div className="profile-layout">
+
+                    {/* ═══════════ SIDEBAR / LEFT COLUMN ═══════════ */}
+                    <div className="profile-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                        {/* Profile Card */}
+                        <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #E5E7EB', padding: '24px 20px 20px', boxShadow: 'var(--shadow-sm)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                <Avatar profile={profile} size={72} fontSize={28} />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 18, fontWeight: 800, color: '#111827', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {profile?.full_name}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6B7280', marginBottom: 3 }}>
+                                        <Icon name="phone" size={14} color="#9CA3AF" />
+                                        {profile?.phone}
+                                    </div>
+                                    {profile?.email && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6B7280', marginBottom: 3 }}>
+                                            <Icon name="mail" size={14} color="#9CA3AF" />
+                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile.email}</span>
+                                        </div>
+                                    )}
+                                    {(profile?.city || profile?.area) && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6B7280' }}>
+                                            <Icon name="location_on" size={14} color="#9CA3AF" />
+                                            {[profile.area, profile.city, profile.state].filter(Boolean).join(', ')}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => { setFormData({ full_name: profile?.full_name || '', area: profile?.area || '', city: profile?.city || '', state: profile?.state || '' }); setModal('editProfile'); }}
+                                style={{ marginTop: 16, width: '100%', padding: '9px', borderRadius: 10, border: '1.5px solid #E5E7EB', background: '#F9FAFB', color: '#374151', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'var(--font)' }}
+                            >
+                                <Icon name="edit" size={15} color="#374151" />
+                                Edit Profile
+                            </button>
+                        </div>
+
+                        {/* Stats Row */}
+                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: '16px', boxShadow: 'var(--shadow-sm)' }}>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <StatCard iconName="store" count={totalListings} label="Total Listings" iconColor="#2563EB" iconBg="#DBEAFE" />
+                                <StatCard iconName="visibility" count={profile?.total_views ?? 0} label="Total Views" iconColor="#7C3AED" iconBg="#EDE9FE" />
+                            </div>
+                        </div>
+
+                        {/* Other Details */}
+                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: '6px 18px', boxShadow: 'var(--shadow-sm)' }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', padding: '12px 0 6px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Other Details</div>
+                            <DetailRow iconName="help_outline" iconColor="#2563EB" iconBg="#EFF6FF" label="Help & Support" onClick={() => { }} />
+                            <DetailRow iconName="info_outline" iconColor="#7C3AED" iconBg="#F5F3FF" label="About NearZO" onClick={() => { }} last />
+                        </div>
+
+                        {/* Settings */}
+                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: '6px 18px', boxShadow: 'var(--shadow-sm)' }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', padding: '12px 0 6px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Settings</div>
+                            <DetailRow iconName="person_outline" iconColor="#2563EB" iconBg="#EFF6FF" label="Edit Profile" onClick={() => { setFormData({ full_name: profile?.full_name || '', area: profile?.area || '', city: profile?.city || '', state: profile?.state || '' }); setModal('editProfile'); }} />
+                            <DetailRow iconName="lock_outline" iconColor="#16A34A" iconBg="#DCFCE7" label="Change Password" onClick={() => setModal('password')} />
+                            <DetailRow iconName="logout" iconColor="#DC2626" iconBg="#FEE2E2" label="Logout" onClick={logout} danger />
+                            <DetailRow iconName="delete_outline" iconColor="#DC2626" iconBg="#FEE2E2" label="Delete Account" onClick={() => setModal('delete')} danger last />
+                        </div>
+
+                        {/* Pro Banner */}
+                        <div style={{ background: 'linear-gradient(135deg, #1D4ED8, #2563EB)', borderRadius: 16, padding: '18px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 4px 20px rgba(37,99,235,.3)' }}>
+                            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <Icon name="workspace_premium" size={24} color="#FCD34D" />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 11, color: '#93C5FD', fontWeight: 500 }}>Get better experience with</div>
+                                <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>NearZO Pro</div>
+                                <div style={{ fontSize: 11, color: '#BFDBFE' }}>Unlock exclusive features</div>
+                            </div>
+                            <button style={{ background: '#fff', color: '#2563EB', border: 'none', borderRadius: 10, padding: '8px 14px', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+                                Upgrade →
+                            </button>
+                        </div>
                     </div>
-                    {/* Settings */}
-                    <button style={{ width: 38, height: 38, borderRadius: '50%', background: '#F5F6FA', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, cursor: 'pointer' }}>⚙️</button>
+
+                    {/* ═══════════ RIGHT / MAIN COLUMN ═══════════ */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                        {/* ── Manage Your Listings ── */}
+                        <div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 12 }}>Manage Your Listings</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                <ListingSection
+                                    iconName="storefront"
+                                    iconColor="#2563EB"
+                                    iconBg="#DBEAFE"
+                                    title="Manage Shops"
+                                    subtitle="Add, edit or manage your shop listings"
+                                    badgeCount={shopLive}
+                                    badgeColor="#2563EB"
+                                    badgeBg="#EFF6FF"
+                                    liveCount={shopLive}
+                                    verifiedCount={shopVerified}
+                                    unverifiedCount={shopUnverified}
+                                    onAdd={() => setModal('shop')}
+                                    addLabel="Add Shop"
+                                    onManage={() => { }}
+                                />
+                                <ListingSection
+                                    iconName="home"
+                                    iconColor="#16A34A"
+                                    iconBg="#DCFCE7"
+                                    title="Manage Houses"
+                                    subtitle="Add, edit or manage your house listings"
+                                    badgeCount={houseLive}
+                                    badgeColor="#16A34A"
+                                    badgeBg="#F0FDF4"
+                                    liveCount={houseLive}
+                                    verifiedCount={houseVerified}
+                                    unverifiedCount={houseUnverified}
+                                    onAdd={() => setModal('house')}
+                                    addLabel="Add House"
+                                    onManage={() => { }}
+                                />
+                                <ListingSection
+                                    iconName="work"
+                                    iconColor="#EA580C"
+                                    iconBg="#FFEDD5"
+                                    title="Manage Jobs"
+                                    subtitle="Add, edit or manage your job listings"
+                                    badgeCount={jobLive}
+                                    badgeColor="#EA580C"
+                                    badgeBg="#FFF7ED"
+                                    liveCount={jobLive}
+                                    verifiedCount={jobVerified}
+                                    unverifiedCount={jobUnverified}
+                                    onAdd={() => setModal('job')}
+                                    addLabel="Add Job"
+                                    onManage={() => { }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* ── Listings Tabs ── */}
+                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+                            {/* Tab header */}
+                            <div style={{ display: 'flex', borderBottom: '1px solid #F3F4F6' }}>
+                                {[
+                                    { key: 'shops', label: 'Shops', count: shops.length, icon: 'storefront' },
+                                    { key: 'houses', label: 'Houses', count: houses.length, icon: 'home' },
+                                    { key: 'jobs', label: 'Jobs', count: jobs.length, icon: 'work' },
+                                ].map(t => (
+                                    <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
+                                        flex: 1, padding: '14px 8px', border: 'none', background: 'none', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                        fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)',
+                                        color: activeTab === t.key ? '#2563EB' : '#9CA3AF',
+                                        borderBottom: activeTab === t.key ? '2.5px solid #2563EB' : '2.5px solid transparent',
+                                        transition: 'all .15s'
+                                    }}>
+                                        <Icon name={t.icon} size={16} color={activeTab === t.key ? '#2563EB' : '#9CA3AF'} />
+                                        {t.label}
+                                        <span style={{ padding: '2px 7px', borderRadius: 99, background: activeTab === t.key ? '#EFF6FF' : '#F3F4F6', color: activeTab === t.key ? '#2563EB' : '#9CA3AF', fontSize: 11, fontWeight: 700 }}>
+                                            {t.count}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div style={{ padding: 16 }}>
+                                {/* SHOPS */}
+                                {activeTab === 'shops' && (
+                                    shops.length === 0
+                                        ? <Empty label="No shops yet. Add your first shop!" />
+                                        : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+                                            {shops.map(s => (
+                                                <div key={s.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+                                                    {s.shop_image
+                                                        ? <img src={`data:image/jpeg;base64,${s.shop_image}`} alt="" style={{ width: '100%', height: 90, objectFit: 'cover' }} />
+                                                        : <div style={{ width: '100%', height: 90, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="storefront" size={32} color="#BFDBFE" /></div>
+                                                    }
+                                                    <div style={{ padding: '10px 12px 12px' }}>
+                                                        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.business_name}</div>
+                                                        <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>{s.category}</div>
+                                                        <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                            <Icon name="location_on" size={11} color="#9CA3AF" />
+                                                            {s.area}, {s.city}
+                                                        </div>
+                                                        {s.is_verified
+                                                            ? <Badge label="Verified" color="#16A34A" bg="#DCFCE7" dot />
+                                                            : <Badge label="Unverified" color="#DC2626" bg="#FEE2E2" dot />
+                                                        }
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                )}
+
+                                {/* HOUSES */}
+                                {activeTab === 'houses' && (
+                                    houses.length === 0
+                                        ? <Empty label="No houses listed yet. Add your first house!" />
+                                        : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            {houses.map(h => (
+                                                <div key={h.id} style={{ border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden', background: '#fff', boxShadow: 'var(--shadow-sm)', display: 'flex' }}>
+                                                    {h.house_image
+                                                        ? <img src={`data:image/jpeg;base64,${h.house_image}`} alt="" style={{ width: 100, objectFit: 'cover', flexShrink: 0 }} />
+                                                        : <div style={{ width: 100, background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="home" size={32} color="#BBF7D0" /></div>
+                                                    }
+                                                    <div style={{ padding: '12px 14px', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                                                        <div>
+                                                            <div style={{ fontSize: 14, fontWeight: 700 }}>{h.rooms} BHK House</div>
+                                                            <div style={{ fontSize: 13, color: '#2563EB', fontWeight: 700 }}>{formatPrice(h.rent_per_month)}/mo</div>
+                                                            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                                <Icon name="location_on" size={12} color="#9CA3AF" />
+                                                                {h.area}, {h.city}
+                                                            </div>
+                                                            <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
+                                                                <Badge label={h.is_available ? 'Available' : 'Booked'} color={h.is_available ? '#16A34A' : '#DC2626'} bg={h.is_available ? '#DCFCE7' : '#FEE2E2'} dot />
+                                                                {h.is_verified ? <Badge label="Verified" color="#16A34A" bg="#DCFCE7" dot /> : <Badge label="Unverified" color="#DC2626" bg="#FEE2E2" dot />}
+                                                            </div>
+                                                        </div>
+                                                        <Btn size="sm" variant="secondary" onClick={() => openEditHouse(h)} icon={<Icon name="edit" size={14} color="#374151" />} style={{ borderRadius: 8 }}>
+                                                            Edit
+                                                        </Btn>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                )}
+
+                                {/* JOBS */}
+                                {activeTab === 'jobs' && (
+                                    jobs.length === 0
+                                        ? <Empty label="No jobs posted yet. Post your first job!" />
+                                        : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            {jobs.map(j => (
+                                                <div key={j.id} style={{ border: '1px solid #E5E7EB', borderRadius: 14, padding: '14px 16px', background: '#fff', boxShadow: 'var(--shadow-sm)' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ fontSize: 14, fontWeight: 700 }}>{j.job_title}</div>
+                                                            <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 4 }}>{j.shop_name || j.company_name}</div>
+                                                            <div style={{ fontSize: 14, fontWeight: 700, color: '#2563EB' }}>{formatPrice(j.salary)}/{j.salary_type === 'month' ? 'mo' : 'day'}</div>
+                                                            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                                <Icon name="location_on" size={12} color="#9CA3AF" />
+                                                                {j.area}, {j.city}
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                                                                <Badge label={j.is_open ? 'Open' : 'Closed'} color={j.is_open ? '#16A34A' : '#DC2626'} bg={j.is_open ? '#DCFCE7' : '#FEE2E2'} dot />
+                                                                <Badge label={j.job_type === 'full_time' ? 'Full Time' : 'Part Time'} color="#6B7280" bg="#F3F4F6" />
+                                                                {j.is_verified ? <Badge label="Verified" color="#16A34A" bg="#DCFCE7" dot /> : <Badge label="Unverified" color="#DC2626" bg="#FEE2E2" dot />}
+                                                            </div>
+                                                        </div>
+                                                        <Btn size="sm" variant="secondary" onClick={() => openEditJob(j)} icon={<Icon name="edit" size={14} color="#374151" />} style={{ borderRadius: 8 }}>
+                                                            Edit
+                                                        </Btn>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* ── Profile Card ── */}
-            <div style={{ background: '#fff', margin: '12px 16px', borderRadius: 16, border: '1px solid #E5E7EB', padding: '18px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                    {/* Avatar */}
-                    <div style={{ position: 'relative', flexShrink: 0 }}>
-                        <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#3366FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', overflow: 'hidden', border: '3px solid #EEF2FF' }}>
-                            {profile?.avatar
-                                ? <img src={profile.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                : (profile?.full_name?.charAt(0) || 'U')}
-                        </div>
-                        <button style={{ position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: '50%', background: '#3366FF', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 11, color: '#fff' }}>📷</button>
-                    </div>
-                    {/* Info */}
-                    <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 17, fontWeight: 700, color: '#111827', marginBottom: 4 }}>{profile?.full_name}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6B7280', marginBottom: 3 }}>
-                            <span>📞</span> <span>{profile?.phone}</span>
-                        </div>
-                        {profile?.email && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6B7280', marginBottom: 3 }}>
-                                <span>✉️</span> <span>{profile.email}</span>
-                            </div>
-                        )}
-                        {(profile?.city || profile?.state) && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6B7280' }}>
-                                <span>📍</span> <span>{[profile.city, profile.state].filter(Boolean).join(', ')}</span>
-                            </div>
-                        )}
-                    </div>
-                    {/* Edit btn */}
-                    <button
-                        onClick={() => { setFormData({ full_name: profile?.full_name || '', area: profile?.area || '', city: profile?.city || '', state: profile?.state || '' }); setModal('editProfile'); }}
-                        style={{ background: '#EEF2FF', border: 'none', borderRadius: 10, padding: '8px 14px', color: '#3366FF', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 }}
-                    >
-                        Edit Profile
+            {/* ── Bottom Nav (mobile only) ── */}
+            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #E5E7EB', display: 'flex', zIndex: 100, boxShadow: '0 -2px 12px rgba(0,0,0,.06)' }}>
+                {[
+                    { icon: 'home', label: 'Home', active: false },
+                    { icon: 'map', label: 'Map', active: false },
+                    { icon: 'storefront', label: 'Shops', active: false },
+                    { icon: 'home_work', label: 'House', active: false },
+                    { icon: 'work', label: 'Jobs', active: false },
+                    { icon: 'person', label: 'Profile', active: true },
+                ].map(n => (
+                    <button key={n.label} style={{ flex: 1, padding: '10px 0 12px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                        <Icon name={n.icon} size={22} color={n.active ? '#2563EB' : '#9CA3AF'} />
+                        <span style={{ fontSize: 10, color: n.active ? '#2563EB' : '#9CA3AF', fontWeight: n.active ? 700 : 500, fontFamily: 'var(--font)' }}>{n.label}</span>
                     </button>
-                </div>
-
-                {/* Divider */}
-                <div style={{ height: 1, background: '#F3F4F6', margin: '16px 0' }} />
-
-                {/* Stats row */}
-                <div style={{ display: 'flex', gap: 0 }}>
-                    <StatPill icon="🗂️" iconBg="#EEF2FF" iconColor="#3366FF" count={totalListings} label="Total Listings" />
-                    <div style={{ width: 1, background: '#F3F4F6', margin: '0 4px' }} />
-                    <StatPill icon="👁️" iconBg="#EDE9FE" iconColor="#8B5CF6" count={totalViews >= 1000 ? (totalViews / 1000).toFixed(1) + 'K' : totalViews} label="Total Views" />
-                </div>
+                ))}
             </div>
 
-            {/* ── Manage Your Listings ── */}
-            <div style={{ padding: '4px 16px 2px' }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 12 }}>Manage Your Listings</div>
-
-                <ManageRow
-                    icon="🏪" iconBg="#EEF2FF" iconColor="#3366FF"
-                    title="Manage Shops" subtitle="Add, edit or manage your shop listings"
-                    badgeCount={shops.length} badgeLabel="Active"
-                    verified={shopVerified} unverified={shopUnverified}
-                    onAdd={() => setModal('shop')} addLabel="Add Shop"
-                />
-                <ManageRow
-                    icon="🏠" iconBg="#DCFCE7" iconColor="#22C55E"
-                    title="Manage Houses" subtitle="Add, edit or manage your house listings"
-                    badgeCount={houses.length} badgeLabel="Active"
-                    verified={houseVerifiedCount} unverified={houseUnverifiedCount}
-                    onAdd={() => setModal('house')} addLabel="Add House"
-                />
-                <ManageRow
-                    icon="💼" iconBg="#FFF7ED" iconColor="#F97316"
-                    title="Manage Jobs" subtitle="Add, edit or manage your job listings"
-                    badgeCount={jobs.length} badgeLabel="Active"
-                    verified={jobVerifiedCount} unverified={jobUnverifiedCount}
-                    onAdd={() => setModal('job')} addLabel="Add Job"
-                />
-            </div>
-
-            {/* ── Other Details ── */}
-            <div style={{ margin: '4px 16px 14px', background: '#fff', borderRadius: 16, padding: '4px 16px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', padding: '14px 0 4px' }}>Other Details</div>
-                <DetailRow icon="👛" label="My Wallet" value="₹2,450" onClick={() => {}} />
-                <DetailRow icon="📋" label="My Bookings & Leads" onClick={() => {}} />
-                <DetailRow icon="❤️" label="Saved Items" onClick={() => {}} />
-                <DetailRow icon="⭐" label="Reviews" onClick={() => {}} />
-                <DetailRow icon="🔒" label="Change Password" onClick={() => setModal('password')} />
-                <DetailRow icon="🎧" label="Help & Support" onClick={() => {}} />
-                <DetailRow icon="ℹ️" label="About NearZO" onClick={() => {}} last />
-            </div>
-
-            {/* ── Danger Zone ── */}
-            <div style={{ margin: '0 16px 16px', background: '#fff', borderRadius: 16, padding: '4px 16px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', padding: '14px 0 4px' }}>Account</div>
-                <div onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '15px 0', borderBottom: '1px solid #F3F4F6', cursor: 'pointer' }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🚪</div>
-                    <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: '#F97316' }}>Logout</span>
-                </div>
-                <div onClick={() => setModal('delete')} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '15px 0', cursor: 'pointer' }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>⚠️</div>
-                    <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: '#EF4444' }}>Delete Account</span>
-                </div>
-            </div>
-
-            {/* ── Bottom Nav ── */}
-            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1.5px solid #F3F4F6', display: 'flex', maxWidth: 430, margin: '0 auto', zIndex: 100 }}>
-                <NavItem icon="🏠" label="Home" />
-                <NavItem icon="🗺️" label="Map" />
-                <NavItem icon="🏪" label="Shops" />
-                <NavItem icon="🏡" label="House" />
-                <NavItem icon="💼" label="Jobs" />
-                <NavItem icon="👤" label="Profile" active />
-            </div>
-
-            {/* ════ MODALS ════ */}
+            {/* ══════════════════════════
+                 MODALS
+            ══════════════════════════ */}
 
             {/* Edit Profile */}
             <Modal open={modal === 'editProfile'} onClose={closeModal} title="Edit Profile"
-                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleSaveProfile} loading={saving}>Save</Btn></>}>
+                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleSaveProfile} loading={saving}>Save Changes</Btn></>}>
                 <FormGrid>
                     <FormItem full><Input label="Full Name *" value={formData.full_name} onChange={e => setFormData(p => ({ ...p, full_name: e.target.value }))} /></FormItem>
                     <FormItem half><SelectField label="City" value={formData.city} onChange={e => setFormData(p => ({ ...p, city: e.target.value, area: '' }))} options={[{ value: '', label: 'Select City' }, ...cities.map(c => ({ value: c.name, label: c.name }))]} /></FormItem>
@@ -668,7 +920,7 @@ export default function Profile() {
 
             {/* Change Password */}
             <Modal open={modal === 'password'} onClose={closeModal} title="Change Password"
-                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleChangePassword}>Update</Btn></>}>
+                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleChangePassword}>Update Password</Btn></>}>
                 <FormGrid>
                     <FormItem full><Input label="Current Password" type="password" value={passwordData.current_password} onChange={e => setPasswordData(p => ({ ...p, current_password: e.target.value }))} /></FormItem>
                     <FormItem full><Input label="New Password" type="password" value={passwordData.new_password} onChange={e => setPasswordData(p => ({ ...p, new_password: e.target.value }))} /></FormItem>
@@ -678,9 +930,10 @@ export default function Profile() {
 
             {/* Delete Account */}
             <Modal open={modal === 'delete'} onClose={closeModal} title="Delete Account"
-                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="danger" onClick={handleDeleteAccount}>Delete</Btn></>}>
-                <div style={{ background: '#FEE2E2', borderRadius: 10, padding: '12px 14px', marginBottom: 16, fontSize: 13, color: '#EF4444', fontWeight: 500 }}>
-                    ⚠️ This action is irreversible. All your data will be permanently deleted.
+                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="danger" onClick={handleDeleteAccount}>Delete Account</Btn></>}>
+                <div style={{ background: '#FEE2E2', borderRadius: 10, padding: '12px 14px', marginBottom: 16, fontSize: 13, color: '#DC2626', fontWeight: 500, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <Icon name="warning" size={16} color="#DC2626" style={{ flexShrink: 0, marginTop: 1 }} />
+                    This action is irreversible. All data will be permanently deleted.
                 </div>
                 <Input label="Enter password to confirm" type="password" value={deletePassword} onChange={e => setDeletePassword(e.target.value)} />
             </Modal>
@@ -700,7 +953,7 @@ export default function Profile() {
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                                 {selectedCategoryItems.map(item => (
                                     <span key={item.id} onClick={() => { if (!shopForm.keywords.includes(item.item_name)) setShopForm(p => ({ ...p, keywords: [...p.keywords, item.item_name] })); }}
-                                        style={{ padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${shopForm.keywords.includes(item.item_name) ? '#3366FF' : '#E5E7EB'}`, background: shopForm.keywords.includes(item.item_name) ? '#EEF2FF' : '#F9FAFB', color: shopForm.keywords.includes(item.item_name) ? '#3366FF' : '#374151', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+                                        style={{ padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${shopForm.keywords.includes(item.item_name) ? '#2563EB' : '#E5E7EB'}`, background: shopForm.keywords.includes(item.item_name) ? '#EFF6FF' : '#F9FAFB', color: shopForm.keywords.includes(item.item_name) ? '#2563EB' : '#374151', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
                                         {item.item_name}
                                     </span>
                                 ))}
@@ -714,7 +967,7 @@ export default function Profile() {
                     <FormItem full>
                         <div style={{ height: 1, background: '#F3F4F6', margin: '4px 0 12px' }} />
                         <FieldLabel>Location</FieldLabel>
-                        <Btn variant="ghost" onClick={() => getCurrentLocation(setShopForm)} loading={locating} fullWidth icon="📍" size="sm">
+                        <Btn variant="ghost" onClick={() => getCurrentLocation(setShopForm)} loading={locating} fullWidth icon={<Icon name="my_location" size={15} color="#2563EB" />} size="sm">
                             {locating ? 'Detecting...' : 'Get Current Location'}
                         </Btn>
                     </FormItem>
@@ -730,15 +983,17 @@ export default function Profile() {
                     </FormItem>
                     <FormItem half><Input label="State *" value={shopForm.state} onChange={e => setShopForm(p => ({ ...p, state: e.target.value }))} /></FormItem>
                     <FormItem half>
-                        <Btn variant={shopLocationVerified ? 'success' : 'primary'} size="sm" onClick={verifyShopLoc} loading={shopVerifying} fullWidth>
-                            {shopVerifying ? 'Verifying...' : shopLocationVerified ? '✓ Verified' : 'Verify Location'}
+                        <Btn variant={shopLocationVerified ? 'success' : 'primary'} size="sm" onClick={verifyShopLoc} loading={shopVerifying} fullWidth
+                            icon={shopLocationVerified ? <Icon name="verified" size={15} color="#16A34A" /> : null}>
+                            {shopVerifying ? 'Verifying...' : shopLocationVerified ? 'Verified' : 'Verify Location'}
                         </Btn>
                     </FormItem>
                     <FormItem full>
                         <div style={{ height: 1, background: '#F3F4F6', margin: '4px 0 12px' }} />
                         <FieldLabel>Shop Image</FieldLabel>
                         <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', border: '1.5px dashed #D1D5DB', borderRadius: 10, cursor: 'pointer', color: '#6B7280', fontSize: 14, fontWeight: 500 }}>
-                            📷 Upload Image
+                            <Icon name="photo_camera" size={18} color="#6B7280" />
+                            Upload Image
                             <input type="file" accept="image/*" hidden onChange={async e => { const f = e.target.files[0]; if (!f) return; const b = await b64(f); setShopForm(p => ({ ...p, shop_image_base64: b, shop_image_preview: URL.createObjectURL(f) })); }} />
                         </label>
                         {shopForm.shop_image_preview && <img src={shopForm.shop_image_preview} alt="" style={{ marginTop: 10, width: '100%', height: 120, objectFit: 'cover', borderRadius: 10 }} />}
@@ -761,7 +1016,7 @@ export default function Profile() {
                     <FormItem full>
                         <div style={{ height: 1, background: '#F3F4F6', margin: '8px 0 12px' }} />
                         <FieldLabel>Location</FieldLabel>
-                        <Btn variant="ghost" onClick={() => getCurrentLocation(setHouseForm)} loading={locating} fullWidth icon="📍" size="sm">
+                        <Btn variant="ghost" onClick={() => getCurrentLocation(setHouseForm)} loading={locating} fullWidth icon={<Icon name="my_location" size={15} color="#2563EB" />} size="sm">
                             {locating ? 'Detecting...' : 'Get Current Location'}
                         </Btn>
                     </FormItem>
@@ -777,15 +1032,17 @@ export default function Profile() {
                     </FormItem>
                     <FormItem half><Input label="State *" value={houseForm.state} onChange={e => setHouseForm(p => ({ ...p, state: e.target.value }))} /></FormItem>
                     <FormItem half>
-                        <Btn variant={houseLocationVerified ? 'success' : 'primary'} size="sm" onClick={verifyHouseLoc} loading={houseVerifying} fullWidth>
-                            {houseVerifying ? 'Verifying...' : houseLocationVerified ? '✓ Verified' : 'Verify Location'}
+                        <Btn variant={houseLocationVerified ? 'success' : 'primary'} size="sm" onClick={verifyHouseLoc} loading={houseVerifying} fullWidth
+                            icon={houseLocationVerified ? <Icon name="verified" size={15} color="#16A34A" /> : null}>
+                            {houseVerifying ? 'Verifying...' : houseLocationVerified ? 'Verified' : 'Verify Location'}
                         </Btn>
                     </FormItem>
                     <FormItem full>
                         <div style={{ height: 1, background: '#F3F4F6', margin: '4px 0 12px' }} />
                         <FieldLabel>House Image</FieldLabel>
                         <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', border: '1.5px dashed #D1D5DB', borderRadius: 10, cursor: 'pointer', color: '#6B7280', fontSize: 14, fontWeight: 500 }}>
-                            🏠 Upload Image
+                            <Icon name="photo_camera" size={18} color="#6B7280" />
+                            Upload Image
                             <input type="file" accept="image/*" hidden onChange={async e => { const f = e.target.files[0]; if (!f) return; const b = await b64(f); setHouseForm(p => ({ ...p, house_image_base64: b, house_image_preview: URL.createObjectURL(f) })); }} />
                         </label>
                         {houseForm.house_image_preview && <img src={houseForm.house_image_preview} alt="" style={{ marginTop: 10, width: '100%', height: 120, objectFit: 'cover', borderRadius: 10 }} />}
@@ -839,7 +1096,10 @@ export default function Profile() {
                     <FormItem full><Textarea label="Description" value={houseForm.description} onChange={e => setHouseForm(p => ({ ...p, description: e.target.value }))} /></FormItem>
                     <FormItem full><Toggle checked={houseForm.is_available} onChange={v => setHouseForm(p => ({ ...p, is_available: v }))} label="Available for Rent" /></FormItem>
                     <FormItem full>
-                        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>Location: {houseForm.area}, {houseForm.city}, {houseForm.state}</div>
+                        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Icon name="location_on" size={13} color="#9CA3AF" />
+                            {houseForm.area}, {houseForm.city}, {houseForm.state}
+                        </div>
                     </FormItem>
                 </FormGrid>
             </Modal>
