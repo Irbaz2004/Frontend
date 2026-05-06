@@ -37,6 +37,7 @@ import AdminUsers from './app/admin/Users';
 import AdminVerifyShops from './app/admin/VerifyShops';
 import AdminVerifyHouses from './app/admin/VerifyHouses';
 import ShopCategory from './app/admin/ShopCategory';
+import ShopAds from './app/admin/ShopAds';
 
 // Loading component
 function LoadingScreen() {
@@ -334,6 +335,12 @@ function AppRoutes() {
                         <ShopCategory />
                     </AuthGuard>
                 } />
+                  <Route path="admin/shop-ads" element={
+                    <AuthGuard allowedRoles={['admin']}>
+                        <ShopAds />
+                    </AuthGuard>
+                } />
+
             </Route>
 
             {/* Catch-all */}

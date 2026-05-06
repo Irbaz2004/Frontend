@@ -40,7 +40,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import { LocationOnOutlined, HouseOutlined, StoreOutlined, GridViewOutlined } from '@mui/icons-material';
 import { PlaceOutlined } from '@mui/icons-material';
 import logo from '../assets/nearzologo.png';
-import loadingGif from '../assets/Radar.gif'; // Import your loading GIF
+import loadingGif from '../assets/Radar.gif';
 
 const NAV_CONFIG = {
     user: [
@@ -61,6 +61,7 @@ const NAV_CONFIG = {
         { label: 'Jobs', icon: <WorkIcon />, path: '/app/admin/jobs' },
         { label: 'Verify Shops', icon: <VerifiedIcon />, path: '/app/admin/verify-shops' },
         { label: 'Verify Houses', icon: <VerifiedIcon />, path: '/app/admin/verify-houses' },
+        { label: 'Shop Ads', icon: <StoreOutlined />, path: '/app/admin/shop-ads' },
         { label: 'Locations', icon: <PlaceOutlined />, path: '/app/admin/locations' },
         { label: 'Users', icon: <PeopleIcon />, path: '/app/admin/users' },
     ],
@@ -68,7 +69,7 @@ const NAV_CONFIG = {
 
 const DRAWER_WIDTH = 256;
 const COLLAPSED_DRAWER_WIDTH = 68;
-const BOTTOM_NAV_HEIGHT = 66; // Increased from 60 to 76 for better touch targets
+const BOTTOM_NAV_HEIGHT = 66;
 const TOP_BAR_HEIGHT = 64;
 
 function AppLayout() {
@@ -160,9 +161,7 @@ function AppLayout() {
                             <ChevronLeftIcon sx={{ fontSize: '1.1rem' }} />
                         </IconButton>
                     )}
-                    {sidebarCollapsed && (
-                        <Box />
-                    )}
+                    {sidebarCollapsed && <Box />}
                 </Box>
 
                 {sidebarCollapsed && (
@@ -303,96 +302,194 @@ function AppLayout() {
         );
     };
 
-    // ─── BOTTOM NAV (User/Business) ────────────────────────────────────────────
+    // ─── BOTTOM NAV (User/Business) — iOS Liquid Glass Style ──────────────────
     const renderBottomNav = () => {
         const currentIndex = navItems.findIndex(item =>
             location.pathname === item.path || location.pathname.startsWith(item.path + '/')
         );
+        const activeIndex = currentIndex >= 0 ? currentIndex : 0;
 
         return (
-            <Box
-                sx={{
-                    position: 'fixed',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    zIndex: 1200,
-                    px: 2,
-                    pb: 'env(safe-area-inset-bottom, 12px)',
-                    pt: '12px',
-                    bgcolor: 'transparent',
-                    pointerEvents: 'none',
-                    mb:1
-                }}
-            >
+            <>
+                {/* Keyframe injection */}
+                <style>{`
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+                    @keyframes pillPop {
+                        0%   { transform: scale(0.88); opacity: 0.5; }
+                        55%  { transform: scale(1.05); opacity: 1; }
+                        100% { transform: scale(1);    opacity: 1; }
+                    }
+
+                    @keyframes labelSlide {
+                        0%   { opacity: 0; transform: translateX(-4px); }
+                        100% { opacity: 1; transform: translateX(0); }
+                    }
+
+                    .nearzo-bottom-nav-item {
+                        -webkit-tap-highlight-color: transparent;
+                    }
+
+                    .nearzo-bottom-nav-item:active .nearzo-nav-inner {
+                        transform: scale(0.92) !important;
+                    }
+
+                    .nearzo-active-pill {
+                        animation: pillPop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+                    }
+
+                    .nearzo-active-label {
+                        animation: labelSlide 0.22s ease both;
+                        animation-delay: 0.06s;
+                    }
+                `}</style>
+
                 <Box
                     sx={{
+                        position: 'fixed',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 1300,
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-around',
-                        bgcolor: 'rgba(255,255,255,0.94)',
-                        backdropFilter: 'blur(24px)',
-                        WebkitBackdropFilter: 'blur(24px)',
-                        borderRadius: '28px',
-                        border: '1px solid rgba(0,0,0,0.08)',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.05)',
-                        px: 1.5,
-                        py: 0.75,
-                        minHeight: BOTTOM_NAV_HEIGHT,
-                        pointerEvents: 'all',
+                        justifyContent: 'center',
+                        pb: 'max(env(safe-area-inset-bottom, 0px), 14px)',
+                        pt: '10px',
+                        pointerEvents: 'none',
                     }}
                 >
-                    {navItems.map((item, index) => {
-                        const active = index === (currentIndex >= 0 ? currentIndex : 0);
-                        return (
-                            <Box
-                                key={item.label}
-                                onClick={() => navigate(item.path)}
-                                sx={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '4px',
-                                    px: 1.5,
-                                    py: 1,
-                                    borderRadius: '10px',
-                                    cursor: 'pointer',
-                                    minWidth: 60,
-                                    bgcolor: active ? '#f0f4ff' : 'transparent',
-                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    '&:active': { transform: 'scale(0.94)' },
-                                    userSelect: 'none',
-                                }}
-                            >
-                                <Box sx={{
-                                    color: active ? '#325fec' : '#bbbfc9',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    transition: 'color 0.2s ease',
-                                    '& svg': {
-                                        fontSize: active ? '1.45rem' : '1.35rem',
-                                        transition: 'all 0.2s ease',
-                                    }
-                                }}>
-                                    {item.icon}
+                    {/* Glass pill container */}
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            pointerEvents: 'all',
+
+                            // Liquid glass base
+                            bgcolor: 'rgba(255, 255, 255, 0.72)',
+                            backdropFilter: 'blur(40px) saturate(180%) brightness(1.08)',
+                            WebkitBackdropFilter: 'blur(40px) saturate(180%) brightness(1.08)',
+
+                            // Shape
+                            borderRadius: '100px',
+                            px: '6px',
+                            py: '6px',
+
+                            // Glass border — iOS style refraction ring
+                            border: '1px solid rgba(255, 255, 255, 0.85)',
+                            outline: '1px solid rgba(0, 0, 0, 0.07)',
+
+                            // Layered shadow for depth
+                            boxShadow: `
+                                0 2px 0px rgba(255,255,255,0.9) inset,
+                                0 -1px 0px rgba(0,0,0,0.04) inset,
+                                0 8px 32px rgba(0, 0, 0, 0.13),
+                                0 2px 8px rgba(0, 0, 0, 0.08),
+                                0 0 0 0.5px rgba(255,255,255,0.6)
+                            `,
+                        }}
+                    >
+                        {navItems.map((item, index) => {
+                            const active = index === activeIndex;
+
+                            return (
+                                <Box
+                                    key={item.label}
+                                    className="nearzo-bottom-nav-item"
+                                    onClick={() => navigate(item.path)}
+                                    sx={{
+                                        cursor: 'pointer',
+                                        userSelect: 'none',
+                                        WebkitUserSelect: 'none',
+                                    }}
+                                >
+                                    {active ? (
+                                        // ── ACTIVE: Dark capsule pill with icon + label ──
+                                        <Box
+                                            className="nearzo-active-pill"
+                                            sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '7px',
+                                                px: '14px',
+                                                height: '44px',
+                                                borderRadius: '100px',
+
+                                                // Deep rich dark fill — matches reference
+                                                bgcolor: '#325fec',
+                                                // background: 'linear-gradient(145deg, #1e2240 0%, #111827 100%)',
+
+                                                // Inner glow
+                                                boxShadow: `
+                                                    0 1px 0 rgba(255,255,255,0.12) inset,
+                                                    0 -1px 0 rgba(0,0,0,0.3) inset,
+                                                    0 4px 16px rgba(50, 95, 236, 0.25),
+                                                    0 2px 6px rgba(0,0,0,0.3)
+                                                `,
+                                            }}
+                                        >
+                                            {/* Icon */}
+                                            <Box sx={{
+                                                color: '#ffffff',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                '& svg': {
+                                                    fontSize: '1.15rem',
+                                                    filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.3))',
+                                                }
+                                            }}>
+                                                {item.icon}
+                                            </Box>
+
+                                            {/* Label */}
+                                            <Typography
+                                                className="nearzo-active-label"
+                                                sx={{
+                                                    fontFamily: '"Inter", sans-serif',
+                                                    fontWeight: 600,
+                                                    fontSize: '0.82rem',
+                                                    color: '#ffffff',
+                                                    letterSpacing: '-0.015em',
+                                                    whiteSpace: 'nowrap',
+                                                    lineHeight: 1,
+                                                }}
+                                            >
+                                                {item.label}
+                                            </Typography>
+                                        </Box>
+                                    ) : (
+                                        // ── INACTIVE: Just icon, no label ──
+                                        <Box
+                                            className="nearzo-nav-inner"
+                                            sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: '44px',
+                                                height: '44px',
+                                                borderRadius: '100px',
+                                                transition: 'all 0.18s ease',
+                                                color: 'rgba(60, 60, 80, 0.5)',
+                                                '&:hover': {
+                                                    bgcolor: 'rgba(50, 95, 236, 0.08)',
+                                                    color: '#325fec',
+                                                },
+                                                '& svg': {
+                                                    fontSize: '1.22rem',
+                                                    transition: 'all 0.18s ease',
+                                                }
+                                            }}
+                                        >
+                                            {item.icon}
+                                        </Box>
+                                    )}
                                 </Box>
-                                <Typography sx={{
-                                    fontSize: '0.68rem',
-                                    fontFamily: '"Inter", sans-serif',
-                                    fontWeight: active ? 700 : 500,
-                                    color: active ? '#325fec' : '#9aa2b5',
-                                    letterSpacing: '-0.01em',
-                                    lineHeight: 1.2,
-                                    transition: 'all 0.2s ease',
-                                }}>
-                                    {item.label}
-                                </Typography>
-                            </Box>
-                        );
-                    })}
+                            );
+                        })}
+                    </Box>
                 </Box>
-            </Box>
+            </>
         );
     };
 
@@ -426,7 +523,6 @@ function AppLayout() {
 
                 {/* Right actions */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    {/* Notification Bell */}
                     <IconButton
                         size="small"
                         sx={{
@@ -443,7 +539,6 @@ function AppLayout() {
                         </Badge>
                     </IconButton>
 
-                    {/* Avatar */}
                     <Box
                         onClick={(e) => setAnchorEl(e.currentTarget)}
                         sx={{
@@ -486,7 +581,6 @@ function AppLayout() {
                         </Typography>
                     </Box>
 
-                    {/* Dropdown */}
                     <Menu
                         anchorEl={anchorEl}
                         open={open}
@@ -607,22 +701,18 @@ function AppLayout() {
     // ─── LOADING ───────────────────────────────────────────────────────────────
     if (loading) {
         return (
-            <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                minHeight: '100vh', 
-                bgcolor: '#fff' 
+            <Box sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100vh',
+                bgcolor: '#fff'
             }}>
                 <Box
                     component="img"
                     src={loadingGif}
                     alt="Loading..."
-                    sx={{
-                        width: 120,
-                        height: 'auto',
-                        objectFit: 'contain',
-                    }}
+                    sx={{ width: 120, height: 'auto', objectFit: 'contain' }}
                 />
             </Box>
         );
@@ -638,7 +728,6 @@ function AppLayout() {
                     {renderSidebar()}
 
                     <Box component="main" sx={{ flexGrow: 1, bgcolor: '#f8f9fa', minWidth: 0 }}>
-                        {/* Admin Top Bar */}
                         <Box
                             sx={{
                                 height: TOP_BAR_HEIGHT,
@@ -726,7 +815,6 @@ function AppLayout() {
                             </Box>
                         </Box>
 
-                        {/* Page Content */}
                         <Box sx={{ p: 3 }}>
                             <Outlet />
                         </Box>
@@ -747,8 +835,7 @@ function AppLayout() {
                     flexDirection: 'column',
                     minHeight: '100vh',
                     bgcolor: '#f8f9fa',
-                    // Increased bottom padding to match the new bottom nav height
-                    pb: `${BOTTOM_NAV_HEIGHT + 16}px`,
+                    pb: `${BOTTOM_NAV_HEIGHT + 32}px`,
                 }}
             >
                 {renderTopBar()}
