@@ -1,5 +1,5 @@
 // app/user/Houses.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Box,
     Container,
@@ -43,9 +43,10 @@ import {
     Person as PersonIcon,
     FamilyRestroom as FamilyIcon,
     Favorite as CoupleIcon,
-    SquareFoot as SqftIcon
+    SquareFoot as SqftIcon,
+    Visibility as VisibilityIcon,
 } from '@mui/icons-material';
-import { getHousesByLocation, getHouseById, getHouseFilterOptions } from '../../services/house';
+import { getHousesByLocation, getHouseById, getHouseFilterOptions, incrementHouseViewCount } from '../../services/house';
 import { useNavigate } from 'react-router-dom';
 
 // ─── Tenant Type Config ────────────────────────────────────────────────────────
@@ -68,6 +69,7 @@ export default function Houses() {
     const navigate = useNavigate();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const viewedHousesRef = useRef(new Set());
 
     const [loading, setLoading] = useState(true);
     const [houses, setHouses] = useState([]);
@@ -161,9 +163,35 @@ export default function Houses() {
         }
     };
 
+    // Updated handleHouseClick function
     const handleHouseClick = async (house) => {
+        // Check if already viewed in this session
+        if (viewedHousesRef.current.has(house.id)) {
+            setLoadingDetails(true);
+            setDetailsOpen(true);
+            try {
+                const result = await getHouseById(house.id, userLocation);
+                setSelectedHouse(result.house);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoadingDetails(false);
+            }
+            return;
+        }
+        
         setLoadingDetails(true);
         setDetailsOpen(true);
+        
+        // Mark as viewed
+        viewedHousesRef.current.add(house.id);
+        
+        // Increment view count in background
+        incrementHouseViewCount(house.id).catch(err => {
+            console.log('View count error:', err);
+            viewedHousesRef.current.delete(house.id);
+        });
+        
         try {
             const result = await getHouseById(house.id, userLocation);
             setSelectedHouse(result.house);
@@ -207,7 +235,7 @@ export default function Houses() {
     const HouseSkeleton = () => (
         <Card sx={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'none', border: '1px solid #f0f0f0' }}>
             <Skeleton variant="rectangular" height={200} />
-            <CardContent sx={{ p: '12px 14px 14px',maxWidth:'185px' }}>
+            <CardContent sx={{ p: '12px 14px 14px', maxWidth: '185px' }}>
                 <Skeleton variant="text" width="40%" height={26} />
                 <Skeleton variant="text" width="65%" height={22} sx={{ mt: 0.5 }} />
                 <Skeleton variant="text" width="50%" height={18} />
@@ -304,34 +332,32 @@ export default function Houses() {
                 {/* Title Row */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
                     <Box>
-                        <Typography sx={{ fontFamily: '"Roboto", sans-serif', fontWeight: 700, fontSize: 18,color:'#111827'}}>
+                        <Typography sx={{ fontFamily: '"Roboto", sans-serif', fontWeight: 700, fontSize: 18, color: '#111827' }}>
                             Rental Homes
                         </Typography>
                     </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                         <Button
-                                             onClick={() => setFilterDrawerOpen(true)}
-                                             startIcon={<FilterIcon sx={{ fontSize: '18px !important' }} />}
-                                             sx={{
-                                                 minWidth: 0,
-                                                 flexDirection: 'column',
-                                                 gap: 0,
-                                                 px: 1,
-                                                 py: 0.5,
-                                                 color: '#6b7280',
-                                                 fontSize: 11,
-                                                 fontFamily:'"Roboto", sans-serif',
-                                                 textTransform: 'none',
-                                                 lineHeight: 1.3,
-                                                 borderRadius: '8px',
-                                                 '&:hover': { color: '#1a6ef5', background: '#e8f0fe' },
-                                             }}
-                                         >
-                                             Filter
-                                         </Button>
-                 
-                                       
-                                     </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Button
+                            onClick={() => setFilterDrawerOpen(true)}
+                            startIcon={<FilterIcon sx={{ fontSize: '18px !important' }} />}
+                            sx={{
+                                minWidth: 0,
+                                flexDirection: 'column',
+                                gap: 0,
+                                px: 1,
+                                py: 0.5,
+                                color: '#6b7280',
+                                fontSize: 11,
+                                fontFamily: '"Roboto", sans-serif',
+                                textTransform: 'none',
+                                lineHeight: 1.3,
+                                borderRadius: '8px',
+                                '&:hover': { color: '#1a6ef5', background: '#e8f0fe' },
+                            }}
+                        >
+                            Filter
+                        </Button>
+                    </Box>
                 </Box>
 
                 {/* Tenant Type Filter */}
@@ -468,13 +494,17 @@ export default function Houses() {
                                             '&:active': { boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }
                                         }}
                                     >
-                                        {/* Image */}
+                                        {/* Image - Using Cloudinary URL directly */}
                                         <Box sx={{ position: 'relative', height: 200, overflow: 'hidden' }}>
-                                            {house.house_image_base64 ? (
+                                            {house.house_image ? (
                                                 <img
-                                                    src={`data:image/jpeg;base64,${house.house_image_base64}`}
+                                                    src={house.house_image}
                                                     alt={house.title || `${house.rooms} BHK`}
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;background:#f0f3f8;display:flex;align-items:center;justify-content:center"><svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeLarge" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="HomeIcon" style="font-size:48px;color:#c0c8d8"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path></svg></div>';
+                                                    }}
                                                 />
                                             ) : (
                                                 <Box sx={{ width: '100%', height: '100%', bgcolor: '#f0f3f8',
@@ -645,13 +675,17 @@ export default function Houses() {
                             <Box sx={{ width: 40, height: 4, bgcolor: '#e0e0e0', borderRadius: 2 }} />
                         </Box>
 
-                        {/* Image */}
+                        {/* Image - Using Cloudinary URL directly */}
                         <Box sx={{ position: 'relative', mx: 2, borderRadius: '14px', overflow: 'hidden', mb: 2 }}>
-                            {selectedHouse.house_image_base64 ? (
+                            {selectedHouse.house_image ? (
                                 <img
-                                    src={`data:image/jpeg;base64,${selectedHouse.house_image_base64}`}
+                                    src={selectedHouse.house_image}
                                     alt={selectedHouse.title}
                                     style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }}
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.parentElement.innerHTML = '<div style="height:220px;background:#f0f3f8;display:flex;align-items:center;justify-content:center"><svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeLarge" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="HomeIcon" style="font-size:64px;color:#c0c8d8"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path></svg></div>';
+                                    }}
                                 />
                             ) : (
                                 <Box sx={{ height: 220, bgcolor: '#f0f3f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -680,8 +714,25 @@ export default function Houses() {
 
                         {/* Scrollable content */}
                         <Box sx={{ px: 2, flex: 1, overflowY: 'auto', pb: 3 }}>
-                            <Typography sx={{ fontWeight: 800, fontSize: 20, color: '#111', mb: 0.5 }}>
+                            <Typography sx={{ fontWeight: 800, fontSize: 20, color: '#111', mb: 0.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                                 {selectedHouse.title || `${selectedHouse.rooms} BHK House`}
+                                {selectedHouse.views_count !== undefined && (
+                                    <Box sx={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: 0.5, 
+                                        bgcolor: '#eaf0fe',
+                                        borderRadius: '20px',
+                                        px: 1.5,
+                                        py: 0.5,
+                                        width: 'fit-content'
+                                    }}>
+                                        <VisibilityIcon sx={{ fontSize: 14, color: '#325fec' }} />
+                                        <Typography variant="caption" sx={{ color: '#325fec', fontWeight: 500 }}>
+                                            {selectedHouse.views_count} views
+                                        </Typography>
+                                    </Box>
+                                )}
                             </Typography>
                             <Typography sx={{ fontWeight: 800, fontSize: 24, color: '#325fec', mb: 0.5 }}>
                                 {formatPrice(selectedHouse.rent_per_month)}

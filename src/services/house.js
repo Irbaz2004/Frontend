@@ -24,22 +24,6 @@ async function apiCall(endpoint, options = {}) {
     }
 }
 
-// ===================== HOUSE SERVICES =====================
-
-/**
- * Get houses by location with filters
- * @param {Object} params - Query parameters
- * @param {number} params.latitude - User's latitude
- * @param {number} params.longitude - User's longitude
- * @param {number} params.radius - Radius in km (default: 10)
- * @param {number} params.minRent - Minimum rent
- * @param {number} params.maxRent - Maximum rent
- * @param {number} params.rooms - Minimum rooms
- * @param {string} params.furnished - Furnished status
- * @param {string} params.search - Search term
- * @param {number} params.page - Page number
- * @param {number} params.limit - Items per page
- */
 export async function getHousesByLocation({ 
     latitude, 
     longitude, 
@@ -68,11 +52,6 @@ export async function getHousesByLocation({
     return apiCall(`/houses/nearby?${params}`);
 }
 
-/**
- * Get house by ID
- * @param {string} id - House ID
- * @param {Object} userLocation - User's location for distance calculation
- */
 export async function getHouseById(id, userLocation = null) {
     let url = `/houses/${id}`;
     if (userLocation && userLocation.latitude && userLocation.longitude) {
@@ -81,15 +60,24 @@ export async function getHouseById(id, userLocation = null) {
     return apiCall(url);
 }
 
-/**
- * Get house filter options
- */
 export async function getHouseFilterOptions() {
     return apiCall('/houses/filters');
+}
+
+export async function incrementHouseViewCount(id) {
+    return apiCall(`/houses/${id}/view`, {
+        method: 'POST',
+    });
+}
+
+export async function getTopViewedHouses(limit = 10) {
+    return apiCall(`/houses/top-viewed?limit=${limit}`);
 }
 
 export default {
     getHousesByLocation,
     getHouseById,
-    getHouseFilterOptions
+    getHouseFilterOptions,
+    incrementHouseViewCount,
+    getTopViewedHouses,
 };

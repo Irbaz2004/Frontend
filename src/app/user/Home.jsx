@@ -171,22 +171,21 @@ const ShopCard = ({ shop, onClick, index = 0 }) => (
     >
         {/* Image */}
         <Box sx={{ width: '100%', height: 120, bgcolor: 'rgba(50,95,236,0.05)', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-            {shop.shop_image ? (
-                <Box
-                    component="img"
-                    src={`data:image/jpeg;base64,${shop.shop_image}`}
-                    alt={shop.business_name}
-                    sx={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
-                />
-            ) : (
-                <Box sx={{
-                    width: '100%', height: '100%',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'linear-gradient(135deg, rgba(50,95,236,0.06) 0%, rgba(50,95,236,0.12) 100%)',
-                }}>
-                    <StoreIcon sx={{ fontSize: 36, color: 'rgba(50,95,236,0.3)' }} />
-                </Box>
-            )}
+         {shop.shop_image ? (
+    <img 
+        src={shop.shop_image} 
+        alt={shop.business_name} 
+        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        onError={(e) => {
+            e.target.style.display = 'none';
+            e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;background:#EFF6FF;display:flex;align-items:center;justify-content:center"><span class="mi" style="font-size:32px;color:#BFDBFE">storefront</span></div>';
+        }}
+    />
+) : (
+    <div style={{ width: '100%', height: '100%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <StoreIcon sx={{ fontSize: 32, color: '#BFDBFE' }} />
+    </div>
+)}
             {/* Glass overlay on image bottom */}
             <Box sx={{
                 position: 'absolute', bottom: 0, left: 0, right: 0, height: 30,
@@ -263,22 +262,21 @@ const HouseCard = ({ house, onClick, index = 0 }) => (
         }}
     >
         <Box sx={{ width: '100%', height: 120, bgcolor: 'rgba(50,95,236,0.05)', overflow: 'hidden', position: 'relative' }}>
-            {house.house_image ? (
-                <Box
-                    component="img"
-                    src={`data:image/jpeg;base64,${house.house_image}`}
-                    alt="House"
-                    sx={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
-                />
-            ) : (
-                <Box sx={{
-                    width: '100%', height: '100%',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'linear-gradient(135deg, rgba(50,95,236,0.06) 0%, rgba(50,95,236,0.12) 100%)',
-                }}>
-                    <ApartmentIcon sx={{ fontSize: 36, color: 'rgba(50,95,236,0.3)' }} />
-                </Box>
-            )}
+         {house.house_image ? (
+    <img 
+        src={house.house_image} 
+        alt="House" 
+        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        onError={(e) => {
+            e.target.style.display = 'none';
+            e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;background:#F0FDF4;display:flex;align-items:center;justify-content:center"><span class="mi" style="font-size:32px;color:#BBF7D0">home</span></div>';
+        }}
+    />
+) : (
+    <div style={{ width: '100%', height: '100%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <HomeIcon sx={{ fontSize: 32, color: '#BBF7D0' }} />
+    </div>
+)}
             {/* Price badge */}
             <Box sx={{
                 position: 'absolute', bottom: 8, left: 8,

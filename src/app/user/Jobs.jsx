@@ -39,9 +39,9 @@ import {
     CheckCircle as CheckCircleIcon,
     KeyboardArrowDown as ArrowDownIcon,
     Description as DescriptionIcon,
+    Visibility as VisibilityIcon,
 } from '@mui/icons-material';
-import { getJobsByLocation, getJobById, getJobFilterOptions, applyForJob } from '../../services/jobs';
-import { useAuth } from '../context/AuthContext';
+import { getJobsByLocation, getJobById, getJobFilterOptions, applyForJob, incrementJobViewCount } from '../../services/jobs';import { useAuth } from '../context/AuthContext';
 
 /* ─── Design tokens ──────────────────────────────────────────────────────── */
 const T = {
@@ -291,6 +291,7 @@ export default function Jobs() {
     const { isAuthenticated, user } = useAuth();
     const theme    = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+const viewedJobsRef = useRef(new Set());
 
     const [loading,          setLoading]          = useState(true);
     const [jobs,             setJobs]             = useState([]);
@@ -381,7 +382,10 @@ export default function Jobs() {
         }
     };
 
-    const handleView = async (job) => {
+   // Update handleView function
+const handleView = async (job) => {
+    // Check if already viewed in this session
+    if (viewedJobsRef.current.has(job.id)) {
         setLoadingDetails(true);
         setDetailsOpen(true);
         try {
@@ -392,8 +396,30 @@ export default function Jobs() {
         } finally {
             setLoadingDetails(false);
         }
-    };
-
+        return;
+    }
+    
+    setLoadingDetails(true);
+    setDetailsOpen(true);
+    
+    // Mark as viewed
+    viewedJobsRef.current.add(job.id);
+    
+    // Increment view count in background
+    incrementJobViewCount(job.id).catch(err => {
+        console.log('View count error:', err);
+        viewedJobsRef.current.delete(job.id);
+    });
+    
+    try {
+        const result = await getJobById(job.id, userLocation);
+        setSelectedJob(result.job);
+    } catch (err) {
+        setError(err.message);
+    } finally {
+        setLoadingDetails(false);
+    }
+};
     const handleApplyIntent = (job) => {
         window.open(`tel:${job.contact_number}`, '_self');
         // setSelectedJob(job);
@@ -705,9 +731,27 @@ export default function Jobs() {
                             >
                                 <CloseIcon fontSize="small" />
                             </IconButton>
-                            <Typography variant="h6" sx={{ fontFamily: T.font, fontWeight: 700, lineHeight: 1.3, pr: 4, mb: 0.5 }}>
+                            <Typography variant="h6" sx={{ fontFamily: T.font, fontWeight: 700, lineHeight: 1.3, pr: 4, mb: 0.5,display: 'flex', alignItems: 'center', gap: 1 }}>
                                 {selectedJob.job_title}
+                                      {selectedJob.views_count !== undefined && (
+    <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 0.5, 
+        bgcolor: '#eaf0fe',
+        borderRadius: '20px',
+        px: 1.5,
+        py: 0.5,
+        width: 'fit-content'
+    }}>
+        <VisibilityIcon sx={{ fontSize: 14, color: '#1a6ef5' }} />
+        <Typography variant="caption" sx={{ color: '#1a6ef5', fontWeight: 500 }}>
+            {selectedJob.views_count} views
+        </Typography>
+    </Box>
+)}
                             </Typography>
+                      
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.9 }}>
                                 <BusinessIcon sx={{ fontSize: 15 }} />
                                 <Typography variant="body2" sx={{ fontFamily: T.font, fontSize: 13 }}>

@@ -1,4 +1,4 @@
-// services/job.js
+// services/jobs.js - Add new functions
 const API_BASE = import.meta.env.VITE_API_URL;
 
 function authHeaders() {
@@ -24,8 +24,6 @@ async function apiCall(endpoint, options = {}) {
     }
 }
 
-// ===================== JOB SERVICES =====================
-
 export async function getJobsByLocation({ 
     latitude, 
     longitude, 
@@ -35,6 +33,7 @@ export async function getJobsByLocation({
     search = '',
     min_salary = 0,
     max_salary = 100000,
+    sort = 'recent',
     page = 1, 
     limit = 12 
 }) {
@@ -44,6 +43,7 @@ export async function getJobsByLocation({
         radius,
         min_salary,
         max_salary,
+        sort,
         page,
         limit
     });
@@ -76,10 +76,22 @@ export async function getFeaturedJobs() {
     return apiCall('/jobs/featured');
 }
 
+export async function incrementJobViewCount(id) {
+    return apiCall(`/jobs/${id}/view`, {
+        method: 'POST',
+    });
+}
+
+export async function getTopViewedJobs(limit = 10) {
+    return apiCall(`/jobs/top-viewed?limit=${limit}`);
+}
+
 export default {
     getJobsByLocation,
     getJobById,
     getJobFilterOptions,
     applyForJob,
-    getFeaturedJobs
+    getFeaturedJobs,
+    incrementJobViewCount,
+    getTopViewedJobs,
 };

@@ -1,5 +1,6 @@
-// app/user/Shops.jsx
-import React, { useState, useEffect, useRef } from 'react';
+// app/user/Shops.jsx - Updated version with Cloudinary URL support
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Box,
     Typography,
@@ -36,8 +37,9 @@ import {
     KeyboardArrowDown as ArrowDownIcon,
     ChevronRight as ChevronRightIcon,
     ShoppingBag as ShoppingBagIcon,
+    Visibility as VisibilityIcon,
 } from '@mui/icons-material';
-import { getShopsByLocation, getShopById, getShopCategoriesWithCount } from '../../services/shops';
+import { getShopsByLocation, getShopById, getShopCategoriesWithCount, incrementShopViewCount } from '../../services/shops';
 
 /* ─── Design tokens ──────────────────────────────────────────────────────── */
 const T = {
@@ -68,7 +70,7 @@ const ShopRowSkeleton = () => (
     </Box>
 );
 
-/* ─── Shop Row ───────────────────────────────────────────────────────────── */
+/* ─── Shop Row - UPDATED to use Cloudinary URL directly ─────────────────── */
 function ShopRow({ shop, onClick, onCall }) {
     const isOpen      = shop.is_open ?? true;
     const closingTime = shop.closing_time ?? '10:00 PM';
@@ -87,7 +89,7 @@ function ShopRow({ shop, onClick, onCall }) {
                 '&:hover': { background: '#f8faff' },
             }}
         >
-            {/* Thumbnail */}
+            {/* Thumbnail - Using Cloudinary URL directly */}
             <Box
                 sx={{
                     width: 78,
@@ -101,11 +103,15 @@ function ShopRow({ shop, onClick, onCall }) {
                     justifyContent: 'center',
                 }}
             >
-                {shop.shop_image_base64 ? (
+                {shop.shop_image ? (
                     <img
-                        src={`data:image/jpeg;base64,${shop.shop_image_base64}`}
+                        src={shop.shop_image}
                         alt={shop.business_name}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = '<svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="StoreIcon" style="font-size: 36px; color: #c4c9d4;"><path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"></path></svg>';
+                        }}
                     />
                 ) : (
                     <StoreIcon sx={{ fontSize: 36, color: '#c4c9d4' }} />
@@ -285,6 +291,7 @@ const SidebarFilters = ({ radius, setRadius, selectedCategory, setSelectedCatego
 export default function Shops() {
     const theme    = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const viewedShopsRef = useRef(new Set());
 
     const [loading,          setLoading]          = useState(true);
     const [shops,            setShops]            = useState([]);
@@ -367,9 +374,34 @@ export default function Shops() {
         }
     };
 
-    const handleShopClick = async (shop) => {
+    const handleShopClick = useCallback(async (shop) => {
+        // Check if this shop has already been viewed in this session
+        if (viewedShopsRef.current.has(shop.id)) {
+            setLoadingDetails(true);
+            setDetailsOpen(true);
+            try {
+                const result = await getShopById(shop.id, userLocation);
+                setSelectedShop(result.shop);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoadingDetails(false);
+            }
+            return;
+        }
+        
         setLoadingDetails(true);
         setDetailsOpen(true);
+        
+        // Mark as viewed immediately to prevent duplicate calls
+        viewedShopsRef.current.add(shop.id);
+        
+        // Increment view count in background
+        incrementShopViewCount(shop.id).catch(err => {
+            console.log('View count error:', err);
+            viewedShopsRef.current.delete(shop.id);
+        });
+        
         try {
             const result = await getShopById(shop.id, userLocation);
             setSelectedShop(result.shop);
@@ -378,7 +410,7 @@ export default function Shops() {
         } finally {
             setLoadingDetails(false);
         }
-    };
+    }, [userLocation]);
 
     const handleGetDirections = (shop) => {
         window.open(
@@ -446,7 +478,6 @@ export default function Shops() {
                     zIndex: 100,
                 }}
             >
-                {/* Title + Filter/Sort */}
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
                     <Typography
                         variant="h6"
@@ -476,8 +507,6 @@ export default function Shops() {
                         >
                             Filter
                         </Button>
-
-                      
                     </Box>
                 </Box>
 
@@ -534,7 +563,6 @@ export default function Shops() {
             </Box>
             {/* ══ END HEADER ══ */}
 
-            {/* Error alert — outside scroll so it doesn't jump layout */}
             {error && (
                 <Alert
                     severity="warning"
@@ -555,7 +583,6 @@ export default function Shops() {
                     pb: { xs: '80px', md: '16px' },
                 }}
             >
-                {/* Shop list card */}
                 <Box
                     sx={{
                         background: T.surface,
@@ -711,7 +738,7 @@ export default function Shops() {
                 </Button>
             </Drawer>
 
-            {/* ══ SHOP DETAILS DRAWER ══ */}
+            {/* ══ SHOP DETAILS DRAWER - UPDATED to use Cloudinary URL ══ */}
             <Drawer
                 anchor={isMobile ? 'bottom' : 'right'}
                 open={detailsOpen}
@@ -734,13 +761,17 @@ export default function Shops() {
                 ) : selectedShop ? (
                     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
 
-                        {/* Shop image header */}
+                        {/* Shop image header - Using Cloudinary URL directly */}
                         <Box sx={{ position: 'relative', flexShrink: 0 }}>
-                            {selectedShop.shop_image_base64 ? (
+                            {selectedShop.shop_image ? (
                                 <img
-                                    src={`data:image/jpeg;base64,${selectedShop.shop_image_base64}`}
+                                    src={selectedShop.shop_image}
                                     alt={selectedShop.business_name}
                                     style={{ width: '100%', height: 210, objectFit: 'cover', display: 'block' }}
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.parentElement.innerHTML = '<div style="height:210px;background:linear-gradient(135deg, #f0f3f8 0%, #e4e8ef 100%);display:flex;align-items:center;justify-content:center"><svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeLarge" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="StoreIcon" style="font-size: 72px; color: #c4c9d4;"><path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"></path></svg></div>';
+                                    }}
                                 />
                             ) : (
                                 <Box
@@ -771,8 +802,8 @@ export default function Shops() {
                             >
                                 <CloseIcon fontSize="small" />
                             </IconButton>
-
-                            <Box sx={{ position: 'absolute', bottom: 12, left: 12 }}>
+                           
+                            <Box sx={{ position: 'absolute', bottom: 0, left: 12, display: 'flex', flexDirection: 'row', gap: 0.5, alignItems: 'flex-start' }}>
                                 <Chip
                                     label={selectedShop.is_verified ? 'Verified Shop' : 'Not Verified'}
                                     icon={
@@ -789,6 +820,24 @@ export default function Shops() {
                                         '& .MuiChip-icon': { color: 'white' },
                                     }}
                                 />
+                         
+                                {selectedShop.views_count !== undefined && (
+                                    <Box sx={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: 1, 
+                                        bgcolor: T.brandLight,
+                                        borderRadius: '20px',
+                                        px: 1.5,
+                                        py: 0.5,
+                                        width: 'fit-content'
+                                    }}>
+                                        <VisibilityIcon sx={{ fontSize: 14, color: T.brand }} />
+                                        <Typography variant="caption" sx={{ fontFamily: T.font, color: T.brand, fontWeight: 500 }}>
+                                            {selectedShop.views_count} views
+                                        </Typography>
+                                    </Box>
+                                )}
                             </Box>
                         </Box>
 

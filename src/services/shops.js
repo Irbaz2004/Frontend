@@ -1,4 +1,4 @@
-// services/shop.js
+// services/shops.js - Add new function
 const API_BASE = import.meta.env.VITE_API_URL;
 
 function authHeaders() {
@@ -24,19 +24,6 @@ async function apiCall(endpoint, options = {}) {
     }
 }
 
-// ===================== SHOP SERVICES =====================
-
-/**
- * Get shops by location with filters
- * @param {Object} params - Query parameters
- * @param {number} params.latitude - User's latitude
- * @param {number} params.longitude - User's longitude
- * @param {number} params.radius - Radius in km (default: 10)
- * @param {string} params.category - Category filter
- * @param {string} params.search - Search term
- * @param {number} params.page - Page number
- * @param {number} params.limit - Items per page
- */
 export async function getShopsByLocation({ latitude, longitude, radius = 10, category = '', search = '', page = 1, limit = 20 }) {
     const params = new URLSearchParams({
         latitude,
@@ -51,11 +38,6 @@ export async function getShopsByLocation({ latitude, longitude, radius = 10, cat
     return apiCall(`/shops/nearby?${params}`);
 }
 
-/**
- * Get shop by ID
- * @param {string} id - Shop ID
- * @param {Object} userLocation - User's location for distance calculation
- */
 export async function getShopById(id, userLocation = null) {
     let url = `/shops/${id}`;
     if (userLocation && userLocation.latitude && userLocation.longitude) {
@@ -64,15 +46,24 @@ export async function getShopById(id, userLocation = null) {
     return apiCall(url);
 }
 
-/**
- * Get all shop categories with counts
- */
 export async function getShopCategoriesWithCount() {
     return apiCall('/shops/categories');
+}
+
+export async function getTopViewedShops(limit = 10) {
+    return apiCall(`/shops/top-viewed?limit=${limit}`);
+}
+
+export async function incrementShopViewCount(id) {
+    return apiCall(`/shops/${id}/view`, {
+        method: 'POST',
+    });
 }
 
 export default {
     getShopsByLocation,
     getShopById,
-    getShopCategoriesWithCount
+    getShopCategoriesWithCount,
+    getTopViewedShops,
+    incrementShopViewCount,
 };
