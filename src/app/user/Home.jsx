@@ -739,7 +739,7 @@ export default function Home() {
                         </Box>
                         <Typography sx={{
                             fontFamily: '"Inter", sans-serif',
-                            fontWeight: 800, fontSize: '1.4rem',
+                            fontWeight: 800, fontSize: '1.1rem',
                             color: '#0a1628', letterSpacing: '-0.03em', lineHeight: 1,
                         }}>
                             {homeData.city}
