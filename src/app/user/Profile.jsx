@@ -1066,22 +1066,7 @@ export default function Profile() {
                 </div>
             </div>
 
-            {/* Bottom Nav */}
-            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #E5E7EB', display: 'flex', zIndex: 100, boxShadow: '0 -2px 12px rgba(0,0,0,.06)' }}>
-                {[
-                    { icon: 'home', label: 'Home', active: false, path: '/app/home' },
-                    { icon: 'map', label: 'Map', active: false, path: '/app/map' },
-                    { icon: 'storefront', label: 'Shops', active: false, path: '/app/shops' },
-                    { icon: 'home_work', label: 'House', active: false, path: '/app/houses' },
-                    { icon: 'work', label: 'Jobs', active: false, path: '/app/jobs' },
-                    { icon: 'person', label: 'Profile', active: true, path: '/app/profile' },
-                ].map(n => (
-                    <button key={n.label} onClick={() => window.location.href = n.path} style={{ flex: 1, padding: '10px 0 12px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                        <Icon name={n.icon} size={22} color={n.active ? '#2563EB' : '#9CA3AF'} />
-                        <span style={{ fontSize: 10, color: n.active ? '#2563EB' : '#9CA3AF', fontWeight: n.active ? 700 : 500 }}>{n.label}</span>
-                    </button>
-                ))}
-            </div>
+          
 
             {/* MODALS */}
             
