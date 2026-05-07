@@ -37,9 +37,21 @@ export async function getShopsByCategory(city, category, limit = 20) {
     const params = new URLSearchParams({ city, category, limit });
     return apiCall(`/home/shops-by-category?${params}`);
 }
+// services/homeUser.js - Add this function
+
+export const getAllCategories = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/categories/all`);
+        return response.data.categories;
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+    }
+};
 
 export default {
     getHomeData,
     getUserCity,
     getShopsByCategory,
+    getAllCategories,
 };
