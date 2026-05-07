@@ -1,5 +1,5 @@
 // AppLayout.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     Box,
@@ -25,6 +25,8 @@ import {
     Menu,
     MenuItem,
     Badge,
+    Snackbar,
+    Alert,
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -37,6 +39,8 @@ import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import DownloadIcon from '@mui/icons-material/Download';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { LocationOnOutlined, HouseOutlined, StoreOutlined, GridViewOutlined } from '@mui/icons-material';
 import { PlaceOutlined } from '@mui/icons-material';
 import logo from '../assets/nearzologo.png';
@@ -85,6 +89,152 @@ function AppLayout() {
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
     const open = Boolean(anchorEl);
+
+    // ─── PWA Install State ─────────────────────────────────────────────────────
+    const deferredPromptRef = useRef(null);
+    const [showInstallButton, setShowInstallButton] = useState(false);
+    const [isInstalled, setIsInstalled] = useState(false);
+    const [installSnackbar, setInstallSnackbar] = useState({ open: false, type: 'success', message: '' });
+
+    useEffect(() => {
+        // Check if already installed (standalone mode)
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            setIsInstalled(true);
+            return;
+        }
+
+        const handleBeforeInstallPrompt = (e) => {
+            e.preventDefault(); // Prevent auto-prompt
+            deferredPromptRef.current = e;
+            setShowInstallButton(true);
+        };
+
+        const handleAppInstalled = () => {
+            setIsInstalled(true);
+            setShowInstallButton(false);
+            deferredPromptRef.current = null;
+            setInstallSnackbar({ open: true, type: 'success', message: 'NearZO installed successfully! 🎉' });
+        };
+
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        window.addEventListener('appinstalled', handleAppInstalled);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+            window.removeEventListener('appinstalled', handleAppInstalled);
+        };
+    }, []);
+
+    const handleInstallClick = async () => {
+        const prompt = deferredPromptRef.current;
+        if (!prompt) {
+            // Fallback: show manual install instructions
+            setInstallSnackbar({
+                open: true,
+                type: 'info',
+                message: 'To install: tap Share → Add to Home Screen (iOS) or use browser menu → Install App (Android/Chrome)',
+            });
+            return;
+        }
+
+        try {
+            await prompt.prompt();
+            const choiceResult = await prompt.userChoice;
+            if (choiceResult.outcome === 'accepted') {
+                setShowInstallButton(false);
+                deferredPromptRef.current = null;
+            } else {
+                setInstallSnackbar({ open: true, type: 'info', message: 'Install cancelled. You can install anytime from the Download button.' });
+            }
+        } catch (err) {
+            console.error('PWA install error:', err);
+            setInstallSnackbar({ open: true, type: 'error', message: 'Install failed. Try from your browser menu.' });
+        }
+    };
+
+    // ─── Install Button Component ──────────────────────────────────────────────
+    const renderInstallButton = (collapsed = false) => {
+        if (isInstalled) return null;
+        if (!showInstallButton && !collapsed) return null; // hide if not available, except collapsed sidebar shows tooltip always
+
+        return (
+            <Tooltip title={collapsed ? 'Download App' : ''} placement="right">
+                <Box
+                    onClick={handleInstallClick}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: collapsed ? 0 : 1,
+                        justifyContent: collapsed ? 'center' : 'flex-start',
+                        px: collapsed ? 1.2 : 1.5,
+                        py: 1,
+                        mx: 1,
+                        mb: 1,
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        bgcolor: showInstallButton ? '#f0f4ff' : 'transparent',
+                        border: showInstallButton ? '1px solid #d6e0ff' : '1px dashed #ddd',
+                        transition: 'all 0.15s ease',
+                        '&:hover': {
+                            bgcolor: '#e8effe',
+                            borderColor: '#325fec',
+                        },
+                    }}
+                >
+                    <Box sx={{ color: '#325fec', display: 'flex', alignItems: 'center', '& svg': { fontSize: '1.1rem' } }}>
+                        <DownloadIcon />
+                    </Box>
+                    {!collapsed && (
+                        <Typography sx={{
+                            fontSize: '0.8rem',
+                            fontFamily: '"Inter", sans-serif',
+                            fontWeight: 600,
+                            color: '#325fec',
+                            whiteSpace: 'nowrap',
+                        }}>
+                            Download App
+                        </Typography>
+                    )}
+                </Box>
+            </Tooltip>
+        );
+    };
+
+    // ─── Top Bar Install Button ────────────────────────────────────────────────
+    const renderTopBarInstallBtn = () => {
+        if (isInstalled || !showInstallButton) return null;
+
+        return (
+            <Button
+                onClick={handleInstallClick}
+                startIcon={<DownloadIcon sx={{ fontSize: '0.95rem !important' }} />}
+                size="small"
+                sx={{
+                    textTransform: 'none',
+                    fontFamily: '"Inter", sans-serif',
+                    fontWeight: 600,
+                    fontSize: '0.78rem',
+                    color: '#325fec',
+                    bgcolor: '#f0f4ff',
+                    border: '1px solid #d6e0ff',
+                    borderRadius: '10px',
+                    px: 1.5,
+                    py: 0.6,
+                    minWidth: 0,
+                    boxShadow: 'none',
+                    '&:hover': {
+                        bgcolor: '#e0eaff',
+                        boxShadow: 'none',
+                    },
+                    // On very small screens, hide label; keep icon
+                    '& .MuiButton-startIcon': { mr: { xs: 0, sm: 0.5 } },
+                    '& span:last-child': { display: { xs: 'none', sm: 'inline' } },
+                }}
+            >
+                Download Now
+            </Button>
+        );
+    };
 
     useEffect(() => {
         const storedRole = localStorage.getItem('nearzo_role');
@@ -225,6 +375,11 @@ function AppLayout() {
                         );
                     })}
                 </List>
+
+                {/* Install App button in sidebar */}
+                <Box sx={{ px: 0, pb: 0.5 }}>
+                    {renderInstallButton(sidebarCollapsed)}
+                </Box>
 
                 <Box sx={{ px: 1, pb: 2 }}>
                     <Divider sx={{ mb: 1.5, borderColor: '#f0f0f0' }} />
@@ -415,12 +570,7 @@ function AppLayout() {
                                                 px: '14px',
                                                 height: '44px',
                                                 borderRadius: '100px',
-
-                                                // Deep rich dark fill — matches reference
                                                 bgcolor: '#325fec',
-                                                // background: 'linear-gradient(145deg, #1e2240 0%, #111827 100%)',
-
-                                                // Inner glow
                                                 boxShadow: `
                                                     0 1px 0 rgba(255,255,255,0.12) inset,
                                                     0 -1px 0 rgba(0,0,0,0.3) inset,
@@ -429,7 +579,6 @@ function AppLayout() {
                                                 `,
                                             }}
                                         >
-                                            {/* Icon */}
                                             <Box sx={{
                                                 color: '#ffffff',
                                                 display: 'flex',
@@ -442,7 +591,6 @@ function AppLayout() {
                                                 {item.icon}
                                             </Box>
 
-                                            {/* Label */}
                                             <Typography
                                                 className="nearzo-active-label"
                                                 sx={{
@@ -487,6 +635,47 @@ function AppLayout() {
                                 </Box>
                             );
                         })}
+
+                        {/* ── PWA Install pill (appended after nav items) ── */}
+                        {showInstallButton && !isInstalled && (
+                            <Box
+                                className="nearzo-bottom-nav-item"
+                                onClick={handleInstallClick}
+                                sx={{ cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}
+                            >
+                                <Box
+                                    sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        px: '12px',
+                                        height: '44px',
+                                        borderRadius: '100px',
+                                        bgcolor: 'rgba(50, 95, 236, 0.08)',
+                                        border: '1px solid rgba(50, 95, 236, 0.18)',
+                                        transition: 'all 0.18s ease',
+                                        '&:hover': { bgcolor: 'rgba(50, 95, 236, 0.14)' },
+                                        '&:active': { transform: 'scale(0.93)' },
+                                    }}
+                                >
+                                    <Box sx={{ color: '#325fec', display: 'flex', alignItems: 'center', '& svg': { fontSize: '1.05rem' } }}>
+                                        <DownloadIcon />
+                                    </Box>
+                                    <Typography sx={{
+                                        fontFamily: '"Inter", sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '0.78rem',
+                                        color: '#325fec',
+                                        letterSpacing: '-0.01em',
+                                        whiteSpace: 'nowrap',
+                                        lineHeight: 1,
+                                        display: { xs: 'none', sm: 'block' },
+                                    }}>
+                                        Get App
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        )}
                     </Box>
                 </Box>
             </>
@@ -523,6 +712,10 @@ function AppLayout() {
 
                 {/* Right actions */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+
+                    {/* Download Now button */}
+                    {renderTopBarInstallBtn()}
+
                     <IconButton
                         size="small"
                         sx={{
@@ -698,6 +891,30 @@ function AppLayout() {
         </Dialog>
     );
 
+    // ─── INSTALL SNACKBAR ──────────────────────────────────────────────────────
+    const renderInstallSnackbar = () => (
+        <Snackbar
+            open={installSnackbar.open}
+            autoHideDuration={5000}
+            onClose={() => setInstallSnackbar(s => ({ ...s, open: false }))}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+            <Alert
+                onClose={() => setInstallSnackbar(s => ({ ...s, open: false }))}
+                severity={installSnackbar.type}
+                icon={installSnackbar.type === 'success' ? <CheckCircleOutlineIcon /> : undefined}
+                sx={{
+                    fontFamily: '"Inter", sans-serif',
+                    fontSize: '0.82rem',
+                    borderRadius: '12px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                }}
+            >
+                {installSnackbar.message}
+            </Alert>
+        </Snackbar>
+    );
+
     // ─── LOADING ───────────────────────────────────────────────────────────────
     if (loading) {
         return (
@@ -822,6 +1039,7 @@ function AppLayout() {
                 </Box>
 
                 {renderLogoutDialog()}
+                {renderInstallSnackbar()}
             </>
         );
     }
@@ -847,6 +1065,7 @@ function AppLayout() {
 
             {renderBottomNav()}
             {renderLogoutDialog()}
+            {renderInstallSnackbar()}
         </>
     );
 }
