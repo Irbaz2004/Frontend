@@ -737,6 +737,10 @@ export default function Profile() {
     const [shopObjUrl, setShopObjUrl] = useState('');
     const [houseObjUrl, setHouseObjUrl] = useState('');
 
+    // Loading states for update operations
+    const [updatingShop, setUpdatingShop] = useState(false);
+    const [updatingHouse, setUpdatingHouse] = useState(false);
+
     const emptyShop = { business_name: '', category: '', additional_phone: '', keywords: [], custom_keyword: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', opening_time: '', closing_time: '', shop_image: null, shop_image_preview: '' };
     const emptyHouse = { rooms: '', halls: '', kitchens: '', floor: '', rent_per_month: '', advance_amount: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', is_available: true, house_image: null, house_image_preview: '' };
     const emptyJob = { shop_id: '', company_name: '', job_title: '', salary: '', salary_type: 'month', qualification: '', job_type: 'full_time', area: '', city: '', state: '', is_open: true };
@@ -753,8 +757,20 @@ export default function Profile() {
     };
 
     const closeModal = () => {
-        setModal(''); setEditingShop(null); setEditingHouse(null);
-        setEditingJob(null); setDeleteConfirm(null);
+        setModal(''); 
+        setEditingShop(null); 
+        setEditingHouse(null);
+        setEditingJob(null); 
+        setDeleteConfirm(null);
+        // Clean up object URLs when closing modals
+        if (shopObjUrl) {
+            URL.revokeObjectURL(shopObjUrl);
+            setShopObjUrl('');
+        }
+        if (houseObjUrl) {
+            URL.revokeObjectURL(houseObjUrl);
+            setHouseObjUrl('');
+        }
     };
 
     const formatPrice = p => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(p);
@@ -788,18 +804,63 @@ export default function Profile() {
             const r = await getProfile();
             setProfile(r.user); setShops(r.shops || []); setHouses(r.houses || []); setJobs(r.jobs || []);
             setFormData({ full_name: r.user.full_name || '', area: r.user.area || '', city: r.user.city || '', state: r.user.state || '' });
-        } catch { showToast('Failed to load profile', 'error'); }
+        } catch (error) { 
+            showToast(error.message || 'Failed to load profile', 'error'); 
+        }
         finally { setLoading(false); }
     };
 
-    const loadTotalViews = async () => { try { const r = await getTotalViews(); setTotalViews(r.total_views); setViewBreakdown(r.breakdown); } catch { } };
-    const loadCities = async () => { try { const r = await getAllCities(); setCities(r.cities || []); } catch { } };
-    const loadAreasFor = async (city, setter) => { try { const r = await getAreasByCity(city); setter(r.areas || []); } catch { setter([]); } };
-    const loadCategories = async () => { try { const r = await getShopCategories(); setShopCategories(r?.categories?.length ? r.categories : []); } catch { } };
-    const loadUserShopsForJob = async () => { try { const r = await getUserShopsForJob(); setUserShopsForJob(r.shops || []); } catch { } };
+    const loadTotalViews = async () => { 
+        try { 
+            const r = await getTotalViews(); 
+            setTotalViews(r.total_views); 
+            setViewBreakdown(r.breakdown); 
+        } catch (error) { 
+            console.error('Failed to load views:', error); 
+        } 
+    };
+    
+    const loadCities = async () => { 
+        try { 
+            const r = await getAllCities(); 
+            setCities(r.cities || []); 
+        } catch (error) { 
+            console.error('Failed to load cities:', error); 
+        } 
+    };
+    
+    const loadAreasFor = async (city, setter) => { 
+        try { 
+            const r = await getAreasByCity(city); 
+            setter(r.areas || []); 
+        } catch (error) { 
+            setter([]); 
+        } 
+    };
+    
+    const loadCategories = async () => { 
+        try { 
+            const r = await getShopCategories(); 
+            setShopCategories(r?.categories?.length ? r.categories : []); 
+        } catch (error) { 
+            console.error('Failed to load categories:', error); 
+        } 
+    };
+    
+    const loadUserShopsForJob = async () => { 
+        try { 
+            const r = await getUserShopsForJob(); 
+            setUserShopsForJob(r.shops || []); 
+        } catch (error) { 
+            console.error('Failed to load user shops:', error); 
+        } 
+    };
 
     const getCurrentLocation = (setter) => {
-        if (!navigator.geolocation) { showToast('Geolocation not supported', 'error'); return; }
+        if (!navigator.geolocation) { 
+            showToast('Geolocation not supported', 'error'); 
+            return; 
+        }
         setLocating(true);
         navigator.geolocation.getCurrentPosition(async (pos) => {
             const lat = pos.coords.latitude, lng = pos.coords.longitude;
@@ -808,9 +869,15 @@ export default function Profile() {
                 const matched = cities.find(c => c.name.toLowerCase() === (info?.city || '').toLowerCase());
                 setter(p => ({ ...p, latitude: lat, longitude: lng, city: matched ? matched.name : (info?.city || ''), area: info?.area || '', state: info?.state || p.state || '' }));
                 showToast(`📍 ${info?.area ? info.area + ', ' : ''}${info?.city || 'Location found'}`);
-            } catch { setter(p => ({ ...p, latitude: lat, longitude: lng })); }
+            } catch (error) { 
+                setter(p => ({ ...p, latitude: lat, longitude: lng })); 
+                showToast('Location detected but address not found', 'error');
+            }
             finally { setLocating(false); }
-        }, () => { setLocating(false); showToast('Location access denied', 'error'); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+        }, (error) => { 
+            setLocating(false); 
+            showToast(error.message || 'Location access denied', 'error'); 
+        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     };
 
     // ── PWA-safe image handlers (instant preview, no file input in JSX)
@@ -832,89 +899,207 @@ export default function Profile() {
     }, [houseObjUrl]);
 
     const verifyShopLoc = async () => {
-        if (!shopForm.city || !shopForm.area || !shopForm.latitude) { showToast('Get location first, then select city & area', 'error'); return false; }
+        if (!shopForm.city || !shopForm.area || !shopForm.latitude) { 
+            showToast('Get location first, then select city & area', 'error'); 
+            return false; 
+        }
         setShopVerifying(true);
         try {
             const v = await verifyLocation(shopForm.latitude, shopForm.longitude, shopForm.city, shopForm.area);
-            if (v.verified) { setShopLocationVerified(true); showToast('Location verified!'); return true; }
-            showToast(v.message || 'Verification failed', 'error'); return false;
-        } catch { showToast('Verification error', 'error'); return false; }
+            if (v.verified) { 
+                setShopLocationVerified(true); 
+                showToast('Location verified!'); 
+                return true; 
+            }
+            showToast(v.message || 'Verification failed', 'error'); 
+            return false;
+        } catch (error) { 
+            showToast(error.message || 'Verification error', 'error'); 
+            return false;
+        }
         finally { setShopVerifying(false); }
     };
 
     const verifyHouseLoc = async () => {
-        if (!houseForm.city || !houseForm.area || !houseForm.latitude) { showToast('Get location first, then select city & area', 'error'); return false; }
+        if (!houseForm.city || !houseForm.area || !houseForm.latitude) { 
+            showToast('Get location first, then select city & area', 'error'); 
+            return false; 
+        }
         setHouseVerifying(true);
         try {
             const v = await verifyLocation(houseForm.latitude, houseForm.longitude, houseForm.city, houseForm.area);
-            if (v.verified) { setHouseLocationVerified(true); showToast('Location verified!'); return true; }
-            showToast(v.message || 'Verification failed', 'error'); return false;
-        } catch { showToast('Verification error', 'error'); return false; }
+            if (v.verified) { 
+                setHouseLocationVerified(true); 
+                showToast('Location verified!'); 
+                return true; 
+            }
+            showToast(v.message || 'Verification failed', 'error'); 
+            return false;
+        } catch (error) { 
+            showToast(error.message || 'Verification error', 'error'); 
+            return false;
+        }
         finally { setHouseVerifying(false); }
     };
 
     const handleSaveProfile = async () => {
-        if (!formData.full_name.trim()) { showToast('Name is required', 'error'); return; }
+        if (!formData.full_name.trim()) { 
+            showToast('Name is required', 'error'); 
+            return; 
+        }
         setSaving(true);
-        try { const r = await updateProfile(formData); setProfile(r.user); updateUser(r.user); showToast('Profile updated!'); closeModal(); }
-        catch (e) { showToast(e.message || 'Failed', 'error'); }
+        try { 
+            const r = await updateProfile(formData); 
+            setProfile(r.user); 
+            updateUser(r.user); 
+            showToast('Profile updated!'); 
+            closeModal(); 
+        }
+        catch (error) { 
+            showToast(error.message || 'Failed to update profile', 'error'); 
+        }
         finally { setSaving(false); }
     };
 
     const handleChangePassword = async () => {
-        if (passwordData.new_password !== passwordData.confirm_password) { showToast('Passwords do not match', 'error'); return; }
-        if (passwordData.new_password.length < 6) { showToast('Min 6 characters', 'error'); return; }
+        if (passwordData.new_password !== passwordData.confirm_password) { 
+            showToast('Passwords do not match', 'error'); 
+            return; 
+        }
+        if (passwordData.new_password.length < 6) { 
+            showToast('Password must be at least 6 characters', 'error'); 
+            return; 
+        }
         try {
             await changePassword({ current_password: passwordData.current_password, new_password: passwordData.new_password });
-            showToast('Password changed!'); closeModal();
+            showToast('Password changed successfully!'); 
+            closeModal();
             setPasswordData({ current_password: '', new_password: '', confirm_password: '' });
-        } catch (e) { showToast(e.message, 'error'); }
+        } catch (error) { 
+            showToast(error.message || 'Failed to change password', 'error'); 
+        }
     };
 
     const handleDeleteAccount = async () => {
-        try { await deleteAccount(deletePassword); showToast('Account deleted'); setTimeout(logout, 1500); }
-        catch (e) { showToast(e.message, 'error'); }
+        if (!deletePassword) {
+            showToast('Please enter your password to confirm', 'error');
+            return;
+        }
+        try { 
+            await deleteAccount(deletePassword); 
+            showToast('Account deleted successfully'); 
+            setTimeout(() => logout(), 1500); 
+        }
+        catch (error) { 
+            showToast(error.message || 'Failed to delete account', 'error'); 
+        }
     };
 
     const handleCreateShop = async () => {
-        if (!shopForm.business_name || !shopForm.category || !shopForm.city || !shopForm.state) { showToast('Fill all required fields', 'error'); return; }
-        if (!shopLocationVerified) { const ok = await verifyShopLoc(); if (!ok) return; }
+        if (!shopForm.business_name || !shopForm.category || !shopForm.city || !shopForm.state) { 
+            showToast('Please fill all required fields', 'error'); 
+            return; 
+        }
+        if (!shopLocationVerified) { 
+            const ok = await verifyShopLoc(); 
+            if (!ok) return; 
+        }
         const fd = new FormData();
         ['business_name', 'category', 'additional_phone', 'area', 'city', 'state', 'description', 'opening_time', 'closing_time'].forEach(k => fd.append(k, shopForm[k] || ''));
         fd.append('keywords', JSON.stringify(shopForm.keywords));
         fd.append('latitude', shopForm.latitude || '');
         fd.append('longitude', shopForm.longitude || '');
         if (shopForm.shop_image instanceof File) fd.append('shop_image', shopForm.shop_image);
+        
         try {
             const token = localStorage.getItem('nearzo_token');
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/profile/shops`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/profile/shops`, { 
+                method: 'POST', 
+                headers: { 'Authorization': `Bearer ${token}` }, 
+                body: fd 
+            });
             const r = await res.json();
-            if (r.success) { showToast('Shop created!'); closeModal(); loadProfile(); loadUserShopsForJob(); loadTotalViews(); setShopForm(emptyShop); setShopLocationVerified(false); }
-        } catch (e) { showToast(e.message, 'error'); }
+            if (r.success) { 
+                showToast('Shop created successfully!'); 
+                closeModal(); 
+                loadProfile(); 
+                loadUserShopsForJob(); 
+                loadTotalViews(); 
+                setShopForm(emptyShop); 
+                setShopLocationVerified(false);
+                // Clean up object URL
+                if (shopObjUrl) {
+                    URL.revokeObjectURL(shopObjUrl);
+                    setShopObjUrl('');
+                }
+            } else {
+                showToast(r.message || 'Failed to create shop', 'error');
+            }
+        } catch (error) { 
+            showToast(error.message || 'Network error. Please try again.', 'error'); 
+        }
     };
 
     const handleUpdateShop = async () => {
-        if (!shopForm.business_name || !shopForm.category) { showToast('Business name and category required', 'error'); return; }
+        if (!shopForm.business_name || !shopForm.category) { 
+            showToast('Business name and category are required', 'error'); 
+            return; 
+        }
+        
+        setUpdatingShop(true);
         const fd = new FormData();
         ['business_name', 'category', 'additional_phone', 'area', 'city', 'state', 'description', 'opening_time', 'closing_time'].forEach(k => fd.append(k, shopForm[k] || ''));
         fd.append('keywords', JSON.stringify(shopForm.keywords));
         fd.append('latitude', shopForm.latitude || '');
         fd.append('longitude', shopForm.longitude || '');
-        if (shopForm.shop_image instanceof File) fd.append('shop_image', shopForm.shop_image);
+        
+        // IMPORTANT: Always append the image if it's a File object (new image selected)
+        if (shopForm.shop_image instanceof File) {
+            fd.append('shop_image', shopForm.shop_image);
+        }
+        
         try {
             const token = localStorage.getItem('nearzo_token');
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/profile/shops/${editingShop.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/profile/shops/${editingShop.id}`, { 
+                method: 'PUT', 
+                headers: { 'Authorization': `Bearer ${token}` }, 
+                body: fd 
+            });
             const r = await res.json();
-            if (r.success) { showToast('Shop updated!'); closeModal(); loadProfile(); loadUserShopsForJob(); loadTotalViews(); setEditingShop(null); }
-        } catch (e) { showToast(e.message, 'error'); }
+            if (r.success) { 
+                showToast('Shop updated successfully!'); 
+                closeModal(); 
+                loadProfile(); 
+                loadUserShopsForJob(); 
+                loadTotalViews(); 
+                setEditingShop(null);
+                // Clean up object URL
+                if (shopObjUrl) {
+                    URL.revokeObjectURL(shopObjUrl);
+                    setShopObjUrl('');
+                }
+            } else {
+                showToast(r.message || 'Failed to update shop', 'error');
+            }
+        } catch (error) { 
+            showToast(error.message || 'Network error. Please try again.', 'error'); 
+        } finally {
+            setUpdatingShop(false);
+        }
     };
 
     const handleDeleteShopConfirm = async () => {
         if (!deleteConfirm) return;
         try {
             const r = await deleteShop(deleteConfirm.id);
-            showToast(r.message || 'Shop deleted'); closeModal(); loadProfile(); loadUserShopsForJob(); loadTotalViews();
-        } catch (e) { showToast(e.message, 'error'); }
+            showToast(r.message || 'Shop deleted successfully'); 
+            closeModal(); 
+            loadProfile(); 
+            loadUserShopsForJob(); 
+            loadTotalViews();
+        } catch (error) { 
+            showToast(error.message || 'Failed to delete shop', 'error'); 
+        }
     };
 
     const openEditShop = async (shop) => {
@@ -925,89 +1110,211 @@ export default function Profile() {
             let keywordsArray = [];
             if (s.keywords) {
                 if (Array.isArray(s.keywords)) keywordsArray = s.keywords;
-                else if (typeof s.keywords === 'string') { try { keywordsArray = JSON.parse(s.keywords); } catch { keywordsArray = []; } }
+                else if (typeof s.keywords === 'string') { 
+                    try { keywordsArray = JSON.parse(s.keywords); } 
+                    catch { keywordsArray = []; }
+                }
             }
             setShopForm({
-                business_name: s.business_name, category: s.category,
-                additional_phone: s.additional_phone || '', keywords: keywordsArray, custom_keyword: '',
-                latitude: s.latitude || '', longitude: s.longitude || '',
-                area: s.area || '', city: s.city || '', state: s.state || '',
+                business_name: s.business_name, 
+                category: s.category,
+                additional_phone: s.additional_phone || '', 
+                keywords: keywordsArray, 
+                custom_keyword: '',
+                latitude: s.latitude || '', 
+                longitude: s.longitude || '',
+                area: s.area || '', 
+                city: s.city || '', 
+                state: s.state || '',
                 description: s.description || '',
                 opening_time: s.opening_time ? s.opening_time.slice(0, 5) : '',
                 closing_time: s.closing_time ? s.closing_time.slice(0, 5) : '',
-                shop_image: null, shop_image_preview: s.shop_image || ''
+                shop_image: null, 
+                shop_image_preview: s.shop_image || ''
             });
             setShopLocationVerified(s.is_verified);
             setModal('editShop');
-        } catch { showToast('Failed to load shop details', 'error'); }
+        } catch (error) { 
+            showToast(error.message || 'Failed to load shop details', 'error'); 
+        }
     };
 
-    const openDeleteShopConfirm = (shop) => { setDeleteConfirm(shop); setModal('deleteShopConfirm'); };
+    const openDeleteShopConfirm = (shop) => { 
+        setDeleteConfirm(shop); 
+        setModal('deleteShopConfirm'); 
+    };
 
     const handleCreateHouse = async () => {
-        if (!houseForm.rooms || !houseForm.rent_per_month) { showToast('Fill required fields', 'error'); return; }
-        if (!houseLocationVerified) { const ok = await verifyHouseLoc(); if (!ok) return; }
+        if (!houseForm.rooms || !houseForm.rent_per_month) { 
+            showToast('Please fill all required fields', 'error'); 
+            return; 
+        }
+        if (!houseLocationVerified) { 
+            const ok = await verifyHouseLoc(); 
+            if (!ok) return; 
+        }
         const fd = new FormData();
         ['rooms', 'halls', 'kitchens', 'floor', 'rent_per_month', 'advance_amount', 'latitude', 'longitude', 'area', 'city', 'state', 'description'].forEach(k => fd.append(k, houseForm[k] || ''));
         fd.append('is_available', houseForm.is_available);
         if (houseForm.house_image instanceof File) fd.append('house_image', houseForm.house_image);
+        
         try {
             const token = localStorage.getItem('nearzo_token');
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/profile/houses`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/profile/houses`, { 
+                method: 'POST', 
+                headers: { 'Authorization': `Bearer ${token}` }, 
+                body: fd 
+            });
             const r = await res.json();
-            if (r.success) { showToast('House listed!'); closeModal(); loadProfile(); loadTotalViews(); setHouseForm(emptyHouse); setHouseLocationVerified(false); }
-        } catch (e) { showToast(e.message, 'error'); }
+            if (r.success) { 
+                showToast('House listed successfully!'); 
+                closeModal(); 
+                loadProfile(); 
+                loadTotalViews(); 
+                setHouseForm(emptyHouse); 
+                setHouseLocationVerified(false);
+                if (houseObjUrl) {
+                    URL.revokeObjectURL(houseObjUrl);
+                    setHouseObjUrl('');
+                }
+            } else {
+                showToast(r.message || 'Failed to list house', 'error');
+            }
+        } catch (error) { 
+            showToast(error.message || 'Network error. Please try again.', 'error'); 
+        }
     };
 
     const handleUpdateHouse = async () => {
+        setUpdatingHouse(true);
         const fd = new FormData();
         ['rooms', 'halls', 'kitchens', 'floor', 'rent_per_month', 'advance_amount', 'latitude', 'longitude', 'area', 'city', 'state', 'description'].forEach(k => fd.append(k, houseForm[k] || ''));
         fd.append('is_available', houseForm.is_available);
-        if (houseForm.house_image instanceof File) fd.append('house_image', houseForm.house_image);
+        
+        // IMPORTANT: Always append the image if it's a File object (new image selected)
+        if (houseForm.house_image instanceof File) {
+            fd.append('house_image', houseForm.house_image);
+        }
+        
         try {
             const token = localStorage.getItem('nearzo_token');
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/profile/houses/${editingHouse.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/profile/houses/${editingHouse.id}`, { 
+                method: 'PUT', 
+                headers: { 'Authorization': `Bearer ${token}` }, 
+                body: fd 
+            });
             const r = await res.json();
-            if (r.success) { showToast('House updated!'); closeModal(); loadProfile(); loadTotalViews(); }
-        } catch (e) { showToast(e.message, 'error'); }
+            if (r.success) { 
+                showToast('House updated successfully!'); 
+                closeModal(); 
+                loadProfile(); 
+                loadTotalViews();
+                if (houseObjUrl) {
+                    URL.revokeObjectURL(houseObjUrl);
+                    setHouseObjUrl('');
+                }
+            } else {
+                showToast(r.message || 'Failed to update house', 'error');
+            }
+        } catch (error) { 
+            showToast(error.message || 'Network error. Please try again.', 'error'); 
+        } finally {
+            setUpdatingHouse(false);
+        }
     };
 
     const handleCreateJob = async () => {
-        if (!jobForm.company_name || !jobForm.job_title || !jobForm.salary) { showToast('Fill required fields', 'error'); return; }
+        if (!jobForm.company_name || !jobForm.job_title || !jobForm.salary) { 
+            showToast('Please fill all required fields', 'error'); 
+            return; 
+        }
         try {
             const r = await createJob({ ...jobForm, salary: +jobForm.salary, shop_id: jobForm.shop_id || null, latitude: null, longitude: null });
-            if (r.success) { showToast('Job posted!'); closeModal(); loadProfile(); loadTotalViews(); setJobForm(emptyJob); }
-        } catch (e) { showToast(e.message, 'error'); }
+            if (r.success) { 
+                showToast('Job posted successfully!'); 
+                closeModal(); 
+                loadProfile(); 
+                loadTotalViews(); 
+                setJobForm(emptyJob); 
+            } else {
+                showToast(r.message || 'Failed to post job', 'error');
+            }
+        } catch (error) { 
+            showToast(error.message || 'Failed to post job', 'error'); 
+        }
     };
 
     const handleUpdateJob = async () => {
         try {
             await updateJob(editingJob.id, { ...jobForm, salary: +jobForm.salary });
-            showToast('Job updated!'); closeModal(); loadProfile(); loadTotalViews();
-        } catch (e) { showToast(e.message, 'error'); }
+            showToast('Job updated successfully!'); 
+            closeModal(); 
+            loadProfile(); 
+            loadTotalViews();
+        } catch (error) { 
+            showToast(error.message || 'Failed to update job', 'error'); 
+        }
     };
 
     const openEditHouse = (h) => {
         setEditingHouse(h);
-        setHouseForm({ rooms: h.rooms, halls: h.halls, kitchens: h.kitchens, floor: h.floor, rent_per_month: h.rent_per_month, advance_amount: h.advance_amount || '', latitude: h.latitude || '', longitude: h.longitude || '', area: h.area || '', city: h.city || '', state: h.state || '', description: h.description || '', is_available: h.is_available, house_image: null, house_image_preview: h.house_image || '' });
+        setHouseForm({ 
+            rooms: h.rooms, 
+            halls: h.halls, 
+            kitchens: h.kitchens, 
+            floor: h.floor, 
+            rent_per_month: h.rent_per_month, 
+            advance_amount: h.advance_amount || '', 
+            latitude: h.latitude || '', 
+            longitude: h.longitude || '', 
+            area: h.area || '', 
+            city: h.city || '', 
+            state: h.state || '', 
+            description: h.description || '', 
+            is_available: h.is_available, 
+            house_image: null, 
+            house_image_preview: h.house_image || '' 
+        });
         setModal('editHouse');
     };
 
     const openEditJob = (j) => {
         setEditingJob(j);
-        setJobForm({ shop_id: j.shop_id || '', company_name: j.company_name, job_title: j.job_title, salary: j.salary, salary_type: j.salary_type, qualification: j.qualification || '', job_type: j.job_type, area: j.area || '', city: j.city || '', state: j.state || '', is_open: j.is_open });
+        setJobForm({ 
+            shop_id: j.shop_id || '', 
+            company_name: j.company_name, 
+            job_title: j.job_title, 
+            salary: j.salary, 
+            salary_type: j.salary_type, 
+            qualification: j.qualification || '', 
+            job_type: j.job_type, 
+            area: j.area || '', 
+            city: j.city || '', 
+            state: j.state || '', 
+            is_open: j.is_open 
+        });
         setModal('editJob');
     };
 
     const handleShopSelect = (id) => {
-        const s = userShopsForJob.find(x => x.id === id);
-        setJobForm(p => ({ ...p, shop_id: id, company_name: s ? s.business_name : '', area: s?.area || '', city: s?.city || '', state: s?.state || '' }));
+        const s = userShopsForJob.find(x => x.id === Number(id));
+        setJobForm(p => ({ 
+            ...p, 
+            shop_id: id, 
+            company_name: s ? s.business_name : '', 
+            area: s?.area || '', 
+            city: s?.city || '', 
+            state: s?.state || '' 
+        }));
     };
 
     const handleAddCustomKeyword = () => {
         const kw = shopForm.custom_keyword.trim();
         if (!kw) return;
-        if (shopForm.keywords.some(k => k.toLowerCase() === kw.toLowerCase())) { showToast('Keyword already added', 'error'); return; }
+        if (shopForm.keywords.some(k => k.toLowerCase() === kw.toLowerCase())) { 
+            showToast('Keyword already added', 'error'); 
+            return; 
+        }
         setShopForm(p => ({ ...p, keywords: [...p.keywords, kw], custom_keyword: '' }));
     };
 
@@ -1087,7 +1394,6 @@ export default function Profile() {
             </FormItem>
             <FormItem full>
                 <FieldLabel>Shop Image</FieldLabel>
-                {/* PWA-safe image picker — no hidden input in JSX */}
                 <ImageUpload
                     preview={shopForm.shop_image_preview}
                     isNew={!!shopForm.shop_image}
@@ -1382,7 +1688,7 @@ export default function Profile() {
 
             {/* Edit Shop */}
             <Modal open={modal === 'editShop'} onClose={closeModal} title="Edit Shop"
-                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleUpdateShop}>Save Changes</Btn></>}>
+                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleUpdateShop} loading={updatingShop}>Save Changes</Btn></>}>
                 <ShopFormFields />
                 <div style={{ height: 12 }} />
                 <div className="form-grid">
@@ -1447,7 +1753,7 @@ export default function Profile() {
 
             {/* Edit House */}
             <Modal open={modal === 'editHouse'} onClose={closeModal} title="Edit House"
-                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleUpdateHouse}>Save Changes</Btn></>}>
+                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleUpdateHouse} loading={updatingHouse}>Save Changes</Btn></>}>
                 <FormGrid>
                     <FormItem half><Input label="Rooms *" type="number" value={houseForm.rooms} onChange={e => setHouseForm(p => ({ ...p, rooms: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Halls" type="number" value={houseForm.halls} onChange={e => setHouseForm(p => ({ ...p, halls: e.target.value }))} /></FormItem>
