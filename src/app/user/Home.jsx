@@ -29,6 +29,9 @@ import { useAuth } from '../context/AuthContext';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import HomeWorkIcon from '@mui/icons-material/HomeWork';
+import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 
 const formatPrice = (price) =>
     new Intl.NumberFormat('en-IN', {
@@ -427,72 +430,180 @@ const NearZOPromoBanner = ({ onExplore }) => {
     return (
         <Box sx={{ px: 2, mb: 3, animation: 'fadeInUp 0.5s ease both', animationDelay: '0.15s' }}>
             {/* Main slide card */}
-            <Box
-                onClick={onExplore}
+         <Box
+    onClick={onExplore}
+    sx={{
+        borderRadius: '22px',
+        overflow: 'hidden',
+        position: 'relative',
+        cursor: 'pointer',
+        background: '#325fec',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 10px 30px rgba(50,95,236,0.28)',
+        transition: 'all 0.2s ease',
+        '&:active': {
+            transform: 'scale(0.985)',
+        },
+        '&:hover': {
+            boxShadow: '0 14px 36px rgba(50,95,236,0.38)',
+        },
+        minHeight: 148,
+        p: '18px 20px 16px',
+    }}
+>
+    {/* Decorative circles */}
+    <Box
+        sx={{
+            position: 'absolute',
+            right: -18,
+            top: -18,
+            width: 110,
+            height: 110,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.07)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            pointerEvents: 'none',
+        }}
+    />
+
+    <Box
+        sx={{
+            position: 'absolute',
+            right: 28,
+            bottom: -28,
+            width: 72,
+            height: 72,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            pointerEvents: 'none',
+        }}
+    />
+
+    {/* Tag pill */}
+    <Box
+        sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            background: 'rgba(255,255,255,0.14)',
+            border: '1px solid rgba(255,255,255,0.22)',
+            borderRadius: '20px',
+            px: 1,
+            py: 0.3,
+            mb: 1.1,
+            backdropFilter: 'blur(8px)',
+        }}
+    >
+        <SparkleIcon sx={{ fontSize: '0.6rem', color: '#ffd700' }} />
+
+        <Typography
+            sx={{
+                fontFamily: '"Inter", sans-serif',
+                fontSize: '0.58rem',
+                fontWeight: 700,
+                color: '#fff',
+                letterSpacing: '0.07em',
+                textTransform: 'uppercase',
+            }}
+        >
+            {slide.tag}
+        </Typography>
+    </Box>
+
+    <Box
+        sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 1,
+        }}
+    >
+        <Box sx={{ flex: 1 }}>
+            <Typography
                 sx={{
-                    borderRadius: '22px',
-                    overflow: 'hidden',
-                    position: 'relative',
-                    cursor: 'pointer',
-                    background: slide.accent,
-                    boxShadow: '0 8px 32px rgba(50,95,236,0.22)',
-                    transition: 'transform 0.18s ease, box-shadow 0.18s ease',
-                    '&:active': { transform: 'scale(0.985)' },
-                    minHeight: 148,
-                    p: '18px 20px 16px',
+                    fontFamily: '"Inter", sans-serif',
+                    fontWeight: 800,
+                    fontSize: '1.08rem',
+                    color: '#fff',
+                    lineHeight: 1.25,
+                    mb: 0.5,
+                    letterSpacing: '-0.02em',
                 }}
             >
-                {/* Decorative circles */}
-                <Box sx={{ position: 'absolute', right: -18, top: -18, width: 110, height: 110, borderRadius: '50%', background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.14)', pointerEvents: 'none' }} />
-                <Box sx={{ position: 'absolute', right: 28, bottom: -28, width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', pointerEvents: 'none' }} />
+                {slide.headline}
+            </Typography>
 
-                {/* Tag pill */}
-                <Box sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.5,
-                    background: 'rgba(255,255,255,0.18)',
-                    border: '1px solid rgba(255,255,255,0.3)',
-                    borderRadius: '20px', px: 1, py: 0.3, mb: 1.1,
-                }}>
-                    <SparkleIcon sx={{ fontSize: '0.6rem', color: '#ffd700' }} />
-                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.58rem', fontWeight: 700, color: 'rgba(255,255,255,0.95)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
-                        {slide.tag}
-                    </Typography>
-                </Box>
+            <Typography
+                sx={{
+                    fontFamily: '"Inter", sans-serif',
+                    fontSize: '0.72rem',
+                    color: 'rgba(255,255,255,0.78)',
+                    lineHeight: 1.45,
+                    mb: 1.4,
+                }}
+            >
+                {slide.sub}
+            </Typography>
 
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
-                    <Box sx={{ flex: 1 }}>
-                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: '1.08rem', color: '#fff', lineHeight: 1.25, mb: 0.5, letterSpacing: '-0.02em' }}>
-                            {slide.headline}
-                        </Typography>
-                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.72rem', color: 'rgba(255,255,255,0.78)', lineHeight: 1.45, mb: 1.4 }}>
-                            {slide.sub}
-                        </Typography>
-                        <Box sx={{
-                            display: 'inline-flex', alignItems: 'center', gap: 0.5,
-                            background: 'rgba(255,255,255,0.2)',
-                            border: '1px solid rgba(255,255,255,0.32)',
-                            borderRadius: '10px', px: 1.3, py: 0.65,
-                        }}>
-                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.7rem', fontWeight: 700, color: '#fff' }}>
-                                Explore NearZO
-                            </Typography>
-                            <ArrowForwardIcon sx={{ fontSize: '0.72rem', color: '#fff' }} />
-                        </Box>
-                    </Box>
-                    {/* Icon box */}
-                    <Box sx={{
-                        width: 52, height: 52, flexShrink: 0,
-                        borderRadius: '16px',
-                        background: 'rgba(255,255,255,0.18)',
-                        border: '1px solid rgba(255,255,255,0.28)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        mt: 0.5,
-                    }}>
-                        <IconComp sx={{ fontSize: '1.4rem', color: '#fff' }} />
-                    </Box>
-                </Box>
+            <Box
+                sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    background: 'rgba(255,255,255,0.16)',
+                    border: '1px solid rgba(255,255,255,0.24)',
+                    borderRadius: '10px',
+                    px: 1.3,
+                    py: 0.65,
+                    backdropFilter: 'blur(10px)',
+                }}
+            >
+                <Typography
+                    sx={{
+                        fontFamily: '"Inter", sans-serif',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        color: '#fff',
+                    }}
+                >
+                    Explore NearZO
+                </Typography>
+
+                <ArrowForwardIcon
+                    sx={{
+                        fontSize: '0.72rem',
+                        color: '#fff',
+                    }}
+                />
             </Box>
+        </Box>
 
+        {/* Icon box */}
+        <Box
+            sx={{
+                width: 52,
+                height: 52,
+                flexShrink: 0,
+                borderRadius: '16px',
+                background: 'rgba(255,255,255,0.14)',
+                border: '1px solid rgba(255,255,255,0.22)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mt: 0.5,
+                backdropFilter: 'blur(10px)',
+            }}
+        >
+            <IconComp
+                sx={{
+                    fontSize: '1.4rem',
+                    color: '#fff',
+                }}
+            />
+        </Box>
+    </Box>
+</Box>
             {/* Dot indicators */}
             <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.7, mt: 1.2 }}>
                 {NEARZO_SLIDES.map((_, i) => (
@@ -514,32 +625,60 @@ const NearZOPromoBanner = ({ onExplore }) => {
             {/* Quick feature pills row */}
             <Box sx={{ display: 'flex', gap: 1, mt: 1.6, flexWrap: 'wrap' }}>
                 {[
-                    { label: '🏪 Shops', route: '/app/shops' },
-                    { label: '🏠 Houses', route: '/app/houses' },
-                    { label: '💼 Jobs', route: '/app/jobs' },
-                ].map((item) => (
-                    <Box
-                        key={item.label}
-                        onClick={() => onExplore(item.route)}
-                        sx={{
-                            flex: 1,
-                            minWidth: 80,
-                            py: 0.9,
-                            px: 1,
-                            borderRadius: '14px',
-                            border: '1.5px solid rgba(50,95,236,0.18)',
-                            background: 'rgba(50,95,236,0.05)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'background 0.18s ease, border-color 0.18s ease, transform 0.15s ease',
-                            '&:active': { transform: 'scale(0.95)' },
-                            '&:hover': { background: 'rgba(50,95,236,0.1)', borderColor: 'rgba(50,95,236,0.32)' },
-                        }}
-                    >
-                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.72rem', color: '#325fec', letterSpacing: '-0.01em' }}>
-                            {item.label}
-                        </Typography>
-                    </Box>
+    {
+        label: 'Shops',
+        route: '/app/shops',
+        icon: <StorefrontIcon sx={{ fontSize: '1rem' }} />
+    },
+    {
+        label: 'Houses',
+        route: '/app/houses',
+        icon: <HomeWorkIcon sx={{ fontSize: '1rem' }} />
+    },
+    {
+        label: 'Jobs',
+        route: '/app/jobs',
+        icon: <WorkOutlineIcon sx={{ fontSize: '1rem' }} />
+    },
+].map((item) => (
+                   <Box
+    key={item.label}
+    onClick={() => onExplore(item.route)}
+    sx={{
+        flex: 1,
+        minWidth: 80,
+        py: 0.9,
+        px: 1,
+        borderRadius: '14px',
+        border: '1.5px solid rgba(50,95,236,0.18)',
+        background: 'rgba(50,95,236,0.05)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 0.7,
+        cursor: 'pointer',
+        transition: 'background 0.18s ease, border-color 0.18s ease, transform 0.15s ease',
+        '&:active': { transform: 'scale(0.95)' },
+        '&:hover': {
+            background: 'rgba(50,95,236,0.1)',
+            borderColor: 'rgba(50,95,236,0.32)'
+        },
+    }}
+>
+    {item.icon}
+
+    <Typography
+        sx={{
+            fontFamily: '"Inter", sans-serif',
+            fontWeight: 600,
+            fontSize: '0.72rem',
+            color: '#325fec',
+            letterSpacing: '-0.01em'
+        }}
+    >
+        {item.label}
+    </Typography>
+</Box>
                 ))}
             </Box>
         </Box>
@@ -692,53 +831,72 @@ export default function Home() {
                 </Box>
 
                 {/* ── Ad Banner (shops ads) ─────────────────────────── */}
-                {homeData.ads?.length > 0 && (
-                    <Box sx={{
-                        px: { xs: 0, sm: 2 },
-                        mb: 3,
-                        animation: 'fadeInUp 0.5s ease both',
-                        animationDelay: '0.1s',
-                    }}>
-                        <Box sx={{
-                            borderRadius: { xs: 0, sm: '22px' },
+             {homeData.ads?.length > 0 && (
+    <Box
+        sx={{
+            px: { xs: 1.5, sm: 2 },
+            py: 1,
+            mb: 3,
+            animation: 'fadeInUp 0.5s ease both',
+            animationDelay: '0.1s',
+        }}
+    >
+        <Box
+            sx={{
+                borderRadius: '18px',
+                overflow: 'hidden',
+                // boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                background: '#fff',
+                p: 1, // clean surrounding space
+                height: { xs: 225, sm: 275, md: 335 },
+                position: 'relative',
+            }}
+            className="nearzo-ad-slider"
+        >
+            <Slider {...adSliderSettings} style={{ height: '100%' }}>
+                {homeData.ads.map((ad) => (
+                    <Box
+                        key={ad.id}
+                        onClick={() => navigate(`/app/shops/${ad.shop_id}`)}
+                        sx={{
+                            cursor: 'pointer',
+                            height: '100%',
+                            display: 'block !important',
+                            borderRadius: '18px',
                             overflow: 'hidden',
-                            boxShadow: { xs: 'none', sm: '0 6px 28px rgba(50,95,236,0.15)' },
-                            height: { xs: 210, sm: 260, md: 320 },
                             position: 'relative',
                         }}
-                            className="nearzo-ad-slider"
-                        >
-                            <Slider {...adSliderSettings} style={{ height: '100%' }}>
-                                {homeData.ads.map((ad) => (
-                                    <Box
-                                        key={ad.id}
-                                        onClick={() => navigate(`/app/shops/${ad.shop_id}`)}
-                                        sx={{ cursor: 'pointer', height: '100%', display: 'block !important' }}
-                                    >
-                                        <Box
-                                            component="img"
-                                            src={ad.image_url}
-                                            alt={ad.title}
-                                            sx={{
-                                                width: '100%',
-                                                height: { xs: 210, sm: 260, md: 320 },
-                                                objectFit: 'cover',
-                                                objectPosition: 'center',
-                                                display: 'block',
-                                            }}
-                                        />
-                                        <Box sx={{
-                                            position: 'absolute', inset: 0,
-                                            background: 'linear-gradient(to top, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 45%)',
-                                            pointerEvents: 'none',
-                                        }} />
-                                    </Box>
-                                ))}
-                            </Slider>
-                        </Box>
-                    </Box>
-                )}
+                    >
+                        <Box
+                            component="img"
+                            src={ad.image_url}
+                            alt={ad.title}
+                            sx={{
+                                width: '100%',
+                                height: { xs: 210, sm: 260, md: 320 },
+                                objectFit: 'cover',
+                                objectPosition: 'center',
+                                display: 'block',
+                                borderRadius: '18px',
+                            }}
+                        />
 
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                inset: 0,
+                                background:
+                                    'linear-gradient(to top, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 45%)',
+                                pointerEvents: 'none',
+                                borderRadius: '18px',
+                            }}
+                        />
+                    </Box>
+                ))}
+            </Slider>
+        </Box>
+    </Box>
+)}
                 {/* ── NearZO Promo Banner (replaces category marquee) ── */}
                 <NearZOPromoBanner
                     onExplore={(route) => navigate(typeof route === 'string' ? route : '/app/shops')}
