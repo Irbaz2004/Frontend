@@ -15,105 +15,20 @@ import {
     Work as WorkIcon,
     Verified as VerifiedIcon,
     ChevronRight as ChevronRightIcon,
-    Restaurant as RestaurantIcon,
-    LocalGroceryStore as GroceryIcon,
-    LocalPharmacy as PharmacyIcon,
-    ContentCut as SalonIcon,
-    FitnessCenter as GymIcon,
-    Devices as ElectronicsIcon,
-    Checkroom as ClothingIcon,
-    Diamond as JewelleryIcon,
-    Hotel as HotelIcon,
-    BakeryDining as BakeryIcon,
-    LocalHospital as HospitalIcon,
-    School as EducationIcon,
-    Hardware as HardwareIcon,
-    Category as CategoryIcon,
     Rocket as RocketIcon,
     TrendingUp as TrendingUpIcon,
     ArrowForward as ArrowForwardIcon,
     AutoAwesome as SparkleIcon,
-    Pets as PetsIcon,
-    CarRental as CarRentalIcon,
-    ElectricalServices as ElectricalIcon,
-    Plumbing as PlumbingIcon,
-    Colorize as PaintIcon,
-    CleaningServices as CleaningIcon,
-    Security as SecurityIcon,
-    EventAvailable as EventIcon,
-    PhotoCamera as PhotographyIcon,
-    Computer as ComputerIcon,
-    PhoneIphone as MobileIcon,
-    Book as BookIcon,
-    SportsBasketball as SportsIcon,
-    Spa as SpaIcon,
-    LocalLaundryService as LaundryIcon,
-    Print as PrintIcon,
-    Moving as MovingIcon,
-    Handyman as HandymanIcon,
+    Map as MapIcon,
+    Search as SearchIcon,
+    Business as BusinessIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { getHomeData, getUserCity, getAllCategories } from '../../services/homeUser';
+import { getHomeData, getUserCity } from '../../services/homeUser';
 import { useAuth } from '../context/AuthContext';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
-
-// ── Category icon map ─────────────────────────────────────────────────────────
-const CATEGORY_ICONS = {
-    restaurant: { icon: RestaurantIcon, bg: 'rgba(230,126,34,0.12)', color: '#e67e22', glow: 'rgba(230,126,34,0.3)' },
-    'restaurants & cafes': { icon: RestaurantIcon, bg: 'rgba(230,126,34,0.12)', color: '#e67e22', glow: 'rgba(230,126,34,0.3)' },
-    food: { icon: RestaurantIcon, bg: 'rgba(230,126,34,0.12)', color: '#e67e22', glow: 'rgba(230,126,34,0.3)' },
-    grocery: { icon: GroceryIcon, bg: 'rgba(39,174,96,0.12)', color: '#27ae60', glow: 'rgba(39,174,96,0.3)' },
-    'grocery store': { icon: GroceryIcon, bg: 'rgba(39,174,96,0.12)', color: '#27ae60', glow: 'rgba(39,174,96,0.3)' },
-    pharmacy: { icon: PharmacyIcon, bg: 'rgba(233,30,140,0.12)', color: '#e91e8c', glow: 'rgba(233,30,140,0.3)' },
-    'medical store': { icon: PharmacyIcon, bg: 'rgba(233,30,140,0.12)', color: '#e91e8c', glow: 'rgba(233,30,140,0.3)' },
-    salon: { icon: SalonIcon, bg: 'rgba(155,89,182,0.12)', color: '#9b59b6', glow: 'rgba(155,89,182,0.3)' },
-    'beauty parlour': { icon: SalonIcon, bg: 'rgba(155,89,182,0.12)', color: '#9b59b6', glow: 'rgba(155,89,182,0.3)' },
-    gym: { icon: GymIcon, bg: 'rgba(41,128,185,0.12)', color: '#2980b9', glow: 'rgba(41,128,185,0.3)' },
-    'fitness center': { icon: GymIcon, bg: 'rgba(41,128,185,0.12)', color: '#2980b9', glow: 'rgba(41,128,185,0.3)' },
-    electronics: { icon: ElectronicsIcon, bg: 'rgba(50,95,236,0.12)', color: '#325fec', glow: 'rgba(50,95,236,0.3)' },
-    'electronics store': { icon: ElectronicsIcon, bg: 'rgba(50,95,236,0.12)', color: '#325fec', glow: 'rgba(50,95,236,0.3)' },
-    clothing: { icon: ClothingIcon, bg: 'rgba(230,126,34,0.12)', color: '#e67e22', glow: 'rgba(230,126,34,0.3)' },
-    'clothing store': { icon: ClothingIcon, bg: 'rgba(230,126,34,0.12)', color: '#e67e22', glow: 'rgba(230,126,34,0.3)' },
-    jewellery: { icon: JewelleryIcon, bg: 'rgba(243,156,18,0.12)', color: '#f39c12', glow: 'rgba(243,156,18,0.3)' },
-    'jewelry store': { icon: JewelleryIcon, bg: 'rgba(243,156,18,0.12)', color: '#f39c12', glow: 'rgba(243,156,18,0.3)' },
-    hotel: { icon: HotelIcon, bg: 'rgba(39,174,96,0.12)', color: '#27ae60', glow: 'rgba(39,174,96,0.3)' },
-    bakery: { icon: BakeryIcon, bg: 'rgba(230,126,34,0.12)', color: '#e67e22', glow: 'rgba(230,126,34,0.3)' },
-    hospital: { icon: HospitalIcon, bg: 'rgba(231,76,60,0.12)', color: '#e74c3c', glow: 'rgba(231,76,60,0.3)' },
-    education: { icon: EducationIcon, bg: 'rgba(50,95,236,0.12)', color: '#325fec', glow: 'rgba(50,95,236,0.3)' },
-    'educational institute': { icon: EducationIcon, bg: 'rgba(50,95,236,0.12)', color: '#325fec', glow: 'rgba(50,95,236,0.3)' },
-    hardware: { icon: HardwareIcon, bg: 'rgba(125,102,8,0.12)', color: '#7d6608', glow: 'rgba(125,102,8,0.3)' },
-    'hardware store': { icon: HardwareIcon, bg: 'rgba(125,102,8,0.12)', color: '#7d6608', glow: 'rgba(125,102,8,0.3)' },
-    pets: { icon: PetsIcon, bg: 'rgba(243,156,18,0.12)', color: '#f39c12', glow: 'rgba(243,156,18,0.3)' },
-    'pet store': { icon: PetsIcon, bg: 'rgba(243,156,18,0.12)', color: '#f39c12', glow: 'rgba(243,156,18,0.3)' },
-    'car rental': { icon: CarRentalIcon, bg: 'rgba(41,128,185,0.12)', color: '#2980b9', glow: 'rgba(41,128,185,0.3)' },
-    electrical: { icon: ElectricalIcon, bg: 'rgba(230,126,34,0.12)', color: '#e67e22', glow: 'rgba(230,126,34,0.3)' },
-    plumbing: { icon: PlumbingIcon, bg: 'rgba(52,152,219,0.12)', color: '#3498db', glow: 'rgba(52,152,219,0.3)' },
-    painting: { icon: PaintIcon, bg: 'rgba(155,89,182,0.12)', color: '#9b59b6', glow: 'rgba(155,89,182,0.3)' },
-    cleaning: { icon: CleaningIcon, bg: 'rgba(39,174,96,0.12)', color: '#27ae60', glow: 'rgba(39,174,96,0.3)' },
-    security: { icon: SecurityIcon, bg: 'rgba(41,128,185,0.12)', color: '#2980b9', glow: 'rgba(41,128,185,0.3)' },
-    events: { icon: EventIcon, bg: 'rgba(230,126,34,0.12)', color: '#e67e22', glow: 'rgba(230,126,34,0.3)' },
-    photography: { icon: PhotographyIcon, bg: 'rgba(155,89,182,0.12)', color: '#9b59b6', glow: 'rgba(155,89,182,0.3)' },
-    computer: { icon: ComputerIcon, bg: 'rgba(50,95,236,0.12)', color: '#325fec', glow: 'rgba(50,95,236,0.3)' },
-    mobile: { icon: MobileIcon, bg: 'rgba(233,30,140,0.12)', color: '#e91e8c', glow: 'rgba(233,30,140,0.3)' },
-    books: { icon: BookIcon, bg: 'rgba(243,156,18,0.12)', color: '#f39c12', glow: 'rgba(243,156,18,0.3)' },
-    sports: { icon: SportsIcon, bg: 'rgba(41,128,185,0.12)', color: '#2980b9', glow: 'rgba(41,128,185,0.3)' },
-    spa: { icon: SpaIcon, bg: 'rgba(155,89,182,0.12)', color: '#9b59b6', glow: 'rgba(155,89,182,0.3)' },
-    laundry: { icon: LaundryIcon, bg: 'rgba(39,174,96,0.12)', color: '#27ae60', glow: 'rgba(39,174,96,0.3)' },
-    printing: { icon: PrintIcon, bg: 'rgba(52,152,219,0.12)', color: '#3498db', glow: 'rgba(52,152,219,0.3)' },
-    moving: { icon: MovingIcon, bg: 'rgba(230,126,34,0.12)', color: '#e67e22', glow: 'rgba(230,126,34,0.3)' },
-    handyman: { icon: HandymanIcon, bg: 'rgba(155,89,182,0.12)', color: '#9b59b6', glow: 'rgba(155,89,182,0.3)' },
-    default: { icon: CategoryIcon, bg: 'rgba(50,95,236,0.12)', color: '#325fec', glow: 'rgba(50,95,236,0.3)' },
-};
-
-const getCategoryConfig = (name = '') => {
-    const key = name.toLowerCase();
-    for (const k of Object.keys(CATEGORY_ICONS)) {
-        if (key.includes(k)) return CATEGORY_ICONS[k];
-    }
-    return CATEGORY_ICONS.default;
-};
 
 const formatPrice = (price) =>
     new Intl.NumberFormat('en-IN', {
@@ -472,93 +387,160 @@ const BoostBanner = ({ onLearnMore }) => (
     </Box>
 );
 
-// ── Infinite Marquee Category Strip ──────────────────────────────────────────
-// Scrolls left → right infinitely. Each item is clickable.
-const CategoryMarquee = ({ categories, onCategoryClick }) => {
-    if (!categories || categories.length === 0) return null;
+// ── NearZO Promo Banner (replaces Category Marquee) ───────────────────────────
+// Three feature tiles auto-sliding as a mini carousel + a CTA strip below.
+const NEARZO_SLIDES = [
+    {
+        icon: MapIcon,
+        tag: 'Discover',
+        headline: 'Find everything near you',
+        sub: 'Shops, houses & jobs — all in one place, pinned to your locality.',
+        accent: 'linear-gradient(135deg, #1a3aad 0%, #325fec 100%)',
+    },
+    {
+        icon: SearchIcon,
+        tag: 'Search',
+        headline: 'Hyper-local search',
+        sub: 'Results filtered to your city & area so you never see irrelevant listings.',
+        accent: 'linear-gradient(135deg, #0f6e56 0%, #1d9e75 100%)',
+    },
+    {
+        icon: BusinessIcon,
+        tag: 'List Free',
+        headline: 'List your business today',
+        sub: 'Add your shop, rental or job opening for free and reach local customers.',
+        accent: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+    },
+];
 
-    // Duplicate list so the loop is seamless
-    const items = [...categories, ...categories, ...categories];
+const NearZOPromoBanner = ({ onExplore }) => {
+    const [active, setActive] = React.useState(0);
+
+    React.useEffect(() => {
+        const t = setInterval(() => setActive(prev => (prev + 1) % NEARZO_SLIDES.length), 3800);
+        return () => clearInterval(t);
+    }, []);
+
+    const slide = NEARZO_SLIDES[active];
+    const IconComp = slide.icon;
 
     return (
-        <Box sx={{ mb: 3, overflow: 'hidden', position: 'relative' }}>
-            {/* Section label */}
-            <Box sx={{ px: 2, mb: 1.5 }}>
-                <Typography sx={{
-                    fontFamily: '"Inter", sans-serif',
-                    fontWeight: 700, fontSize: '1rem',
-                    color: '#0a1628', letterSpacing: '-0.02em',
+        <Box sx={{ px: 2, mb: 3, animation: 'fadeInUp 0.5s ease both', animationDelay: '0.15s' }}>
+            {/* Main slide card */}
+            <Box
+                onClick={onExplore}
+                sx={{
+                    borderRadius: '22px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    background: slide.accent,
+                    boxShadow: '0 8px 32px rgba(50,95,236,0.22)',
+                    transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+                    '&:active': { transform: 'scale(0.985)' },
+                    minHeight: 148,
+                    p: '18px 20px 16px',
+                }}
+            >
+                {/* Decorative circles */}
+                <Box sx={{ position: 'absolute', right: -18, top: -18, width: 110, height: 110, borderRadius: '50%', background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.14)', pointerEvents: 'none' }} />
+                <Box sx={{ position: 'absolute', right: 28, bottom: -28, width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', pointerEvents: 'none' }} />
+
+                {/* Tag pill */}
+                <Box sx={{
+                    display: 'inline-flex', alignItems: 'center', gap: 0.5,
+                    background: 'rgba(255,255,255,0.18)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '20px', px: 1, py: 0.3, mb: 1.1,
                 }}>
-                    Browse by Category
-                </Typography>
+                    <SparkleIcon sx={{ fontSize: '0.6rem', color: '#ffd700' }} />
+                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.58rem', fontWeight: 700, color: 'rgba(255,255,255,0.95)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                        {slide.tag}
+                    </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
+                    <Box sx={{ flex: 1 }}>
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: '1.08rem', color: '#fff', lineHeight: 1.25, mb: 0.5, letterSpacing: '-0.02em' }}>
+                            {slide.headline}
+                        </Typography>
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.72rem', color: 'rgba(255,255,255,0.78)', lineHeight: 1.45, mb: 1.4 }}>
+                            {slide.sub}
+                        </Typography>
+                        <Box sx={{
+                            display: 'inline-flex', alignItems: 'center', gap: 0.5,
+                            background: 'rgba(255,255,255,0.2)',
+                            border: '1px solid rgba(255,255,255,0.32)',
+                            borderRadius: '10px', px: 1.3, py: 0.65,
+                        }}>
+                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.7rem', fontWeight: 700, color: '#fff' }}>
+                                Explore NearZO
+                            </Typography>
+                            <ArrowForwardIcon sx={{ fontSize: '0.72rem', color: '#fff' }} />
+                        </Box>
+                    </Box>
+                    {/* Icon box */}
+                    <Box sx={{
+                        width: 52, height: 52, flexShrink: 0,
+                        borderRadius: '16px',
+                        background: 'rgba(255,255,255,0.18)',
+                        border: '1px solid rgba(255,255,255,0.28)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        mt: 0.5,
+                    }}>
+                        <IconComp sx={{ fontSize: '1.4rem', color: '#fff' }} />
+                    </Box>
+                </Box>
             </Box>
 
-            {/* Fade edges */}
-            <Box sx={{
-                position: 'absolute', top: 40, left: 0, width: 32, height: 80, zIndex: 2,
-                background: 'linear-gradient(to right, #ffffff, transparent)',
-                pointerEvents: 'none',
-            }} />
-            <Box sx={{
-                position: 'absolute', top: 40, right: 0, width: 32, height: 80, zIndex: 2,
-                background: 'linear-gradient(to left, #ffffff, transparent)',
-                pointerEvents: 'none',
-            }} />
+            {/* Dot indicators */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.7, mt: 1.2 }}>
+                {NEARZO_SLIDES.map((_, i) => (
+                    <Box
+                        key={i}
+                        onClick={() => setActive(i)}
+                        sx={{
+                            width: i === active ? 20 : 6,
+                            height: 6,
+                            borderRadius: '4px',
+                            background: i === active ? '#325fec' : 'rgba(50,95,236,0.22)',
+                            transition: 'width 0.35s cubic-bezier(0.4,0,0.2,1), background 0.25s ease',
+                            cursor: 'pointer',
+                        }}
+                    />
+                ))}
+            </Box>
 
-            {/* Marquee track */}
-            <Box sx={{
-                display: 'flex',
-                gap: '14px',
-                width: 'max-content',
-                pb: 1,
-                px: 2,
-                animation: 'marqueeRTL 28s linear infinite',
-                '&:hover': { animationPlayState: 'paused' },
-            }}>
-                {items.map((cat, i) => {
-                    const cfg = getCategoryConfig(cat.category_name || cat.category);
-                    const IconComp = cfg.icon;
-                    const label = cat.category_name || cat.category;
-                    return (
-                        <Box
-                            key={`${cat.id || label}-${i}`}
-                            onClick={() => onCategoryClick(label)}
-                            sx={{
-                                flexShrink: 0,
-                                display: 'flex', flexDirection: 'column',
-                                alignItems: 'center', gap: '6px',
-                                cursor: 'pointer',
-                                transition: 'transform 0.18s cubic-bezier(0.34,1.56,0.64,1)',
-                                '&:active': { opacity: 0.75, transform: 'scale(0.92)' },
-                                '&:hover': { transform: 'scale(1.1) translateY(-3px)' },
-                            }}
-                        >
-                            <Box sx={{
-                                width: 62, height: 62,
-                                borderRadius: '18px',
-                                background: cfg.bg,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                border: '1px solid rgba(255,255,255,0.6)',
-                                boxShadow: `0 2px 12px ${cfg.glow}`,
-                                transition: 'box-shadow 0.2s ease',
-                                '&:hover': {
-                                    boxShadow: `0 6px 20px ${cfg.glow}`,
-                                },
-                            }}>
-                                <IconComp sx={{ fontSize: '1.4rem', color: cfg.color }} />
-                            </Box>
-                            <Typography sx={{
-                                fontFamily: '"Inter", sans-serif',
-                                fontSize: '0.63rem', fontWeight: 600,
-                                color: '#334155', textAlign: 'center',
-                                maxWidth: 62,
-                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                            }}>
-                                {label}
-                            </Typography>
-                        </Box>
-                    );
-                })}
+            {/* Quick feature pills row */}
+            <Box sx={{ display: 'flex', gap: 1, mt: 1.6, flexWrap: 'wrap' }}>
+                {[
+                    { label: '🏪 Shops', route: '/app/shops' },
+                    { label: '🏠 Houses', route: '/app/houses' },
+                    { label: '💼 Jobs', route: '/app/jobs' },
+                ].map((item) => (
+                    <Box
+                        key={item.label}
+                        onClick={() => onExplore(item.route)}
+                        sx={{
+                            flex: 1,
+                            minWidth: 80,
+                            py: 0.9,
+                            px: 1,
+                            borderRadius: '14px',
+                            border: '1.5px solid rgba(50,95,236,0.18)',
+                            background: 'rgba(50,95,236,0.05)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'background 0.18s ease, border-color 0.18s ease, transform 0.15s ease',
+                            '&:active': { transform: 'scale(0.95)' },
+                            '&:hover': { background: 'rgba(50,95,236,0.1)', borderColor: 'rgba(50,95,236,0.32)' },
+                        }}
+                    >
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, fontSize: '0.72rem', color: '#325fec', letterSpacing: '-0.01em' }}>
+                            {item.label}
+                        </Typography>
+                    </Box>
+                ))}
             </Box>
         </Box>
     );
@@ -568,13 +550,9 @@ const CategoryMarquee = ({ categories, onCategoryClick }) => {
 const LoadingSkeleton = () => (
     <Box sx={{ px: 2, pt: 2 }}>
         <Skeleton variant="rounded" height={220} sx={{ borderRadius: '20px', mb: 3 }} />
-        <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
-            {[1, 2, 3, 4, 5].map(i => (
-                <Box key={i} sx={{ flexShrink: 0, textAlign: 'center' }}>
-                    <Skeleton variant="rounded" width={62} height={62} sx={{ borderRadius: '18px', mb: 0.8 }} />
-                    <Skeleton variant="text" width={55} sx={{ mx: 'auto' }} />
-                </Box>
-            ))}
+        <Skeleton variant="rounded" height={148} sx={{ borderRadius: '22px', mb: 1.5 }} />
+        <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+            {[1, 2, 3].map(i => <Skeleton key={i} variant="rounded" height={38} sx={{ flex: 1, borderRadius: '14px' }} />)}
         </Box>
         {[1, 2, 3].map(s => (
             <Box key={s} sx={{ mb: 3.5 }}>
@@ -596,11 +574,9 @@ export default function Home() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [homeData, setHomeData] = useState({ ads: [], categories: [], shops: [], houses: [], jobs: [], city: '' });
-    const [allCategories, setAllCategories] = useState([]);
 
     useEffect(() => {
         loadHomeData();
-        loadAllCategories();
     }, []);
 
     const loadHomeData = async () => {
@@ -624,20 +600,7 @@ export default function Home() {
         }
     };
 
-    const loadAllCategories = async () => {
-        try {
-            const categories = await getAllCategories();
-            setAllCategories(categories);
-        } catch (err) {
-            console.error('Failed to load categories:', err);
-        }
-    };
-
-    const handleCategoryClick = (categoryName) => {
-        navigate(`/app/shops?category=${encodeURIComponent(categoryName)}`);
-    };
-
-    // Responsive slider: show 1 slide on mobile, partial peek on desktop
+    // Responsive slider settings
     const adSliderSettings = {
         dots: true,
         infinite: true,
@@ -660,14 +623,6 @@ export default function Home() {
         </Box>
     );
 
-    const displayCategories = allCategories.length > 0
-        ? allCategories.map(cat => ({
-            id: cat.id,
-            category_name: cat.category_name || cat.name,
-            count: 0,
-        }))
-        : homeData.categories;
-
     return (
         <>
             <style>{`
@@ -683,21 +638,11 @@ export default function Home() {
                     from { opacity: 0; transform: translateY(18px); }
                     to   { opacity: 1; transform: translateY(0); }
                 }
-
-                /* Marquee: moves left-to-right (RTL direction = items enter from left side) */
-                /* To scroll left→right visually: start negative, end at 0 — 
-                   this makes items appear from left and exit to right             */
-                @keyframes marqueeRTL {
-                    0%   { transform: translateX(-33.333%); }
-                    100% { transform: translateX(0%); }
-                }
-
                 @keyframes pulseGlow {
                     0%, 100% { opacity: 0.6; }
                     50%       { opacity: 1; }
                 }
 
-                /* Ad slider: full cover image on all screen sizes */
                 .nearzo-ad-slider .slick-slide > div { height: 100%; }
                 .nearzo-ad-slider .slick-list       { height: 100%; }
                 .nearzo-ad-slider .slick-track      { height: 100%; display: flex; }
@@ -715,7 +660,6 @@ export default function Home() {
                 }
             `}</style>
 
-            {/* ── Clean white background, no overlays ── */}
             <Box sx={{ bgcolor: '#ffffff', minHeight: '100vh' }}>
 
                 {/* ── City Header ──────────────────────────────────── */}
@@ -747,7 +691,7 @@ export default function Home() {
                     </Box>
                 </Box>
 
-                {/* ── Ad Banner — responsive full-cover ────────────── */}
+                {/* ── Ad Banner (shops ads) ─────────────────────────── */}
                 {homeData.ads?.length > 0 && (
                     <Box sx={{
                         px: { xs: 0, sm: 2 },
@@ -759,7 +703,6 @@ export default function Home() {
                             borderRadius: { xs: 0, sm: '22px' },
                             overflow: 'hidden',
                             boxShadow: { xs: 'none', sm: '0 6px 28px rgba(50,95,236,0.15)' },
-                            // responsive height: taller on desktop, shorter on mobile
                             height: { xs: 210, sm: 260, md: 320 },
                             position: 'relative',
                         }}
@@ -784,7 +727,6 @@ export default function Home() {
                                                 display: 'block',
                                             }}
                                         />
-                                        {/* subtle bottom gradient for dot visibility */}
                                         <Box sx={{
                                             position: 'absolute', inset: 0,
                                             background: 'linear-gradient(to top, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 45%)',
@@ -797,13 +739,10 @@ export default function Home() {
                     </Box>
                 )}
 
-                {/* ── Category Marquee Strip ────────────────────────── */}
-                {displayCategories?.length > 0 && (
-                    <CategoryMarquee
-                        categories={displayCategories}
-                        onCategoryClick={handleCategoryClick}
-                    />
-                )}
+                {/* ── NearZO Promo Banner (replaces category marquee) ── */}
+                <NearZOPromoBanner
+                    onExplore={(route) => navigate(typeof route === 'string' ? route : '/app/shops')}
+                />
 
                 {/* ── Shops ─────────────────────────────────────────── */}
                 {homeData.shops?.length > 0 && (

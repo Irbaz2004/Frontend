@@ -1,5 +1,5 @@
 // app/user/Profile.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     getProfile,
     updateProfile,
@@ -58,6 +58,11 @@ const GLOBAL_STYLE = `
     --shadow: 0 4px 16px rgba(0,0,0,.08);
     --shadow-lg: 0 10px 40px rgba(0,0,0,.12);
     --bottom-nav-h: 64px;
+
+    /* Responsive modal spacing */
+    --modal-px: clamp(12px, 4vw, 20px);
+    --modal-py: clamp(10px, 2.5vw, 18px);
+    --form-gap: clamp(10px, 2.5vw, 14px);
   }
 
   html, body { font-family: var(--font); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
@@ -80,8 +85,24 @@ const GLOBAL_STYLE = `
     to   { transform: translateY(0);    opacity: 1; }
   }
 
-  .mi { font-family: 'Material Icons'; font-style: normal; font-weight: normal; font-size: 20px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; user-select: none; }
-  .icon-btn { background: none; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 8px; border-radius: 50%; transition: background .15s; }
+  .mi {
+    font-family: 'Material Icons';
+    font-style: normal;
+    font-weight: normal;
+    font-size: 20px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .icon-btn {
+    background: none; border: none; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 8px; border-radius: 50%; transition: background .15s;
+  }
   .icon-btn:hover { background: var(--border-light); }
 
   /* ── Modal overlay ── */
@@ -97,48 +118,46 @@ const GLOBAL_STYLE = `
     -webkit-backdrop-filter: blur(3px);
     animation: fadeIn .2s ease;
     padding: 0;
+    /* prevent body scroll bleed on iOS */
+    overscroll-behavior: contain;
   }
 
-  /* ── Modal sheet ── */
+  /* ── Modal sheet (mobile = bottom sheet) ── */
   .modal-sheet {
     width: 100%;
     max-width: 560px;
-    /*
-      On mobile: bottom-sheet that stops ABOVE the bottom navbar.
-      --bottom-nav-h = 64px (the app's tab bar).
-      We also subtract env(safe-area-inset-bottom) for iPhone home bar.
-      Extra 8px breathing room so footer shadow is visible.
-    */
-    max-height: calc(100dvh - var(--bottom-nav-h) - env(safe-area-inset-bottom, 0px) - 8px);
+    max-height: calc(100dvh - var(--bottom-nav-h) - env(safe-area-inset-bottom, 0px) - 6px);
     background: #fff;
     border-radius: 20px 20px 0 0;
     display: flex;
     flex-direction: column;
     animation: slideUp .28s cubic-bezier(.32,.72,0,1);
     overflow: hidden;
-    /* Push the sheet up so it never overlaps the navbar */
     margin-bottom: var(--bottom-nav-h);
+    /* keep sheet above home indicator */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  /* On desktop: center modal instead of bottom sheet */
+  /* Desktop: centered dialog */
   @media (min-width: 640px) {
     .modal-overlay {
       align-items: center;
-      padding: 20px;
+      padding: 16px;
     }
     .modal-sheet {
       border-radius: 20px;
-      max-height: calc(100dvh - 120px);
+      max-height: calc(100dvh - 80px);
       margin-bottom: 0;
+      padding-bottom: 0;
     }
   }
 
-  /* ── Modal header: never scrolls ── */
+  /* ── Modal header ── */
   .modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 18px 14px;
+    padding: var(--modal-py) var(--modal-px) calc(var(--modal-py) - 4px);
     border-bottom: 1px solid #F3F4F6;
     flex-shrink: 0;
   }
@@ -148,53 +167,107 @@ const GLOBAL_STYLE = `
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 18px 18px 8px;
+    padding: var(--modal-py) var(--modal-px) 6px;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
-  /* ── Modal footer: always visible at bottom ── */
+  /* ── Modal footer ── */
   .modal-footer {
-    padding: 12px 18px 16px;
+    padding: clamp(10px, 2vw, 14px) var(--modal-px) clamp(12px, 3vw, 18px);
     border-top: 1px solid #F3F4F6;
     display: flex;
-    gap: 10px;
+    gap: clamp(8px, 2vw, 10px);
     justify-content: flex-end;
     flex-shrink: 0;
     background: #fff;
   }
 
-  /* Drag handle indicator for mobile */
+  /* Drag handle */
   .modal-handle {
     width: 36px;
     height: 4px;
     background: #E5E7EB;
     border-radius: 99px;
     margin: 0 auto 0;
+    flex-shrink: 0;
   }
-
-  @media (min-width: 768px) {
-    .profile-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
-    .profile-sidebar { position: sticky; top: 24px; }
+  @media (min-width: 640px) {
     .modal-handle { display: none; }
   }
-  @media (min-width: 1200px) {
-    .profile-layout { grid-template-columns: 340px 1fr; }
+
+  /* ── Form grid responsive ── */
+  .form-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--form-gap);
+  }
+  .form-item-half {
+    flex: 1 1 calc(50% - var(--form-gap) / 2);
+    min-width: clamp(100px, 35vw, 140px);
+  }
+  .form-item-full {
+    flex: 1 1 100%;
+  }
+
+  /* At very small screens, halves go full width */
+  @media (max-width: 320px) {
+    .form-item-half { flex: 1 1 100%; min-width: 0; }
+    :root { --modal-px: 10px; --form-gap: 9px; }
+  }
+
+  /* ── Profile layout ── */
+  @media (min-width: 768px) {
+    .profile-layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    .profile-sidebar { position: sticky; top: 24px; }
+  }
+  @media (min-width: 1100px) {
+    .profile-layout { grid-template-columns: 330px 1fr; gap: 24px; }
   }
 `;
 
-if (!document.getElementById('profile-styles-v3')) {
+if (!document.getElementById('profile-styles-v4')) {
     const s = document.createElement('style');
-    s.id = 'profile-styles-v3';
+    s.id = 'profile-styles-v4';
     s.textContent = GLOBAL_STYLE;
     document.head.appendChild(s);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ICON COMPONENT
+// PWA-SAFE IMAGE PICKER
+// Opens file picker programmatically — works in PWA/standalone mode on iOS/Android
 // ─────────────────────────────────────────────────────────────────────────────
-const Icon = ({ name, size = 20, color, style = {} }) => (
-    <span className="mi" style={{ fontSize: size, color, ...style }}>{name}</span>
-);
+function openImagePicker(onFile) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    // Required for iOS PWA
+    input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+    document.body.appendChild(input);
+
+    const cleanup = () => {
+        try { document.body.removeChild(input); } catch { }
+    };
+
+    input.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Revoke any previous object URL handled by caller
+            const url = URL.createObjectURL(file);
+            onFile(file, url);
+        }
+        cleanup();
+    });
+
+    // Focus trick needed in some PWA contexts
+    input.focus();
+    input.click();
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LOCATION SERVICE
@@ -226,7 +299,14 @@ class LocationService {
 const locationService = new LocationService();
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRIMITIVE COMPONENTS
+// ICON
+// ─────────────────────────────────────────────────────────────────────────────
+const Icon = ({ name, size = 20, color, style = {} }) => (
+    <span className="mi" style={{ fontSize: size, color, ...style }}>{name}</span>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRIMITIVES
 // ─────────────────────────────────────────────────────────────────────────────
 const Spinner = ({ size = 18, color = '#fff' }) => (
     <span style={{
@@ -248,23 +328,30 @@ const Badge = ({ label, color = '#2563EB', bg = '#EFF6FF', dot }) => (
 );
 
 const FieldLabel = ({ children }) => (
-    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6B7280', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.5px' }}>
+    <label style={{
+        display: 'block', fontSize: 11, fontWeight: 700,
+        color: '#6B7280', marginBottom: 6,
+        textTransform: 'uppercase', letterSpacing: '.5px'
+    }}>
         {children}
     </label>
 );
+
+const inputBase = {
+    width: '100%', padding: '10px 14px',
+    border: '1.5px solid #E5E7EB', borderRadius: 10,
+    fontSize: 14, fontWeight: 400, color: '#111827',
+    background: '#FAFAFA', outline: 'none',
+    transition: 'border-color .15s, box-shadow .15s',
+    fontFamily: 'var(--font)',
+};
 
 const Input = ({ label, style = {}, wrapStyle = {}, ...props }) => (
     <div style={{ ...wrapStyle }}>
         {label && <FieldLabel>{label}</FieldLabel>}
         <input
             {...props}
-            style={{
-                width: '100%', padding: '10px 14px',
-                border: '1.5px solid #E5E7EB', borderRadius: 10,
-                fontSize: 14, fontWeight: 400, color: '#111827',
-                background: '#FAFAFA', outline: 'none',
-                transition: 'border-color .15s, box-shadow .15s', ...style
-            }}
+            style={{ ...inputBase, ...style }}
             onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px #DBEAFE'; }}
             onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
         />
@@ -275,11 +362,7 @@ const Textarea = ({ label, wrapStyle = {}, ...props }) => (
     <div style={{ ...wrapStyle }}>
         {label && <FieldLabel>{label}</FieldLabel>}
         <textarea {...props} rows={3} style={{
-            width: '100%', padding: '10px 14px',
-            border: '1.5px solid #E5E7EB', borderRadius: 10,
-            fontSize: 14, color: '#111827', background: '#FAFAFA',
-            outline: 'none', resize: 'vertical', transition: 'border-color .15s',
-            fontFamily: 'var(--font)'
+            ...inputBase, resize: 'vertical',
         }}
             onFocus={e => { e.target.style.borderColor = '#2563EB'; }}
             onBlur={e => { e.target.style.borderColor = '#E5E7EB'; }}
@@ -291,13 +374,10 @@ const SelectField = ({ label, options = [], wrapStyle = {}, ...props }) => (
     <div style={{ ...wrapStyle }}>
         {label && <FieldLabel>{label}</FieldLabel>}
         <select {...props} style={{
-            width: '100%', padding: '10px 14px',
-            border: '1.5px solid #E5E7EB', borderRadius: 10,
-            fontSize: 14, color: '#111827', background: '#FAFAFA',
-            outline: 'none', appearance: 'none',
+            ...inputBase,
+            appearance: 'none',
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
             backgroundRepeat: 'no-repeat', backgroundPosition: 'calc(100% - 12px) center', paddingRight: 36,
-            fontFamily: 'var(--font)'
         }}>
             {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
@@ -324,7 +404,8 @@ const Btn = ({ children, onClick, variant = 'primary', size = 'md', loading, dis
         success: { background: '#DCFCE7', color: '#16A34A' },
     };
     return (
-        <button onClick={!disabled && !loading ? onClick : undefined} style={{ ...base, ...sizes[size], ...variants[variant], ...style }}>
+        <button onClick={!disabled && !loading ? onClick : undefined}
+            style={{ ...base, ...sizes[size], ...variants[variant], ...style }}>
             {loading ? <Spinner size={14} color={variant === 'secondary' ? '#374151' : '#fff'} /> : icon}
             {children}
         </button>
@@ -334,7 +415,8 @@ const Btn = ({ children, onClick, variant = 'primary', size = 'md', loading, dis
 const Toggle = ({ checked, onChange, label }) => (
     <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
         <div onClick={() => onChange(!checked)} style={{
-            width: 44, height: 24, borderRadius: 99, background: checked ? '#2563EB' : '#D1D5DB',
+            width: 44, height: 24, borderRadius: 99,
+            background: checked ? '#2563EB' : '#D1D5DB',
             position: 'relative', transition: 'background .2s', flexShrink: 0
         }}>
             <div style={{
@@ -348,16 +430,12 @@ const Toggle = ({ checked, onChange, label }) => (
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODAL — fixed height with sticky header + scrollable body + sticky footer
+// MODAL
 // ─────────────────────────────────────────────────────────────────────────────
 const Modal = ({ open, onClose, title, children, footer }) => {
-    // Prevent body scroll when modal open
     useEffect(() => {
-        if (open) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
-        }
+        if (open) document.body.style.overflow = 'hidden';
+        else document.body.style.overflow = '';
         return () => { document.body.style.overflow = ''; };
     }, [open]);
 
@@ -365,40 +443,24 @@ const Modal = ({ open, onClose, title, children, footer }) => {
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-                {/* Drag handle – mobile only */}
                 <div style={{ padding: '10px 0 0', flexShrink: 0 }}>
                     <div className="modal-handle" />
                 </div>
-
-                {/* Sticky header */}
                 <div className="modal-header">
                     <span style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>{title}</span>
-                    <button
-                        onClick={onClose}
-                        style={{
-                            background: '#F3F4F6', border: 'none', borderRadius: '50%',
-                            width: 32, height: 32, cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0
-                        }}
-                    >
+                    <button onClick={onClose} style={{
+                        background: '#F3F4F6', border: 'none', borderRadius: '50%',
+                        width: 32, height: 32, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
                         <Icon name="close" size={18} color="#374151" />
                     </button>
                 </div>
-
-                {/* Scrollable body */}
                 <div className="modal-body">
                     {children}
-                    {/* Bottom padding so last field isn't flush against footer */}
-                    <div style={{ height: 8 }} />
+                    <div style={{ height: 6 }} />
                 </div>
-
-                {/* Sticky footer with action buttons */}
-                {footer && (
-                    <div className="modal-footer">
-                        {footer}
-                    </div>
-                )}
+                {footer && <div className="modal-footer">{footer}</div>}
             </div>
         </div>
     );
@@ -411,8 +473,16 @@ const Toast = ({ msg, type = 'success' }) => {
     if (!msg) return null;
     const colors = { success: { bg: '#DCFCE7', color: '#16A34A' }, error: { bg: '#FEE2E2', color: '#DC2626' } };
     return (
-        <div style={{ position: 'fixed', top: 16, left: 0, right: 0, zIndex: 2000, display: 'flex', justifyContent: 'center', padding: '0 16px', animation: 'fadeUp .25s ease', pointerEvents: 'none' }}>
-            <div style={{ background: colors[type].bg, color: colors[type].color, padding: '12px 20px', borderRadius: 12, fontWeight: 600, fontSize: 14, boxShadow: '0 4px 20px rgba(0,0,0,.12)', maxWidth: 380 }}>
+        <div style={{
+            position: 'fixed', top: 16, left: 0, right: 0, zIndex: 2000,
+            display: 'flex', justifyContent: 'center', padding: '0 16px',
+            animation: 'fadeUp .25s ease', pointerEvents: 'none'
+        }}>
+            <div style={{
+                background: colors[type].bg, color: colors[type].color,
+                padding: '12px 20px', borderRadius: 12, fontWeight: 600,
+                fontSize: 14, boxShadow: '0 4px 20px rgba(0,0,0,.12)', maxWidth: 380
+            }}>
                 {msg}
             </div>
         </div>
@@ -420,16 +490,15 @@ const Toast = ({ msg, type = 'success' }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FORM GRID
+// FORM HELPERS (now use CSS classes for responsiveness)
 // ─────────────────────────────────────────────────────────────────────────────
-const FormGrid = ({ children }) => <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>{children}</div>;
-const FormItem = ({ half, full, children }) => <div style={{ flex: full ? '1 1 100%' : '1 1 calc(50% - 7px)', minWidth: 140 }}>{children}</div>;
+const FormGrid = ({ children }) => <div className="form-grid">{children}</div>;
+const FormItem = ({ half, full, children }) => (
+    <div className={full ? 'form-item-full' : 'form-item-half'}>{children}</div>
+);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION DIVIDER inside modal
-// ─────────────────────────────────────────────────────────────────────────────
 const SectionDivider = ({ label }) => (
-    <div style={{ flex: '1 1 100%', display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 2px' }}>
+    <div className="form-item-full" style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 2px' }}>
         <div style={{ flex: 1, height: 1, background: '#F3F4F6' }} />
         {label && <span style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.5px', whiteSpace: 'nowrap' }}>{label}</span>}
         <div style={{ flex: 1, height: 1, background: '#F3F4F6' }} />
@@ -441,18 +510,17 @@ const SectionDivider = ({ label }) => (
 // ─────────────────────────────────────────────────────────────────────────────
 const DetailRow = ({ iconName, iconColor = '#2563EB', iconBg = '#EFF6FF', label, rightText, onClick, danger, last }) => (
     <button onClick={onClick} style={{
-        display: 'flex', alignItems: 'center', gap: 14,
-        padding: '13px 0', background: 'none', border: 'none', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer',
         width: '100%', textAlign: 'left',
         borderBottom: last ? 'none' : '1px solid #F3F4F6',
-        color: danger ? '#DC2626' : '#111827',
     }}>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: danger ? '#FEE2E2' : iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name={iconName} size={18} color={danger ? '#DC2626' : iconColor} />
+        <div style={{ width: 34, height: 34, borderRadius: 10, background: danger ? '#FEE2E2' : iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name={iconName} size={17} color={danger ? '#DC2626' : iconColor} />
         </div>
         <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: danger ? '#DC2626' : '#111827' }}>{label}</span>
         {rightText && <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{rightText}</span>}
-        <Icon name="chevron_right" size={18} color={danger ? '#DC2626' : '#9CA3AF'} />
+        <Icon name="chevron_right" size={17} color={danger ? '#DC2626' : '#9CA3AF'} />
     </button>
 );
 
@@ -460,9 +528,9 @@ const DetailRow = ({ iconName, iconColor = '#2563EB', iconBg = '#EFF6FF', label,
 // STAT CARD
 // ─────────────────────────────────────────────────────────────────────────────
 const StatCard = ({ iconName, count, label, iconColor, iconBg }) => (
-    <div style={{ flex: '1 1 0', minWidth: 70, background: '#F8FAFF', borderRadius: 14, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, border: '1px solid #E8EFFE' }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name={iconName} size={20} color={iconColor} />
+    <div style={{ flex: '1 1 0', minWidth: 60, background: '#F8FAFF', borderRadius: 14, padding: '12px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, border: '1px solid #E8EFFE' }}>
+        <div style={{ width: 38, height: 38, borderRadius: '50%', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={iconName} size={19} color={iconColor} />
         </div>
         <div style={{ fontSize: 18, fontWeight: 800, color: '#111827', lineHeight: 1 }}>{count ?? '—'}</div>
         <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 500, textAlign: 'center', lineHeight: 1.3 }}>{label}</div>
@@ -472,43 +540,43 @@ const StatCard = ({ iconName, count, label, iconColor, iconBg }) => (
 // ─────────────────────────────────────────────────────────────────────────────
 // LISTING SECTION
 // ─────────────────────────────────────────────────────────────────────────────
+const MiniStat = ({ iconName, color, count, label }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <Icon name={iconName} size={15} color={color} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{count ?? 0}</span>
+        <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>{label}</span>
+    </div>
+);
+
 const ListingSection = ({ iconName, iconColor, iconBg, title, subtitle, badgeCount, badgeColor, badgeBg, onAdd, addLabel, liveCount, verifiedCount, unverifiedCount, onManage, viewCount }) => (
     <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-        <button onClick={onManage} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', width: '100%', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #F3F4F6', textAlign: 'left' }}>
-            <div style={{ width: 46, height: 46, borderRadius: 14, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name={iconName} size={22} color={iconColor} />
+        <button onClick={onManage} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', width: '100%', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #F3F4F6', textAlign: 'left' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 13, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name={iconName} size={21} color={iconColor} />
             </div>
-            <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>{title}</div>
-                <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{subtitle}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{title}</div>
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subtitle}</div>
                 {viewCount !== undefined && (
-                    <div style={{ fontSize: 11, color: '#2563EB', marginTop: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <Icon name="visibility" size={12} color="#2563EB" /> {viewCount} total views
+                    <div style={{ fontSize: 11, color: '#2563EB', marginTop: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <Icon name="visibility" size={11} color="#2563EB" /> {viewCount} views
                     </div>
                 )}
             </div>
             <Badge label={`${badgeCount} Active`} color={badgeColor} bg={badgeBg} />
-            <Icon name="chevron_right" size={20} color="#9CA3AF" />
+            <Icon name="chevron_right" size={18} color="#9CA3AF" />
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 18px', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', gap: 8, flexWrap: 'wrap' }}>
             <MiniStat iconName="check_circle" color="#2563EB" count={liveCount} label="Live" />
-            <div style={{ width: 1, height: 28, background: '#E5E7EB' }} />
+            <div style={{ width: 1, height: 26, background: '#E5E7EB' }} />
             <MiniStat iconName="verified" color="#16A34A" count={verifiedCount} label="Verified" />
-            <div style={{ width: 1, height: 28, background: '#E5E7EB' }} />
+            <div style={{ width: 1, height: 26, background: '#E5E7EB' }} />
             <MiniStat iconName="cancel" color="#DC2626" count={unverifiedCount} label="Unverified" />
             <div style={{ flex: 1 }} />
-            <button onClick={onAdd} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 14px', borderRadius: 8, border: '1.5px solid #2563EB', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-                <Icon name="add" size={16} color="#2563EB" /> {addLabel}
+            <button onClick={onAdd} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #2563EB', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+                <Icon name="add" size={15} color="#2563EB" /> {addLabel}
             </button>
         </div>
-    </div>
-);
-
-const MiniStat = ({ iconName, color, count, label }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <Icon name={iconName} size={16} color={color} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{count ?? 0}</span>
-        <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>{label}</span>
     </div>
 );
 
@@ -516,8 +584,8 @@ const MiniStat = ({ iconName, color, count, label }) => (
 // EMPTY STATE
 // ─────────────────────────────────────────────────────────────────────────────
 const Empty = ({ label }) => (
-    <div style={{ textAlign: 'center', padding: '32px 16px', color: '#9CA3AF', fontSize: 14, fontWeight: 500 }}>
-        <Icon name="inbox" size={40} color="#D1D5DB" style={{ display: 'block', margin: '0 auto 10px' }} />
+    <div style={{ textAlign: 'center', padding: '28px 12px', color: '#9CA3AF', fontSize: 14, fontWeight: 500 }}>
+        <Icon name="inbox" size={38} color="#D1D5DB" style={{ display: 'block', margin: '0 auto 10px' }} />
         {label}
     </div>
 );
@@ -532,26 +600,26 @@ const AlertBox = ({ type = 'danger', icon = 'warning', children }) => {
     };
     const t = map[type];
     return (
-        <div style={{ background: t.bg, border: `1px solid ${t.border}`, borderRadius: 10, padding: '12px 14px', marginBottom: 16, fontSize: 13, color: t.color, fontWeight: 500, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-            <Icon name={icon} size={16} color={t.color} style={{ flexShrink: 0, marginTop: 1 }} />
+        <div style={{ background: t.bg, border: `1px solid ${t.border}`, borderRadius: 10, padding: '11px 13px', marginBottom: 14, fontSize: 13, color: t.color, fontWeight: 500, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <Icon name={icon} size={15} color={t.color} style={{ flexShrink: 0, marginTop: 1 }} />
             <span>{children}</span>
         </div>
     );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// IMAGE UPLOAD FIELD
+// IMAGE UPLOAD — PWA-safe, instant preview
 // ─────────────────────────────────────────────────────────────────────────────
-const ImageUpload = ({ preview, isNew, onChange, label = 'Upload Image' }) => (
+const ImageUpload = ({ preview, isNew, onPick, label = 'Upload Image' }) => (
     <div>
         {preview && (
-            <div style={{ marginBottom: 10, position: 'relative', borderRadius: 10, overflow: 'hidden', background: '#F3F4F6' }}>
+            <div style={{ marginBottom: 10, borderRadius: 10, overflow: 'hidden', background: '#F3F4F6' }}>
                 <div style={{ width: '100%', paddingTop: '56.25%', position: 'relative' }}>
                     <img
                         src={preview}
                         alt={isNew ? 'New preview' : 'Current image'}
                         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                        onError={e => { e.target.src = 'https://via.placeholder.com/560x315?text=No+Image'; }}
+                        onError={e => { e.target.src = 'https://placehold.co/560x315?text=No+Image'; }}
                     />
                     <div style={{ position: 'absolute', bottom: 8, left: 8, background: isNew ? 'rgba(37,99,235,.88)' : 'rgba(0,0,0,.55)', color: '#fff', fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 6, backdropFilter: 'blur(4px)', letterSpacing: '.3px' }}>
                         {isNew ? '✓ New Image' : 'Current Image'}
@@ -559,65 +627,65 @@ const ImageUpload = ({ preview, isNew, onChange, label = 'Upload Image' }) => (
                 </div>
             </div>
         )}
-        <label
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px', border: '1.5px dashed #D1D5DB', borderRadius: 10, cursor: 'pointer', color: '#6B7280', fontSize: 13, fontWeight: 500, background: '#FAFAFA', transition: 'border-color .15s' }}
+        {/* PWA-safe: button triggers programmatic file picker instead of hidden input */}
+        <button
+            type="button"
+            onClick={onPick}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px', border: '1.5px dashed #D1D5DB', borderRadius: 10, cursor: 'pointer', color: '#6B7280', fontSize: 13, fontWeight: 500, background: '#FAFAFA', transition: 'border-color .15s', width: '100%', fontFamily: 'var(--font)' }}
             onMouseOver={e => e.currentTarget.style.borderColor = '#2563EB'}
             onMouseOut={e => e.currentTarget.style.borderColor = '#D1D5DB'}
         >
             <Icon name="photo_camera" size={17} color="#6B7280" />
             {preview ? 'Change Image' : label}
-            <input type="file" accept="image/*" hidden onChange={onChange} />
-        </label>
+        </button>
     </div>
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LOCATION SECTION inside modals
+// LOCATION SECTION
 // ─────────────────────────────────────────────────────────────────────────────
 const LocationSection = ({ lat, lng, city, area, state, cities, areas, locating,
     verified, verifying, onGetLocation, onVerify,
     onCityChange, onAreaChange, onStateChange, showState = true }) => (
     <>
-        <FormItem full>
-            <SectionDivider label="Location" />
-        </FormItem>
-        <FormItem full>
+        <SectionDivider label="Location" />
+        <div className="form-item-full">
             <Btn variant="ghost" onClick={onGetLocation} loading={locating} fullWidth
                 icon={<Icon name="my_location" size={15} color="#2563EB" />} size="sm">
-                {locating ? 'Detecting location…' : 'Use Current Location'}
+                {locating ? 'Detecting…' : 'Use Current Location'}
             </Btn>
-        </FormItem>
+        </div>
         {lat && (
-            <FormItem full>
-                <div style={{ display: 'flex', gap: 8, fontSize: 12, color: '#6B7280', background: '#F9FAFB', borderRadius: 8, padding: '8px 12px', border: '1px solid #E5E7EB', alignItems: 'center', gap: 6 }}>
-                    <Icon name="location_on" size={14} color="#2563EB" />
+            <div className="form-item-full">
+                <div style={{ display: 'flex', gap: 6, fontSize: 12, color: '#6B7280', background: '#F9FAFB', borderRadius: 8, padding: '8px 12px', border: '1px solid #E5E7EB', alignItems: 'center' }}>
+                    <Icon name="location_on" size={13} color="#2563EB" />
                     <span style={{ fontWeight: 500 }}>{lat?.toFixed?.(5) ?? lat}, {lng?.toFixed?.(5) ?? lng}</span>
                 </div>
-            </FormItem>
+            </div>
         )}
-        <FormItem half>
+        <div className="form-item-half">
             <SelectField label="City *" value={city}
                 onChange={e => onCityChange(e.target.value)}
                 options={[{ value: '', label: 'Select City' }, ...cities.map(c => ({ value: c.name, label: c.name }))]} />
-        </FormItem>
-        <FormItem half>
+        </div>
+        <div className="form-item-half">
             <SelectField label="Area" value={area}
                 onChange={e => onAreaChange(e.target.value)}
                 options={[{ value: '', label: 'Select Area' }, ...areas.map(a => ({ value: a.area, label: a.area }))]} />
-        </FormItem>
+        </div>
         {showState && (
-            <FormItem half>
+            <div className="form-item-half">
                 <Input label="State *" value={state} onChange={e => onStateChange(e.target.value)} />
-            </FormItem>
+            </div>
         )}
-        <FormItem half>
+        <div className="form-item-half">
             <Btn
                 variant={verified ? 'success' : 'primary'} size="sm"
                 onClick={onVerify} loading={verifying} fullWidth
                 icon={verified ? <Icon name="verified" size={15} color="#16A34A" /> : <Icon name="location_searching" size={15} color="#fff" />}>
-                {verifying ? 'Verifying…' : verified ? 'Location Verified' : 'Verify Location'}
+                {verifying ? 'Verifying…' : verified ? 'Verified ✓' : 'Verify Location'}
             </Btn>
-        </FormItem>
+        </div>
     </>
 );
 
@@ -659,6 +727,10 @@ export default function Profile() {
     const [passwordData, setPasswordData] = useState({ current_password: '', new_password: '', confirm_password: '' });
     const [deletePassword, setDeletePassword] = useState('');
 
+    // Track object URLs for cleanup
+    const [shopObjUrl, setShopObjUrl] = useState('');
+    const [houseObjUrl, setHouseObjUrl] = useState('');
+
     const emptyShop = { business_name: '', category: '', additional_phone: '', keywords: [], custom_keyword: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', opening_time: '', closing_time: '', shop_image: null, shop_image_preview: '' };
     const emptyHouse = { rooms: '', halls: '', kitchens: '', floor: '', rent_per_month: '', advance_amount: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', is_available: true, house_image: null, house_image_preview: '' };
     const emptyJob = { shop_id: '', company_name: '', job_title: '', salary: '', salary_type: 'month', qualification: '', job_type: 'full_time', area: '', city: '', state: '', is_open: true };
@@ -669,19 +741,22 @@ export default function Profile() {
     const [jobForm, setJobForm] = useState(emptyJob);
     const [formData, setFormData] = useState(emptyProfile);
 
-    const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast({ msg: '', type: 'success' }), 3500); };
-    const closeModal = () => { setModal(''); setEditingShop(null); setEditingHouse(null); setEditingJob(null); setDeleteConfirm(null); };
+    const showToast = (msg, type = 'success') => {
+        setToast({ msg, type });
+        setTimeout(() => setToast({ msg: '', type: 'success' }), 3500);
+    };
+
+    const closeModal = () => {
+        setModal(''); setEditingShop(null); setEditingHouse(null);
+        setEditingJob(null); setDeleteConfirm(null);
+    };
+
     const formatPrice = p => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(p);
 
-    const shopLive = shops.length;
-    const shopVerified = shops.filter(s => s.is_verified).length;
-    const shopUnverified = shops.filter(s => !s.is_verified).length;
-    const houseLive = houses.length;
-    const houseVerified = houses.filter(h => h.is_verified).length;
-    const houseUnverified = houses.filter(h => !h.is_verified).length;
-    const jobLive = jobs.filter(j => j.is_open).length;
-    const jobVerified = jobs.filter(j => j.is_verified).length;
-    const jobUnverified = jobs.filter(j => !j.is_verified).length;
+    // Computed stats
+    const shopLive = shops.length, shopVerified = shops.filter(s => s.is_verified).length, shopUnverified = shops.filter(s => !s.is_verified).length;
+    const houseLive = houses.length, houseVerified = houses.filter(h => h.is_verified).length, houseUnverified = houses.filter(h => !h.is_verified).length;
+    const jobLive = jobs.filter(j => j.is_open).length, jobVerified = jobs.filter(j => j.is_verified).length, jobUnverified = jobs.filter(j => !j.is_verified).length;
     const totalListings = shops.length + houses.length + jobs.length;
 
     useEffect(() => { loadProfile(); loadCities(); loadCategories(); loadUserShopsForJob(); loadTotalViews(); }, []);
@@ -695,6 +770,12 @@ export default function Profile() {
         } else setSelectedCategoryItems([]);
     }, [shopForm.category, shopCategories]);
 
+    // Cleanup object URLs on unmount
+    useEffect(() => () => {
+        if (shopObjUrl) URL.revokeObjectURL(shopObjUrl);
+        if (houseObjUrl) URL.revokeObjectURL(houseObjUrl);
+    }, []);
+
     const loadProfile = async () => {
         setLoading(true);
         try {
@@ -705,9 +786,7 @@ export default function Profile() {
         finally { setLoading(false); }
     };
 
-    const loadTotalViews = async () => {
-        try { const r = await getTotalViews(); setTotalViews(r.total_views); setViewBreakdown(r.breakdown); } catch { }
-    };
+    const loadTotalViews = async () => { try { const r = await getTotalViews(); setTotalViews(r.total_views); setViewBreakdown(r.breakdown); } catch { } };
     const loadCities = async () => { try { const r = await getAllCities(); setCities(r.cities || []); } catch { } };
     const loadAreasFor = async (city, setter) => { try { const r = await getAreasByCity(city); setter(r.areas || []); } catch { setter([]); } };
     const loadCategories = async () => { try { const r = await getShopCategories(); setShopCategories(r?.categories?.length ? r.categories : []); } catch { } };
@@ -727,6 +806,24 @@ export default function Profile() {
             finally { setLocating(false); }
         }, () => { setLocating(false); showToast('Location access denied', 'error'); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     };
+
+    // ── PWA-safe image handlers (instant preview, no file input in JSX)
+    const handlePickShopImage = useCallback(() => {
+        openImagePicker((file, url) => {
+            if (shopObjUrl) URL.revokeObjectURL(shopObjUrl);
+            setShopObjUrl(url);
+            // Immediate state update — UI shows preview instantly
+            setShopForm(p => ({ ...p, shop_image: file, shop_image_preview: url }));
+        });
+    }, [shopObjUrl]);
+
+    const handlePickHouseImage = useCallback(() => {
+        openImagePicker((file, url) => {
+            if (houseObjUrl) URL.revokeObjectURL(houseObjUrl);
+            setHouseObjUrl(url);
+            setHouseForm(p => ({ ...p, house_image: file, house_image_preview: url }));
+        });
+    }, [houseObjUrl]);
 
     const verifyShopLoc = async () => {
         if (!shopForm.city || !shopForm.area || !shopForm.latitude) { showToast('Get location first, then select city & area', 'error'); return false; }
@@ -761,8 +858,11 @@ export default function Profile() {
     const handleChangePassword = async () => {
         if (passwordData.new_password !== passwordData.confirm_password) { showToast('Passwords do not match', 'error'); return; }
         if (passwordData.new_password.length < 6) { showToast('Min 6 characters', 'error'); return; }
-        try { await changePassword({ current_password: passwordData.current_password, new_password: passwordData.new_password }); showToast('Password changed!'); closeModal(); setPasswordData({ current_password: '', new_password: '', confirm_password: '' }); }
-        catch (e) { showToast(e.message, 'error'); }
+        try {
+            await changePassword({ current_password: passwordData.current_password, new_password: passwordData.new_password });
+            showToast('Password changed!'); closeModal();
+            setPasswordData({ current_password: '', new_password: '', confirm_password: '' });
+        } catch (e) { showToast(e.message, 'error'); }
     };
 
     const handleDeleteAccount = async () => {
@@ -907,15 +1007,7 @@ export default function Profile() {
 
     const handleRemoveKeyword = (kw) => setShopForm(p => ({ ...p, keywords: p.keywords.filter(k => k !== kw) }));
 
-    const handleImageChange = (e, type) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const preview = URL.createObjectURL(file);
-        if (type === 'shop') setShopForm(p => ({ ...p, shop_image: file, shop_image_preview: preview }));
-        else if (type === 'house') setHouseForm(p => ({ ...p, house_image: file, house_image_preview: preview }));
-    };
-
-    // ── Shared shop form fields (used in both Add and Edit modals)
+    // ── Shared shop form fields
     const ShopFormFields = () => (
         <FormGrid>
             <FormItem full>
@@ -949,11 +1041,11 @@ export default function Profile() {
             <FormItem full>
                 <FieldLabel>Custom Keyword</FieldLabel>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    <input style={{ flex: 1, padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 10, fontSize: 14, color: '#111827', background: '#FAFAFA', outline: 'none', fontFamily: 'var(--font)' }}
+                    <input style={{ flex: 1, padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 10, fontSize: 14, color: '#111827', background: '#FAFAFA', outline: 'none', fontFamily: 'var(--font)', minWidth: 0 }}
                         placeholder="e.g. Fresh Juice" value={shopForm.custom_keyword}
                         onChange={e => setShopForm(p => ({ ...p, custom_keyword: e.target.value }))}
                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddCustomKeyword())} />
-                    <button onClick={handleAddCustomKeyword} style={{ padding: '0 16px', borderRadius: 10, border: '1.5px solid #2563EB', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, whiteSpace: 'nowrap' }}>Add</button>
+                    <button onClick={handleAddCustomKeyword} style={{ padding: '0 14px', borderRadius: 10, border: '1.5px solid #2563EB', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0 }}>Add</button>
                 </div>
             </FormItem>
 
@@ -987,13 +1079,14 @@ export default function Profile() {
                 <Textarea label="Description" value={shopForm.description}
                     onChange={e => setShopForm(p => ({ ...p, description: e.target.value }))} />
             </FormItem>
-
             <FormItem full>
                 <FieldLabel>Shop Image</FieldLabel>
+                {/* PWA-safe image picker — no hidden input in JSX */}
                 <ImageUpload
                     preview={shopForm.shop_image_preview}
                     isNew={!!shopForm.shop_image}
-                    onChange={e => handleImageChange(e, 'shop')} />
+                    onPick={handlePickShopImage}
+                />
             </FormItem>
         </FormGrid>
     );
@@ -1010,25 +1103,25 @@ export default function Profile() {
         <div style={{ minHeight: '100dvh', background: '#F9FAFB', fontFamily: 'var(--font)' }}>
             <Toast msg={toast.msg} type={toast.type} />
 
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px 100px' }}>
+            <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(14px, 3vw, 20px) clamp(10px, 3vw, 16px) 100px' }}>
                 <div className="profile-layout">
 
                     {/* ── SIDEBAR ── */}
-                    <div className="profile-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div className="profile-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         {/* Profile Card */}
-                        <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #E5E7EB', padding: '24px 20px 20px', boxShadow: 'var(--shadow-sm)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg,#2563EB,#7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                        <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #E5E7EB', padding: 'clamp(16px,4vw,24px) clamp(14px,4vw,20px) 18px', boxShadow: 'var(--shadow-sm)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                                <div style={{ width: 66, height: 66, borderRadius: '50%', background: 'linear-gradient(135deg,#2563EB,#7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                                     {profile?.full_name?.charAt(0)?.toUpperCase() || 'U'}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 18, fontWeight: 800, color: '#111827', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.full_name}</div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6B7280', marginBottom: 3 }}>
-                                        <Icon name="phone" size={14} color="#9CA3AF" /> {profile?.phone}
+                                    <div style={{ fontSize: 17, fontWeight: 800, color: '#111827', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.full_name}</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#6B7280', marginBottom: 2 }}>
+                                        <Icon name="phone" size={13} color="#9CA3AF" /> {profile?.phone}
                                     </div>
                                     {(profile?.city || profile?.area) && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6B7280' }}>
-                                            <Icon name="location_on" size={14} color="#9CA3AF" />
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#6B7280' }}>
+                                            <Icon name="location_on" size={13} color="#9CA3AF" />
                                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                 {[profile.area, profile.city, profile.state].filter(Boolean).join(', ')}
                                             </span>
@@ -1037,29 +1130,29 @@ export default function Profile() {
                                 </div>
                             </div>
                             <button onClick={() => { setFormData({ full_name: profile?.full_name || '', area: profile?.area || '', city: profile?.city || '', state: profile?.state || '' }); setModal('editProfile'); }}
-                                style={{ marginTop: 16, width: '100%', padding: '9px', borderRadius: 10, border: '1.5px solid #E5E7EB', background: '#F9FAFB', color: '#374151', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'var(--font)' }}>
-                                <Icon name="edit" size={15} color="#374151" /> Edit Profile
+                                style={{ marginTop: 14, width: '100%', padding: '9px', borderRadius: 10, border: '1.5px solid #E5E7EB', background: '#F9FAFB', color: '#374151', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'var(--font)' }}>
+                                <Icon name="edit" size={14} color="#374151" /> Edit Profile
                             </button>
                         </div>
 
-                        {/* Stats Row */}
-                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: '16px', boxShadow: 'var(--shadow-sm)' }}>
+                        {/* Stats */}
+                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: '14px', boxShadow: 'var(--shadow-sm)' }}>
                             <div style={{ display: 'flex', gap: 10 }}>
                                 <StatCard iconName="store" count={totalListings} label="Total Listings" iconColor="#2563EB" iconBg="#DBEAFE" />
                                 <StatCard iconName="visibility" count={totalViews} label="Total Views" iconColor="#7C3AED" iconBg="#EDE9FE" />
                             </div>
                         </div>
 
-                        {/* Other Details */}
-                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: '6px 18px', boxShadow: 'var(--shadow-sm)' }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', padding: '12px 0 4px', textTransform: 'uppercase', letterSpacing: '.6px' }}>Other</div>
+                        {/* Other */}
+                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: '4px 16px', boxShadow: 'var(--shadow-sm)' }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', padding: '10px 0 2px', textTransform: 'uppercase', letterSpacing: '.6px' }}>Other</div>
                             <DetailRow iconName="help_outline" iconColor="#2563EB" iconBg="#EFF6FF" label="Help & Support" onClick={() => {}} />
                             <DetailRow iconName="info_outline" iconColor="#7C3AED" iconBg="#F5F3FF" label="About NearZO" onClick={() => {}} last />
                         </div>
 
                         {/* Settings */}
-                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: '6px 18px', boxShadow: 'var(--shadow-sm)' }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', padding: '12px 0 4px', textTransform: 'uppercase', letterSpacing: '.6px' }}>Settings</div>
+                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: '4px 16px', boxShadow: 'var(--shadow-sm)' }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', padding: '10px 0 2px', textTransform: 'uppercase', letterSpacing: '.6px' }}>Settings</div>
                             <DetailRow iconName="person_outline" iconColor="#2563EB" iconBg="#EFF6FF" label="Edit Profile"
                                 onClick={() => { setFormData({ full_name: profile?.full_name || '', area: profile?.area || '', city: profile?.city || '', state: profile?.state || '' }); setModal('editProfile'); }} />
                             <DetailRow iconName="lock_outline" iconColor="#16A34A" iconBg="#DCFCE7" label="Change Password" onClick={() => setModal('password')} />
@@ -1069,17 +1162,17 @@ export default function Profile() {
                     </div>
 
                     {/* ── RIGHT COLUMN ── */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         <div>
-                            <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 12 }}>Manage Your Listings</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: '#111827', marginBottom: 10 }}>Manage Your Listings</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                 <ListingSection iconName="storefront" iconColor="#2563EB" iconBg="#DBEAFE" title="Manage Shops" subtitle="Add, edit or manage your shop listings" badgeCount={shopLive} badgeColor="#2563EB" badgeBg="#EFF6FF" liveCount={shopLive} verifiedCount={shopVerified} unverifiedCount={shopUnverified} onAdd={() => setModal('shop')} addLabel="Add Shop" onManage={() => {}} viewCount={viewBreakdown.shops} />
                                 <ListingSection iconName="home" iconColor="#16A34A" iconBg="#DCFCE7" title="Manage Houses" subtitle="Add, edit or manage your house listings" badgeCount={houseLive} badgeColor="#16A34A" badgeBg="#F0FDF4" liveCount={houseLive} verifiedCount={houseVerified} unverifiedCount={houseUnverified} onAdd={() => setModal('house')} addLabel="Add House" onManage={() => {}} viewCount={viewBreakdown.houses} />
                                 <ListingSection iconName="work" iconColor="#EA580C" iconBg="#FFEDD5" title="Manage Jobs" subtitle="Add, edit or manage your job listings" badgeCount={jobLive} badgeColor="#EA580C" badgeBg="#FFF7ED" liveCount={jobLive} verifiedCount={jobVerified} unverifiedCount={jobUnverified} onAdd={() => setModal('job')} addLabel="Add Job" onManage={() => {}} viewCount={viewBreakdown.jobs} />
                             </div>
                         </div>
 
-                        {/* Listings Tabs */}
+                        {/* Tabs */}
                         <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
                             <div style={{ display: 'flex', borderBottom: '1px solid #F3F4F6' }}>
                                 {[
@@ -1087,46 +1180,47 @@ export default function Profile() {
                                     { key: 'houses', label: 'Houses', count: houses.length, icon: 'home' },
                                     { key: 'jobs', label: 'Jobs', count: jobs.length, icon: 'work' },
                                 ].map(t => (
-                                    <button key={t.key} onClick={() => setActiveTab(t.key)} style={{ flex: 1, padding: '14px 8px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: activeTab === t.key ? '#2563EB' : '#9CA3AF', borderBottom: activeTab === t.key ? '2.5px solid #2563EB' : '2.5px solid transparent' }}>
-                                        <Icon name={t.icon} size={16} color={activeTab === t.key ? '#2563EB' : '#9CA3AF'} />
+                                    <button key={t.key} onClick={() => setActiveTab(t.key)}
+                                        style={{ flex: 1, padding: 'clamp(10px,2.5vw,14px) 6px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontSize: 'clamp(12px,3vw,13px)', fontWeight: 600, fontFamily: 'var(--font)', color: activeTab === t.key ? '#2563EB' : '#9CA3AF', borderBottom: activeTab === t.key ? '2.5px solid #2563EB' : '2.5px solid transparent' }}>
+                                        <Icon name={t.icon} size={15} color={activeTab === t.key ? '#2563EB' : '#9CA3AF'} />
                                         {t.label}
-                                        <span style={{ padding: '2px 7px', borderRadius: 99, background: activeTab === t.key ? '#EFF6FF' : '#F3F4F6', color: activeTab === t.key ? '#2563EB' : '#9CA3AF', fontSize: 11, fontWeight: 700 }}>{t.count}</span>
+                                        <span style={{ padding: '2px 6px', borderRadius: 99, background: activeTab === t.key ? '#EFF6FF' : '#F3F4F6', color: activeTab === t.key ? '#2563EB' : '#9CA3AF', fontSize: 11, fontWeight: 700 }}>{t.count}</span>
                                     </button>
                                 ))}
                             </div>
 
-                            <div style={{ padding: 16 }}>
-                                {/* SHOPS TAB */}
+                            <div style={{ padding: 'clamp(10px, 2.5vw, 16px)' }}>
+                                {/* SHOPS */}
                                 {activeTab === 'shops' && (
                                     shops.length === 0
                                         ? <Empty label="No shops yet. Add your first shop!" />
-                                        : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+                                        : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(140px, 40vw, 180px), 1fr))', gap: 10 }}>
                                             {shops.map(s => (
                                                 <div key={s.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                                                    <div style={{ width: '100%', height: 100, overflow: 'hidden', background: '#EFF6FF' }}>
+                                                    <div style={{ width: '100%', height: 90, overflow: 'hidden', background: '#EFF6FF' }}>
                                                         {s.shop_image && s.shop_image.startsWith('http') ? (
                                                             <img src={s.shop_image} alt={s.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                                onError={e => { e.target.style.display = 'none'; const p = e.target.parentElement; if (p) p.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center"><span class="mi" style="font-size:32px;color:#BFDBFE">storefront</span></div>'; }} />
+                                                                onError={e => { e.target.style.display = 'none'; const p = e.target.parentElement; if (p) p.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center"><span class="mi" style="font-size:30px;color:#BFDBFE">storefront</span></div>'; }} />
                                                         ) : (
-                                                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="storefront" size={32} color="#BFDBFE" /></div>
+                                                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="storefront" size={30} color="#BFDBFE" /></div>
                                                         )}
                                                     </div>
-                                                    <div style={{ padding: '10px 12px 12px' }}>
+                                                    <div style={{ padding: '9px 10px 11px' }}>
                                                         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.business_name}</div>
-                                                        <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>{s.category}</div>
+                                                        <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 3 }}>{s.category}</div>
                                                         {(s.opening_time || s.closing_time) && (
-                                                            <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                            <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
                                                                 <Icon name="schedule" size={10} color="#9CA3AF" />
-                                                                {s.opening_time && s.opening_time.slice(0, 5)}{s.opening_time && s.closing_time && ' – '}{s.closing_time && s.closing_time.slice(0, 5)}
+                                                                {s.opening_time?.slice(0, 5)}{s.opening_time && s.closing_time && ' – '}{s.closing_time?.slice(0, 5)}
                                                             </div>
                                                         )}
-                                                        <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                        <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 3 }}>
                                                             <Icon name="visibility" size={11} color="#9CA3AF" /> {s.views_count || 0} views
                                                         </div>
-                                                        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                                                        <div style={{ marginBottom: 7 }}>
                                                             {s.is_verified ? <Badge label="Verified" color="#16A34A" bg="#DCFCE7" dot /> : <Badge label="Unverified" color="#DC2626" bg="#FEE2E2" dot />}
                                                         </div>
-                                                        <div style={{ display: 'flex', gap: 6 }}>
+                                                        <div style={{ display: 'flex', gap: 5 }}>
                                                             <button onClick={() => openEditShop(s)} style={{ flex: 1, padding: '6px', borderRadius: 7, border: '1px solid #2563EB', background: '#EFF6FF', color: '#2563EB', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>Edit</button>
                                                             <button onClick={() => openDeleteShopConfirm(s)} style={{ flex: 1, padding: '6px', borderRadius: 7, border: '1px solid #DC2626', background: '#FEE2E2', color: '#DC2626', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>Delete</button>
                                                         </div>
@@ -1136,33 +1230,33 @@ export default function Profile() {
                                         </div>
                                 )}
 
-                                {/* HOUSES TAB */}
+                                {/* HOUSES */}
                                 {activeTab === 'houses' && (
                                     houses.length === 0
-                                        ? <Empty label="No houses listed yet. Add your first house!" />
+                                        ? <Empty label="No houses listed yet." />
                                         : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                             {houses.map(h => (
                                                 <div key={h.id} style={{ border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden', background: '#fff', boxShadow: 'var(--shadow-sm)', display: 'flex' }}>
-                                                    <div style={{ width: 100, flexShrink: 0 }}>
+                                                    <div style={{ width: 90, flexShrink: 0 }}>
                                                         {h.house_image && h.house_image.startsWith('http') ? (
                                                             <img src={h.house_image} alt="House" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                                                                onError={e => { e.target.style.display = 'none'; const p = e.target.parentElement; if (p) p.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#F0FDF4"><span class="mi" style="font-size:32px;color:#BBF7D0">home</span></div>'; }} />
+                                                                onError={e => { e.target.style.display = 'none'; const p = e.target.parentElement; if (p) p.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#F0FDF4"><span class="mi" style="font-size:28px;color:#BBF7D0">home</span></div>'; }} />
                                                         ) : (
-                                                            <div style={{ width: '100%', height: '100%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 90 }}><Icon name="home" size={32} color="#BBF7D0" /></div>
+                                                            <div style={{ width: '100%', height: '100%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 88 }}><Icon name="home" size={28} color="#BBF7D0" /></div>
                                                         )}
                                                     </div>
-                                                    <div style={{ padding: '12px 14px', flex: 1 }}>
+                                                    <div style={{ padding: '11px 12px', flex: 1, minWidth: 0 }}>
                                                         <div style={{ fontSize: 14, fontWeight: 700 }}>{h.rooms} BHK House</div>
                                                         <div style={{ fontSize: 13, color: '#2563EB', fontWeight: 700 }}>{formatPrice(h.rent_per_month)}/mo</div>
-                                                        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                            <Icon name="visibility" size={12} color="#9CA3AF" /> {h.views_count || 0} views
+                                                        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                            <Icon name="visibility" size={12} color="#9CA3AF" /> {h.views_count || 0}
                                                         </div>
-                                                        <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                        <div style={{ marginTop: 5, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                                                             <Badge label={h.is_available ? 'Available' : 'Booked'} color={h.is_available ? '#16A34A' : '#DC2626'} bg={h.is_available ? '#DCFCE7' : '#FEE2E2'} dot />
                                                             {h.is_verified ? <Badge label="Verified" color="#16A34A" bg="#DCFCE7" dot /> : <Badge label="Unverified" color="#DC2626" bg="#FEE2E2" dot />}
                                                         </div>
-                                                        <div style={{ marginTop: 8 }}>
-                                                            <Btn size="sm" variant="secondary" onClick={() => openEditHouse(h)} icon={<Icon name="edit" size={14} color="#374151" />}>Edit</Btn>
+                                                        <div style={{ marginTop: 7 }}>
+                                                            <Btn size="sm" variant="secondary" onClick={() => openEditHouse(h)} icon={<Icon name="edit" size={13} color="#374151" />}>Edit</Btn>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1170,28 +1264,28 @@ export default function Profile() {
                                         </div>
                                 )}
 
-                                {/* JOBS TAB */}
+                                {/* JOBS */}
                                 {activeTab === 'jobs' && (
                                     jobs.length === 0
-                                        ? <Empty label="No jobs posted yet. Post your first job!" />
+                                        ? <Empty label="No jobs posted yet." />
                                         : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                             {jobs.map(j => (
-                                                <div key={j.id} style={{ border: '1px solid #E5E7EB', borderRadius: 14, padding: '14px 16px', background: '#fff', boxShadow: 'var(--shadow-sm)' }}>
+                                                <div key={j.id} style={{ border: '1px solid #E5E7EB', borderRadius: 14, padding: '12px 14px', background: '#fff', boxShadow: 'var(--shadow-sm)' }}>
                                                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                                                        <div style={{ flex: 1 }}>
-                                                            <div style={{ fontSize: 14, fontWeight: 700 }}>{j.job_title}</div>
-                                                            <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 4 }}>{j.shop_name || j.company_name}</div>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.job_title}</div>
+                                                            <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 3 }}>{j.shop_name || j.company_name}</div>
                                                             <div style={{ fontSize: 14, fontWeight: 700, color: '#2563EB' }}>{formatPrice(j.salary)}/{j.salary_type === 'month' ? 'mo' : 'day'}</div>
-                                                            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                                <Icon name="visibility" size={12} color="#9CA3AF" /> {j.views_count || 0} views
+                                                            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                                <Icon name="visibility" size={12} color="#9CA3AF" /> {j.views_count || 0}
                                                             </div>
-                                                            <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                                                            <div style={{ display: 'flex', gap: 5, marginTop: 7, flexWrap: 'wrap' }}>
                                                                 <Badge label={j.is_open ? 'Open' : 'Closed'} color={j.is_open ? '#16A34A' : '#DC2626'} bg={j.is_open ? '#DCFCE7' : '#FEE2E2'} dot />
                                                                 <Badge label={j.job_type === 'full_time' ? 'Full Time' : 'Part Time'} color="#6B7280" bg="#F3F4F6" />
                                                                 {j.is_verified ? <Badge label="Verified" color="#16A34A" bg="#DCFCE7" dot /> : <Badge label="Unverified" color="#DC2626" bg="#FEE2E2" dot />}
                                                             </div>
                                                         </div>
-                                                        <Btn size="sm" variant="secondary" onClick={() => openEditJob(j)} icon={<Icon name="edit" size={14} color="#374151" />}>Edit</Btn>
+                                                        <Btn size="sm" variant="secondary" onClick={() => openEditJob(j)} icon={<Icon name="edit" size={13} color="#374151" />}>Edit</Btn>
                                                     </div>
                                                 </div>
                                             ))}
@@ -1209,7 +1303,7 @@ export default function Profile() {
 
             {/* Edit Profile */}
             <Modal open={modal === 'editProfile'} onClose={closeModal} title="Edit Profile"
-                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleSaveProfile} loading={saving}>Save Changes</Btn></>}>
+                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleSaveProfile} loading={saving}>Save</Btn></>}>
                 <FormGrid>
                     <FormItem full>
                         <Input label="Full Name *" value={formData.full_name}
@@ -1233,7 +1327,7 @@ export default function Profile() {
 
             {/* Change Password */}
             <Modal open={modal === 'password'} onClose={closeModal} title="Change Password"
-                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleChangePassword}>Update Password</Btn></>}>
+                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleChangePassword}>Update</Btn></>}>
                 <FormGrid>
                     <FormItem full>
                         <Input label="Current Password" type="password" value={passwordData.current_password}
@@ -1262,16 +1356,10 @@ export default function Profile() {
 
             {/* Add Shop */}
             <Modal open={modal === 'shop'} onClose={closeModal} title="Add New Shop"
-                footer={
-                    <><Btn variant="secondary" onClick={closeModal}>Cancel</Btn>
-                    <Btn variant="primary" onClick={handleCreateShop}
-                        icon={<Icon name="storefront" size={15} color="#fff" />}>
-                        Create Shop
-                    </Btn></>
-                }>
+                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleCreateShop} icon={<Icon name="storefront" size={15} color="#fff" />}>Create Shop</Btn></>}>
                 <ShopFormFields />
-                <div style={{ height: 16 }} />
-                <FormGrid>
+                <div style={{ height: 12 }} />
+                <div className="form-grid">
                     <LocationSection
                         lat={shopForm.latitude} lng={shopForm.longitude}
                         city={shopForm.city} area={shopForm.area} state={shopForm.state}
@@ -1283,29 +1371,29 @@ export default function Profile() {
                         onAreaChange={v => setShopForm(p => ({ ...p, area: v }))}
                         onStateChange={v => setShopForm(p => ({ ...p, state: v }))}
                     />
-                </FormGrid>
+                </div>
             </Modal>
 
             {/* Edit Shop */}
             <Modal open={modal === 'editShop'} onClose={closeModal} title="Edit Shop"
                 footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleUpdateShop}>Save Changes</Btn></>}>
                 <ShopFormFields />
-                <div style={{ height: 16 }} />
-                <FormGrid>
+                <div style={{ height: 12 }} />
+                <div className="form-grid">
                     <SectionDivider label="Location" />
-                    <FormItem half>
+                    <div className="form-item-half">
                         <Input label="City" value={shopForm.city}
                             onChange={e => setShopForm(p => ({ ...p, city: e.target.value }))} />
-                    </FormItem>
-                    <FormItem half>
+                    </div>
+                    <div className="form-item-half">
                         <Input label="Area" value={shopForm.area}
                             onChange={e => setShopForm(p => ({ ...p, area: e.target.value }))} />
-                    </FormItem>
-                    <FormItem full>
+                    </div>
+                    <div className="form-item-full">
                         <Input label="State" value={shopForm.state}
                             onChange={e => setShopForm(p => ({ ...p, state: e.target.value }))} />
-                    </FormItem>
-                </FormGrid>
+                    </div>
+                </div>
             </Modal>
 
             {/* Delete Shop Confirm */}
@@ -1319,13 +1407,7 @@ export default function Profile() {
 
             {/* Add House */}
             <Modal open={modal === 'house'} onClose={closeModal} title="Add New House"
-                footer={
-                    <><Btn variant="secondary" onClick={closeModal}>Cancel</Btn>
-                    <Btn variant="primary" onClick={handleCreateHouse}
-                        icon={<Icon name="home" size={15} color="#fff" />}>
-                        List House
-                    </Btn></>
-                }>
+                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleCreateHouse} icon={<Icon name="home" size={15} color="#fff" />}>List House</Btn></>}>
                 <FormGrid>
                     <FormItem half><Input label="Rooms *" type="number" value={houseForm.rooms} onChange={e => setHouseForm(p => ({ ...p, rooms: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Halls" type="number" value={houseForm.halls} onChange={e => setHouseForm(p => ({ ...p, halls: e.target.value }))} /></FormItem>
@@ -1337,7 +1419,11 @@ export default function Profile() {
                     <FormItem full><Toggle checked={houseForm.is_available} onChange={v => setHouseForm(p => ({ ...p, is_available: v }))} label="Available for Rent" /></FormItem>
                     <FormItem full>
                         <FieldLabel>House Image</FieldLabel>
-                        <ImageUpload preview={houseForm.house_image_preview} isNew={!!houseForm.house_image} onChange={e => handleImageChange(e, 'house')} />
+                        <ImageUpload
+                            preview={houseForm.house_image_preview}
+                            isNew={!!houseForm.house_image}
+                            onPick={handlePickHouseImage}
+                        />
                     </FormItem>
                     <LocationSection
                         lat={houseForm.latitude} lng={houseForm.longitude}
@@ -1367,13 +1453,17 @@ export default function Profile() {
                     <FormItem full><Toggle checked={houseForm.is_available} onChange={v => setHouseForm(p => ({ ...p, is_available: v }))} label="Available for Rent" /></FormItem>
                     <FormItem full>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#9CA3AF', padding: '8px 12px', background: '#F9FAFB', borderRadius: 8, border: '1px solid #E5E7EB' }}>
-                            <Icon name="location_on" size={14} color="#2563EB" />
+                            <Icon name="location_on" size={13} color="#2563EB" />
                             {[houseForm.area, houseForm.city, houseForm.state].filter(Boolean).join(', ') || 'Location not set'}
                         </div>
                     </FormItem>
                     <FormItem full>
                         <FieldLabel>House Image</FieldLabel>
-                        <ImageUpload preview={houseForm.house_image_preview} isNew={!!houseForm.house_image} onChange={e => handleImageChange(e, 'house')} />
+                        <ImageUpload
+                            preview={houseForm.house_image_preview}
+                            isNew={!!houseForm.house_image}
+                            onPick={handlePickHouseImage}
+                        />
                     </FormItem>
                 </FormGrid>
             </Modal>
@@ -1403,23 +1493,23 @@ export default function Profile() {
                     <FormItem full><Textarea label="Qualification Required" value={jobForm.qualification} onChange={e => setJobForm(p => ({ ...p, qualification: e.target.value }))} /></FormItem>
                     <FormItem full><Toggle checked={jobForm.is_open} onChange={v => setJobForm(p => ({ ...p, is_open: v }))} label="Job Position is Open" /></FormItem>
                     <SectionDivider label="Location" />
-                    <FormItem half>
+                    <div className="form-item-half">
                         <SelectField label="City *" value={jobForm.city}
                             onChange={e => setJobForm(p => ({ ...p, city: e.target.value, area: '' }))}
                             disabled={!!jobForm.shop_id}
                             options={[{ value: '', label: 'Select City' }, ...cities.map(c => ({ value: c.name, label: c.name }))]} />
-                    </FormItem>
-                    <FormItem half>
+                    </div>
+                    <div className="form-item-half">
                         <SelectField label="Area" value={jobForm.area}
                             onChange={e => setJobForm(p => ({ ...p, area: e.target.value }))}
                             disabled={!jobForm.city || !!jobForm.shop_id}
                             options={[{ value: '', label: 'Select Area' }, ...jobAreas.map(a => ({ value: a.area, label: a.area }))]} />
-                    </FormItem>
-                    <FormItem half>
+                    </div>
+                    <div className="form-item-half">
                         <Input label="State *" value={jobForm.state}
                             onChange={e => setJobForm(p => ({ ...p, state: e.target.value }))}
                             disabled={!!jobForm.shop_id} />
-                    </FormItem>
+                    </div>
                 </FormGrid>
             </Modal>
 
