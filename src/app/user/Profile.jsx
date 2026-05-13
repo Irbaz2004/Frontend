@@ -442,8 +442,14 @@ const Modal = ({ open, onClose, title, children, footer }) => {
     if (!open) return null;
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-                <div style={{ padding: '10px 0 0', flexShrink: 0 }}>
+<div
+  className="modal-sheet"
+  onClick={e => e.stopPropagation()}
+  style={{
+    marginBottom:window.innerWidth <= 768 ? 'calc(env(safe-area-inset-bottom, 0px) + 80px)' : 0,
+    maxHeight: window.innerWidth <= 768 ? '83dvh' : '75dvh'
+  }}
+>                <div style={{ padding: '10px 0 0', flexShrink: 0 }}>
                     <div className="modal-handle" />
                 </div>
                 <div className="modal-header">
@@ -1164,7 +1170,7 @@ export default function Profile() {
                     {/* ── RIGHT COLUMN ── */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         <div>
-                            <div style={{ fontSize: 15, fontWeight: 800, color: '#111827', marginBottom: 10 }}>Manage Your Listings</div>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: '#111827', marginBottom: 10,marginTop:20}}>Manage Your Listings</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                 <ListingSection iconName="storefront" iconColor="#2563EB" iconBg="#DBEAFE" title="Manage Shops" subtitle="Add, edit or manage your shop listings" badgeCount={shopLive} badgeColor="#2563EB" badgeBg="#EFF6FF" liveCount={shopLive} verifiedCount={shopVerified} unverifiedCount={shopUnverified} onAdd={() => setModal('shop')} addLabel="Add Shop" onManage={() => {}} viewCount={viewBreakdown.shops} />
                                 <ListingSection iconName="home" iconColor="#16A34A" iconBg="#DCFCE7" title="Manage Houses" subtitle="Add, edit or manage your house listings" badgeCount={houseLive} badgeColor="#16A34A" badgeBg="#F0FDF4" liveCount={houseLive} verifiedCount={houseVerified} unverifiedCount={houseUnverified} onAdd={() => setModal('house')} addLabel="Add House" onManage={() => {}} viewCount={viewBreakdown.houses} />

@@ -434,10 +434,8 @@ export default function Houses() {
             </Box>
 
             {/* ── Results Count + Sort ── */}
-            <Box sx={{ px: 2, pt: 1.5, pb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>
-                    {houses.length > 0 ? `${houses.length}+ Rental Homes Found` : 'No homes found'}
-                </Typography>
+            <Box sx={{ px: 2, pt: 1.5, pb: 0.5, display: 'flex', justifyContent: 'end', alignItems: 'center' }}>
+               
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
                     <Typography sx={{ fontSize: 13, color: '#6b7280' }}>Sort by:</Typography>
                     <Typography sx={{ fontSize: 13, color: '#1a6ef5', fontWeight: 600 }}>Relevance</Typography>
@@ -462,20 +460,47 @@ export default function Houses() {
                                 <HouseSkeleton />
                             </Grid>
                         ))
-                    ) : houses.length === 0 ? (
-                        <Grid item xs={12}>
-                            <Box sx={{ textAlign: 'center', py: 6 }}>
-                                <HomeIcon sx={{ fontSize: 56, color: '#d0d0d0', mb: 1.5 }} />
-                                <Typography sx={{ fontWeight: 600, color: '#555', mb: 0.5 }}>No houses found</Typography>
-                                <Typography sx={{ fontSize: 13, color: '#999', mb: 2 }}>
-                                    Try adjusting your filters or search term
-                                </Typography>
-                                <Button variant="contained" onClick={clearFilters}
-                                    sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#325fec' }}>
-                                    Clear Filters
-                                </Button>
-                            </Box>
-                        </Grid>
+                 ) : houses.length === 0 ? (
+    <Grid item xs={12}sx={{display:'flex',margin:'0 auto'}}>
+        <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            minHeight: '55vh',
+            px: 3,
+            py: 4,
+            width: '100%',
+        }}>
+            <Box sx={{
+                width: 80, height: 80, borderRadius: '50%',
+                bgcolor: '#f0f3f8',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                mb: 2,
+            }}>
+                <HomeIcon sx={{ fontSize: 40, color: '#c0c8d8' }} />
+            </Box>
+            <Typography sx={{ fontWeight: 700, fontSize: 16, color: '#333', mb: 0.6 }}>
+                No houses found
+            </Typography>
+            <Typography sx={{ fontSize: 13, color: '#999', mb: 2.5, maxWidth: 260, lineHeight: 1.6 }}>
+                Try adjusting your filters or search term
+            </Typography>
+            <Button
+                variant="contained"
+                onClick={clearFilters}
+                sx={{
+                    textTransform: 'none', borderRadius: '10px',
+                    bgcolor: '#325fec', fontWeight: 600,
+                    px: 3, py: 1,
+                    '&:hover': { bgcolor: '#2349cc' }
+                }}
+            >
+                Clear Filters
+            </Button>
+        </Box>
+    </Grid>
                     ) : (
                         houses.map((house) => {
                             const verification = getVerificationBadge(house.is_verified);
