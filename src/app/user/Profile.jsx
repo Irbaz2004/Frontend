@@ -1,5 +1,5 @@
 // app/user/Profile.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import {
     getProfile,
     updateProfile,
@@ -58,8 +58,6 @@ const GLOBAL_STYLE = `
     --shadow: 0 4px 16px rgba(0,0,0,.08);
     --shadow-lg: 0 10px 40px rgba(0,0,0,.12);
     --bottom-nav-h: 64px;
-
-    /* Responsive modal spacing */
     --modal-px: clamp(12px, 4vw, 20px);
     --modal-py: clamp(10px, 2.5vw, 18px);
     --form-gap: clamp(10px, 2.5vw, 14px);
@@ -105,7 +103,6 @@ const GLOBAL_STYLE = `
   }
   .icon-btn:hover { background: var(--border-light); }
 
-  /* ── Modal overlay ── */
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -118,11 +115,9 @@ const GLOBAL_STYLE = `
     -webkit-backdrop-filter: blur(3px);
     animation: fadeIn .2s ease;
     padding: 0;
-    /* prevent body scroll bleed on iOS */
     overscroll-behavior: contain;
   }
 
-  /* ── Modal sheet (mobile = bottom sheet) ── */
   .modal-sheet {
     width: 100%;
     max-width: 560px;
@@ -134,16 +129,11 @@ const GLOBAL_STYLE = `
     animation: slideUp .28s cubic-bezier(.32,.72,0,1);
     overflow: hidden;
     margin-bottom: var(--bottom-nav-h);
-    /* keep sheet above home indicator */
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  /* Desktop: centered dialog */
   @media (min-width: 640px) {
-    .modal-overlay {
-      align-items: center;
-      padding: 16px;
-    }
+    .modal-overlay { align-items: center; padding: 16px; }
     .modal-sheet {
       border-radius: 20px;
       max-height: calc(100dvh - 80px);
@@ -152,7 +142,6 @@ const GLOBAL_STYLE = `
     }
   }
 
-  /* ── Modal header ── */
   .modal-header {
     display: flex;
     align-items: center;
@@ -162,7 +151,6 @@ const GLOBAL_STYLE = `
     flex-shrink: 0;
   }
 
-  /* ── Modal body: scrollable ── */
   .modal-body {
     flex: 1;
     overflow-y: auto;
@@ -172,7 +160,6 @@ const GLOBAL_STYLE = `
     overscroll-behavior: contain;
   }
 
-  /* ── Modal footer ── */
   .modal-footer {
     padding: clamp(10px, 2vw, 14px) var(--modal-px) clamp(12px, 3vw, 18px);
     border-top: 1px solid #F3F4F6;
@@ -183,7 +170,6 @@ const GLOBAL_STYLE = `
     background: #fff;
   }
 
-  /* Drag handle */
   .modal-handle {
     width: 36px;
     height: 4px;
@@ -192,31 +178,20 @@ const GLOBAL_STYLE = `
     margin: 0 auto 0;
     flex-shrink: 0;
   }
-  @media (min-width: 640px) {
-    .modal-handle { display: none; }
-  }
+  @media (min-width: 640px) { .modal-handle { display: none; } }
 
-  /* ── Form grid responsive ── */
-  .form-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--form-gap);
-  }
+  .form-grid { display: flex; flex-wrap: wrap; gap: var(--form-gap); }
   .form-item-half {
     flex: 1 1 calc(50% - var(--form-gap) / 2);
     min-width: clamp(100px, 35vw, 140px);
   }
-  .form-item-full {
-    flex: 1 1 100%;
-  }
+  .form-item-full { flex: 1 1 100%; }
 
-  /* At very small screens, halves go full width */
   @media (max-width: 320px) {
     .form-item-half { flex: 1 1 100%; min-width: 0; }
     :root { --modal-px: 10px; --form-gap: 9px; }
   }
 
-  /* ── Profile layout ── */
   @media (min-width: 768px) {
     .profile-layout {
       display: grid;
@@ -240,33 +215,56 @@ if (!document.getElementById('profile-styles-v4')) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PWA-SAFE IMAGE PICKER
-// Opens file picker programmatically — works in PWA/standalone mode on iOS/Android
+// Fix: Proper PWA/iOS standalone image picker with reliable change detection
 // ─────────────────────────────────────────────────────────────────────────────
 function openImagePicker(onFile) {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    // Required for iOS PWA
-    input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
-    document.body.appendChild(input);
+    return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        // Critical for iOS PWA: must be in DOM and visible-ish
+        input.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;z-index:-1;';
+        document.body.appendChild(input);
 
-    const cleanup = () => {
-        try { document.body.removeChild(input); } catch { }
-    };
+        let handled = false;
 
-    input.addEventListener('change', (e) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            // Revoke any previous object URL handled by caller
-            const url = URL.createObjectURL(file);
-            onFile(file, url);
-        }
-        cleanup();
+        const cleanup = () => {
+            try { document.body.removeChild(input); } catch { }
+        };
+
+        // Use 'input' event as primary (more reliable in PWA)
+        const handleChange = (e) => {
+            if (handled) return;
+            const file = e.target.files?.[0];
+            if (file) {
+                handled = true;
+                const url = URL.createObjectURL(file);
+                onFile(file, url);
+                resolve({ file, url });
+            }
+            cleanup();
+        };
+
+        input.addEventListener('change', handleChange);
+        input.addEventListener('input', handleChange);
+
+        // Fallback: detect focus return without file selection
+        window.addEventListener('focus', function onFocus() {
+            window.removeEventListener('focus', onFocus);
+            setTimeout(() => {
+                if (!handled) cleanup();
+                resolve(null);
+            }, 500);
+        }, { once: true });
+
+        // iOS PWA workaround: needs a tiny delay before click
+        setTimeout(() => {
+            try { input.click(); } catch (err) {
+                // Some PWA contexts need dispatchEvent
+                input.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            }
+        }, 50);
     });
-
-    // Focus trick needed in some PWA contexts
-    input.focus();
-    input.click();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -346,39 +344,90 @@ const inputBase = {
     fontFamily: 'var(--font)',
 };
 
-const Input = ({ label, style = {}, wrapStyle = {}, ...props }) => (
-    <div style={{ ...wrapStyle }}>
-        {label && <FieldLabel>{label}</FieldLabel>}
-        <input
-            {...props}
-            style={{ ...inputBase, ...style }}
-            onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px #DBEAFE'; }}
-            onBlur={e => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
-        />
-    </div>
-);
+// ─────────────────────────────────────────────────────────────────────────────
+// FIX: Uncontrolled-style Input to prevent cursor jump in PWA
+// Uses defaultValue + ref pattern with onChange for state sync
+// ─────────────────────────────────────────────────────────────────────────────
+const Input = memo(({ label, value, onChange, style = {}, wrapStyle = {}, type = 'text', placeholder, disabled, onKeyDown }) => {
+    const inputRef = useRef(null);
 
-const Textarea = ({ label, wrapStyle = {}, ...props }) => (
-    <div style={{ ...wrapStyle }}>
-        {label && <FieldLabel>{label}</FieldLabel>}
-        <textarea {...props} rows={3} style={{
-            ...inputBase, resize: 'vertical',
-        }}
-            onFocus={e => { e.target.style.borderColor = '#2563EB'; }}
-            onBlur={e => { e.target.style.borderColor = '#E5E7EB'; }}
-        />
-    </div>
-);
+    // Sync external value changes (e.g. when form resets) without clobbering cursor
+    useEffect(() => {
+        if (inputRef.current && document.activeElement !== inputRef.current) {
+            inputRef.current.value = value ?? '';
+        }
+    }, [value]);
 
-const SelectField = ({ label, options = [], wrapStyle = {}, ...props }) => (
+    const handleFocus = (e) => {
+        e.target.style.borderColor = '#2563EB';
+        e.target.style.boxShadow = '0 0 0 3px #DBEAFE';
+    };
+    const handleBlur = (e) => {
+        e.target.style.borderColor = '#E5E7EB';
+        e.target.style.boxShadow = 'none';
+    };
+
+    return (
+        <div style={{ ...wrapStyle }}>
+            {label && <FieldLabel>{label}</FieldLabel>}
+            <input
+                ref={inputRef}
+                type={type}
+                defaultValue={value ?? ''}
+                onChange={onChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                placeholder={placeholder}
+                disabled={disabled}
+                onKeyDown={onKeyDown}
+                style={{ ...inputBase, ...style, opacity: disabled ? 0.5 : 1 }}
+            />
+        </div>
+    );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIX: Uncontrolled-style Textarea to prevent cursor jump
+// ─────────────────────────────────────────────────────────────────────────────
+const Textarea = memo(({ label, value, onChange, wrapStyle = {} }) => {
+    const ref = useRef(null);
+
+    useEffect(() => {
+        if (ref.current && document.activeElement !== ref.current) {
+            ref.current.value = value ?? '';
+        }
+    }, [value]);
+
+    return (
+        <div style={{ ...wrapStyle }}>
+            {label && <FieldLabel>{label}</FieldLabel>}
+            <textarea
+                ref={ref}
+                defaultValue={value ?? ''}
+                onChange={onChange}
+                rows={3}
+                style={{ ...inputBase, resize: 'vertical' }}
+                onFocus={e => { e.target.style.borderColor = '#2563EB'; }}
+                onBlur={e => { e.target.style.borderColor = '#E5E7EB'; }}
+            />
+        </div>
+    );
+});
+
+const SelectField = ({ label, options = [], wrapStyle = {}, value, onChange, disabled }) => (
     <div style={{ ...wrapStyle }}>
         {label && <FieldLabel>{label}</FieldLabel>}
-        <select {...props} style={{
-            ...inputBase,
-            appearance: 'none',
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-            backgroundRepeat: 'no-repeat', backgroundPosition: 'calc(100% - 12px) center', paddingRight: 36,
-        }}>
+        <select
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            style={{
+                ...inputBase,
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat', backgroundPosition: 'calc(100% - 12px) center', paddingRight: 36,
+                opacity: disabled ? 0.5 : 1,
+            }}>
             {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
     </div>
@@ -404,7 +453,8 @@ const Btn = ({ children, onClick, variant = 'primary', size = 'md', loading, dis
         success: { background: '#DCFCE7', color: '#16A34A' },
     };
     return (
-        <button onClick={!disabled && !loading ? onClick : undefined}
+        <button
+            onClick={!disabled && !loading ? onClick : undefined}
             style={{ ...base, ...sizes[size], ...variants[variant], ...style }}>
             {loading ? <Spinner size={14} color={variant === 'secondary' ? '#374151' : '#fff'} /> : icon}
             {children}
@@ -442,14 +492,15 @@ const Modal = ({ open, onClose, title, children, footer }) => {
     if (!open) return null;
     return (
         <div className="modal-overlay" onClick={onClose}>
-<div
-  className="modal-sheet"
-  onClick={e => e.stopPropagation()}
-  style={{
-    marginBottom:window.innerWidth <= 768 ? 'calc(env(safe-area-inset-bottom, 0px) + 80px)' : 0,
-    maxHeight: window.innerWidth <= 768 ? '83dvh' : '75dvh'
-  }}
->                <div style={{ padding: '10px 0 0', flexShrink: 0 }}>
+            <div
+                className="modal-sheet"
+                onClick={e => e.stopPropagation()}
+                style={{
+                    marginBottom: window.innerWidth <= 768 ? 'calc(env(safe-area-inset-bottom, 0px) + 80px)' : 0,
+                    maxHeight: window.innerWidth <= 768 ? '83dvh' : '75dvh'
+                }}
+            >
+                <div style={{ padding: '10px 0 0', flexShrink: 0 }}>
                     <div className="modal-handle" />
                 </div>
                 <div className="modal-header">
@@ -487,8 +538,10 @@ const Toast = ({ msg, type = 'success' }) => {
             <div style={{
                 background: colors[type].bg, color: colors[type].color,
                 padding: '12px 20px', borderRadius: 12, fontWeight: 600,
-                fontSize: 14, boxShadow: '0 4px 20px rgba(0,0,0,.12)', maxWidth: 380
+                fontSize: 14, boxShadow: '0 4px 20px rgba(0,0,0,.12)', maxWidth: 380,
+                display: 'flex', alignItems: 'center', gap: 8
             }}>
+                <Icon name={type === 'success' ? 'check_circle' : 'error'} size={16} color={colors[type].color} />
                 {msg}
             </div>
         </div>
@@ -496,7 +549,7 @@ const Toast = ({ msg, type = 'success' }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FORM HELPERS (now use CSS classes for responsiveness)
+// FORM HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 const FormGrid = ({ children }) => <div className="form-grid">{children}</div>;
 const FormItem = ({ half, full, children }) => (
@@ -614,7 +667,7 @@ const AlertBox = ({ type = 'danger', icon = 'warning', children }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// IMAGE UPLOAD — PWA-safe, instant preview
+// IMAGE UPLOAD — PWA-safe with instant preview
 // ─────────────────────────────────────────────────────────────────────────────
 const ImageUpload = ({ preview, isNew, onPick, label = 'Upload Image' }) => (
     <div>
@@ -633,7 +686,6 @@ const ImageUpload = ({ preview, isNew, onPick, label = 'Upload Image' }) => (
                 </div>
             </div>
         )}
-        {/* PWA-safe: button triggers programmatic file picker instead of hidden input */}
         <button
             type="button"
             onClick={onPick}
@@ -696,6 +748,133 @@ const LocationSection = ({ lat, lng, city, area, state, cities, areas, locating,
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ABOUT NEARZO MODAL CONTENT
+// ─────────────────────────────────────────────────────────────────────────────
+const AboutNearZOContent = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        {/* Hero */}
+        <div style={{ background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)', borderRadius: 16, padding: '20px', textAlign: 'center', color: '#fff' }}>
+            <div style={{ fontSize: 32, marginBottom: 6 }}>📍</div>
+            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>NearZO</div>
+            <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.5 }}>Your local discovery platform — connecting communities, one neighborhood at a time.</div>
+        </div>
+
+        {/* What we do */}
+        <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>What We Do</div>
+            {[
+                { icon: 'storefront', color: '#2563EB', bg: '#EFF6FF', title: 'Discover Local Shops', desc: 'Find shops, restaurants, and businesses right in your neighborhood with real-time location data.' },
+                { icon: 'home', color: '#16A34A', bg: '#DCFCE7', title: 'Find Rental Houses', desc: 'Browse verified house and flat listings near you — no brokers, no hidden charges.' },
+                { icon: 'work', color: '#EA580C', bg: '#FFEDD5', title: 'Local Job Listings', desc: 'Discover job opportunities posted by businesses in your area — apply directly.' },
+                { icon: 'location_on', color: '#7C3AED', bg: '#EDE9FE', title: 'Location-Verified Listings', desc: 'Every shop and house is GPS-verified so you know exactly where it is before you visit.' },
+            ].map(item => (
+                <div key={item.title} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 10, background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name={item.icon} size={18} color={item.color} />
+                    </div>
+                    <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{item.title}</div>
+                        <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.5 }}>{item.desc}</div>
+                    </div>
+                </div>
+            ))}
+        </div>
+
+        {/* Mission */}
+        <div style={{ background: '#F9FAFB', borderRadius: 12, padding: '14px', border: '1px solid #E5E7EB' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon name="favorite" size={14} color="#DC2626" /> Our Mission
+            </div>
+            <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>
+                NearZO is built to bridge the gap between local businesses and the people around them. We believe every shop owner, landlord, and job provider in small towns and cities deserves a digital presence — and every resident deserves easy access to what's available nearby.
+            </div>
+        </div>
+
+        {/* Version */}
+        <div style={{ textAlign: 'center', fontSize: 11, color: '#9CA3AF' }}>
+            Version 1.0.0 · Made with ❤️ in India
+        </div>
+    </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUPPORT MODAL CONTENT
+// ─────────────────────────────────────────────────────────────────────────────
+const SupportContent = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Header */}
+        <div style={{ background: 'linear-gradient(135deg, #0EA5E9 0%, #2563EB 100%)', borderRadius: 16, padding: '18px', textAlign: 'center', color: '#fff' }}>
+            <div style={{ fontSize: 28, marginBottom: 4 }}>🤝</div>
+            <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>We're here to help!</div>
+            <div style={{ fontSize: 12, opacity: 0.85 }}>Reach out to us through any of these channels</div>
+        </div>
+
+        {/* Contact */}
+        <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Contact Us</div>
+            {[
+                {
+                    icon: 'call', color: '#16A34A', bg: '#DCFCE7', label: 'Phone / WhatsApp',
+                    value: '+91 98765 43210',
+                    sub: 'Mon–Sat, 9 AM – 6 PM',
+                    href: 'tel:+919876543210'
+                },
+                {
+                    icon: 'email', color: '#2563EB', bg: '#EFF6FF', label: 'Email Support',
+                    value: 'support@nearzo.in',
+                    sub: 'We reply within 24 hours',
+                    href: 'mailto:support@nearzo.in'
+                },
+                {
+                    icon: 'language', color: '#7C3AED', bg: '#EDE9FE', label: 'Website',
+                    value: 'www.nearzo.in',
+                    sub: 'Visit our website',
+                    href: 'https://nearzo.in'
+                },
+            ].map(item => (
+                <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid #F3F4F6', textDecoration: 'none' }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name={item.icon} size={19} color={item.color} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.3px' }}>{item.label}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{item.value}</div>
+                        <div style={{ fontSize: 11, color: '#9CA3AF' }}>{item.sub}</div>
+                    </div>
+                    <Icon name="open_in_new" size={15} color="#9CA3AF" />
+                </a>
+            ))}
+        </div>
+
+        {/* Social Media */}
+        <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Follow Us</div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {[
+                    { icon: 'photo_camera', label: 'Instagram', handle: '@nearzo.in', color: '#E1306C', bg: '#FDF2F8', href: 'https://instagram.com/nearzo.in' },
+                    { icon: 'chat', label: 'WhatsApp Channel', handle: 'NearZO Official', color: '#25D366', bg: '#F0FDF4', href: 'https://whatsapp.com/channel/nearzo' },
+                    { icon: 'play_circle', label: 'YouTube', handle: 'NearZO', color: '#FF0000', bg: '#FFF0F0', href: 'https://youtube.com/@nearzo' },
+                ].map(s => (
+                    <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
+                        style={{ flex: '1 1 calc(50% - 5px)', minWidth: 120, padding: '10px 12px', background: s.bg, borderRadius: 12, border: `1px solid ${s.color}22`, textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <Icon name={s.icon} size={20} color={s.color} />
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#111827' }}>{s.label}</div>
+                        <div style={{ fontSize: 11, color: '#6B7280' }}>{s.handle}</div>
+                    </a>
+                ))}
+            </div>
+        </div>
+
+        {/* FAQ hint */}
+        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12, padding: '12px 14px', fontSize: 13, color: '#92400E', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <Icon name="tips_and_updates" size={15} color="#D97706" style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>For issues with listings, location verification, or account access — describe your problem and send a WhatsApp message. We typically resolve issues within a few hours.</span>
+        </div>
+    </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Profile() {
@@ -740,6 +919,10 @@ export default function Profile() {
     // Loading states for update operations
     const [updatingShop, setUpdatingShop] = useState(false);
     const [updatingHouse, setUpdatingHouse] = useState(false);
+    const [creatingShop, setCreatingShop] = useState(false);
+    const [creatingHouse, setCreatingHouse] = useState(false);
+    const [creatingJob, setCreatingJob] = useState(false);
+    const [updatingJob, setUpdatingJob] = useState(false);
 
     const emptyShop = { business_name: '', category: '', additional_phone: '', keywords: [], custom_keyword: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', opening_time: '', closing_time: '', shop_image: null, shop_image_preview: '' };
     const emptyHouse = { rooms: '', halls: '', kitchens: '', floor: '', rent_per_month: '', advance_amount: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', is_available: true, house_image: null, house_image_preview: '' };
@@ -751,27 +934,23 @@ export default function Profile() {
     const [jobForm, setJobForm] = useState(emptyJob);
     const [formData, setFormData] = useState(emptyProfile);
 
-    const showToast = (msg, type = 'success') => {
+    // ─── FIX: Get the API URL once — works in PWA too
+    const API_URL = import.meta.env.VITE_API_URL || window.__NEARZO_API_URL__ || '';
+
+    const showToast = useCallback((msg, type = 'success') => {
         setToast({ msg, type });
         setTimeout(() => setToast({ msg: '', type: 'success' }), 3500);
-    };
+    }, []);
 
-    const closeModal = () => {
-        setModal(''); 
-        setEditingShop(null); 
+    const closeModal = useCallback(() => {
+        setModal('');
+        setEditingShop(null);
         setEditingHouse(null);
-        setEditingJob(null); 
+        setEditingJob(null);
         setDeleteConfirm(null);
-        // Clean up object URLs when closing modals
-        if (shopObjUrl) {
-            URL.revokeObjectURL(shopObjUrl);
-            setShopObjUrl('');
-        }
-        if (houseObjUrl) {
-            URL.revokeObjectURL(houseObjUrl);
-            setHouseObjUrl('');
-        }
-    };
+        if (shopObjUrl) { URL.revokeObjectURL(shopObjUrl); setShopObjUrl(''); }
+        if (houseObjUrl) { URL.revokeObjectURL(houseObjUrl); setHouseObjUrl(''); }
+    }, [shopObjUrl, houseObjUrl]);
 
     const formatPrice = p => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(p);
 
@@ -792,7 +971,6 @@ export default function Profile() {
         } else setSelectedCategoryItems([]);
     }, [shopForm.category, shopCategories]);
 
-    // Cleanup object URLs on unmount
     useEffect(() => () => {
         if (shopObjUrl) URL.revokeObjectURL(shopObjUrl);
         if (houseObjUrl) URL.revokeObjectURL(houseObjUrl);
@@ -804,63 +982,38 @@ export default function Profile() {
             const r = await getProfile();
             setProfile(r.user); setShops(r.shops || []); setHouses(r.houses || []); setJobs(r.jobs || []);
             setFormData({ full_name: r.user.full_name || '', area: r.user.area || '', city: r.user.city || '', state: r.user.state || '' });
-        } catch (error) { 
-            showToast(error.message || 'Failed to load profile', 'error'); 
-        }
-        finally { setLoading(false); }
+        } catch (error) {
+            showToast(error.message || 'Failed to load profile', 'error');
+        } finally { setLoading(false); }
     };
 
-    const loadTotalViews = async () => { 
-        try { 
-            const r = await getTotalViews(); 
-            setTotalViews(r.total_views); 
-            setViewBreakdown(r.breakdown); 
-        } catch (error) { 
-            console.error('Failed to load views:', error); 
-        } 
+    const loadTotalViews = async () => {
+        try { const r = await getTotalViews(); setTotalViews(r.total_views); setViewBreakdown(r.breakdown); }
+        catch (err) { console.error('Failed to load views:', err); }
     };
-    
-    const loadCities = async () => { 
-        try { 
-            const r = await getAllCities(); 
-            setCities(r.cities || []); 
-        } catch (error) { 
-            console.error('Failed to load cities:', error); 
-        } 
+
+    const loadCities = async () => {
+        try { const r = await getAllCities(); setCities(r.cities || []); }
+        catch (err) { console.error('Failed to load cities:', err); }
     };
-    
-    const loadAreasFor = async (city, setter) => { 
-        try { 
-            const r = await getAreasByCity(city); 
-            setter(r.areas || []); 
-        } catch (error) { 
-            setter([]); 
-        } 
+
+    const loadAreasFor = async (city, setter) => {
+        try { const r = await getAreasByCity(city); setter(r.areas || []); }
+        catch { setter([]); }
     };
-    
-    const loadCategories = async () => { 
-        try { 
-            const r = await getShopCategories(); 
-            setShopCategories(r?.categories?.length ? r.categories : []); 
-        } catch (error) { 
-            console.error('Failed to load categories:', error); 
-        } 
+
+    const loadCategories = async () => {
+        try { const r = await getShopCategories(); setShopCategories(r?.categories?.length ? r.categories : []); }
+        catch (err) { console.error('Failed to load categories:', err); }
     };
-    
-    const loadUserShopsForJob = async () => { 
-        try { 
-            const r = await getUserShopsForJob(); 
-            setUserShopsForJob(r.shops || []); 
-        } catch (error) { 
-            console.error('Failed to load user shops:', error); 
-        } 
+
+    const loadUserShopsForJob = async () => {
+        try { const r = await getUserShopsForJob(); setUserShopsForJob(r.shops || []); }
+        catch (err) { console.error('Failed to load user shops:', err); }
     };
 
     const getCurrentLocation = (setter) => {
-        if (!navigator.geolocation) { 
-            showToast('Geolocation not supported', 'error'); 
-            return; 
-        }
+        if (!navigator.geolocation) { showToast('Geolocation not supported', 'error'); return; }
         setLocating(true);
         navigator.geolocation.getCurrentPosition(async (pos) => {
             const lat = pos.coords.latitude, lng = pos.coords.longitude;
@@ -869,237 +1022,208 @@ export default function Profile() {
                 const matched = cities.find(c => c.name.toLowerCase() === (info?.city || '').toLowerCase());
                 setter(p => ({ ...p, latitude: lat, longitude: lng, city: matched ? matched.name : (info?.city || ''), area: info?.area || '', state: info?.state || p.state || '' }));
                 showToast(`📍 ${info?.area ? info.area + ', ' : ''}${info?.city || 'Location found'}`);
-            } catch (error) { 
-                setter(p => ({ ...p, latitude: lat, longitude: lng })); 
+            } catch {
+                setter(p => ({ ...p, latitude: lat, longitude: lng }));
                 showToast('Location detected but address not found', 'error');
-            }
-            finally { setLocating(false); }
-        }, (error) => { 
-            setLocating(false); 
-            showToast(error.message || 'Location access denied', 'error'); 
-        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+            } finally { setLocating(false); }
+        }, (err) => { setLocating(false); showToast(err.message || 'Location access denied', 'error'); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     };
 
-    // ── PWA-safe image handlers (instant preview, no file input in JSX)
-    const handlePickShopImage = useCallback(() => {
-        openImagePicker((file, url) => {
-            if (shopObjUrl) URL.revokeObjectURL(shopObjUrl);
-            setShopObjUrl(url);
-            // Immediate state update — UI shows preview instantly
-            setShopForm(p => ({ ...p, shop_image: file, shop_image_preview: url }));
-        });
-    }, [shopObjUrl]);
+    // ─────────────────────────────────────────────────────────────────────────
+    // FIX: PWA-safe image handlers
+    // Uses async openImagePicker — works reliably in iOS/Android PWA standalone mode
+    // ─────────────────────────────────────────────────────────────────────────
+    const handlePickShopImage = useCallback(async () => {
+        try {
+            const result = await openImagePicker((file, url) => {
+                // Revoke previous object URL
+                setShopObjUrl(prev => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return url;
+                });
+                // Update form state immediately
+                setShopForm(p => ({ ...p, shop_image: file, shop_image_preview: url }));
+                showToast('Image selected ✓');
+            });
+            if (!result) {
+                // User cancelled, no toast needed
+            }
+        } catch (err) {
+            showToast('Failed to pick image. Please try again.', 'error');
+        }
+    }, [showToast]);
 
-    const handlePickHouseImage = useCallback(() => {
-        openImagePicker((file, url) => {
-            if (houseObjUrl) URL.revokeObjectURL(houseObjUrl);
-            setHouseObjUrl(url);
-            setHouseForm(p => ({ ...p, house_image: file, house_image_preview: url }));
-        });
-    }, [houseObjUrl]);
+    const handlePickHouseImage = useCallback(async () => {
+        try {
+            const result = await openImagePicker((file, url) => {
+                setHouseObjUrl(prev => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return url;
+                });
+                setHouseForm(p => ({ ...p, house_image: file, house_image_preview: url }));
+                showToast('Image selected ✓');
+            });
+        } catch (err) {
+            showToast('Failed to pick image. Please try again.', 'error');
+        }
+    }, [showToast]);
 
     const verifyShopLoc = async () => {
-        if (!shopForm.city || !shopForm.area || !shopForm.latitude) { 
-            showToast('Get location first, then select city & area', 'error'); 
-            return false; 
+        if (!shopForm.city || !shopForm.area || !shopForm.latitude) {
+            showToast('Get location first, then select city & area', 'error'); return false;
         }
         setShopVerifying(true);
         try {
             const v = await verifyLocation(shopForm.latitude, shopForm.longitude, shopForm.city, shopForm.area);
-            if (v.verified) { 
-                setShopLocationVerified(true); 
-                showToast('Location verified!'); 
-                return true; 
-            }
-            showToast(v.message || 'Verification failed', 'error'); 
-            return false;
-        } catch (error) { 
-            showToast(error.message || 'Verification error', 'error'); 
-            return false;
-        }
+            if (v.verified) { setShopLocationVerified(true); showToast('Location verified!'); return true; }
+            showToast(v.message || 'Verification failed', 'error'); return false;
+        } catch (err) { showToast(err.message || 'Verification error', 'error'); return false; }
         finally { setShopVerifying(false); }
     };
 
     const verifyHouseLoc = async () => {
-        if (!houseForm.city || !houseForm.area || !houseForm.latitude) { 
-            showToast('Get location first, then select city & area', 'error'); 
-            return false; 
+        if (!houseForm.city || !houseForm.area || !houseForm.latitude) {
+            showToast('Get location first, then select city & area', 'error'); return false;
         }
         setHouseVerifying(true);
         try {
             const v = await verifyLocation(houseForm.latitude, houseForm.longitude, houseForm.city, houseForm.area);
-            if (v.verified) { 
-                setHouseLocationVerified(true); 
-                showToast('Location verified!'); 
-                return true; 
-            }
-            showToast(v.message || 'Verification failed', 'error'); 
-            return false;
-        } catch (error) { 
-            showToast(error.message || 'Verification error', 'error'); 
-            return false;
-        }
+            if (v.verified) { setHouseLocationVerified(true); showToast('Location verified!'); return true; }
+            showToast(v.message || 'Verification failed', 'error'); return false;
+        } catch (err) { showToast(err.message || 'Verification error', 'error'); return false; }
         finally { setHouseVerifying(false); }
     };
 
     const handleSaveProfile = async () => {
-        if (!formData.full_name.trim()) { 
-            showToast('Name is required', 'error'); 
-            return; 
-        }
+        if (!formData.full_name.trim()) { showToast('Name is required', 'error'); return; }
         setSaving(true);
-        try { 
-            const r = await updateProfile(formData); 
-            setProfile(r.user); 
-            updateUser(r.user); 
-            showToast('Profile updated!'); 
-            closeModal(); 
-        }
-        catch (error) { 
-            showToast(error.message || 'Failed to update profile', 'error'); 
-        }
+        try {
+            const r = await updateProfile(formData);
+            setProfile(r.user); updateUser(r.user);
+            showToast('Profile updated!'); closeModal();
+        } catch (err) { showToast(err.message || 'Failed to update profile', 'error'); }
         finally { setSaving(false); }
     };
 
     const handleChangePassword = async () => {
-        if (passwordData.new_password !== passwordData.confirm_password) { 
-            showToast('Passwords do not match', 'error'); 
-            return; 
-        }
-        if (passwordData.new_password.length < 6) { 
-            showToast('Password must be at least 6 characters', 'error'); 
-            return; 
-        }
+        if (passwordData.new_password !== passwordData.confirm_password) { showToast('Passwords do not match', 'error'); return; }
+        if (passwordData.new_password.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
         try {
             await changePassword({ current_password: passwordData.current_password, new_password: passwordData.new_password });
-            showToast('Password changed successfully!'); 
-            closeModal();
+            showToast('Password changed successfully!'); closeModal();
             setPasswordData({ current_password: '', new_password: '', confirm_password: '' });
-        } catch (error) { 
-            showToast(error.message || 'Failed to change password', 'error'); 
-        }
+        } catch (err) { showToast(err.message || 'Failed to change password', 'error'); }
     };
 
     const handleDeleteAccount = async () => {
-        if (!deletePassword) {
-            showToast('Please enter your password to confirm', 'error');
-            return;
-        }
-        try { 
-            await deleteAccount(deletePassword); 
-            showToast('Account deleted successfully'); 
-            setTimeout(() => logout(), 1500); 
-        }
-        catch (error) { 
-            showToast(error.message || 'Failed to delete account', 'error'); 
-        }
+        if (!deletePassword) { showToast('Please enter your password to confirm', 'error'); return; }
+        try {
+            await deleteAccount(deletePassword);
+            showToast('Account deleted successfully');
+            setTimeout(() => logout(), 1500);
+        } catch (err) { showToast(err.message || 'Failed to delete account', 'error'); }
     };
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // FIX: Shop create/update — proper FormData + error handling
+    // ─────────────────────────────────────────────────────────────────────────
     const handleCreateShop = async () => {
-        if (!shopForm.business_name || !shopForm.category || !shopForm.city || !shopForm.state) { 
-            showToast('Please fill all required fields', 'error'); 
-            return; 
+        if (!shopForm.business_name?.trim() || !shopForm.category || !shopForm.city || !shopForm.state) {
+            showToast('Please fill all required fields', 'error'); return;
         }
-        if (!shopLocationVerified) { 
-            const ok = await verifyShopLoc(); 
-            if (!ok) return; 
+        if (!shopLocationVerified) {
+            const ok = await verifyShopLoc(); if (!ok) return;
         }
-        const fd = new FormData();
-        ['business_name', 'category', 'additional_phone', 'area', 'city', 'state', 'description', 'opening_time', 'closing_time'].forEach(k => fd.append(k, shopForm[k] || ''));
-        fd.append('keywords', JSON.stringify(shopForm.keywords));
-        fd.append('latitude', shopForm.latitude || '');
-        fd.append('longitude', shopForm.longitude || '');
-        if (shopForm.shop_image instanceof File) fd.append('shop_image', shopForm.shop_image);
-        
+        setCreatingShop(true);
         try {
+            const fd = new FormData();
+            ['business_name', 'category', 'additional_phone', 'area', 'city', 'state', 'description', 'opening_time', 'closing_time'].forEach(k => fd.append(k, shopForm[k] || ''));
+            fd.append('keywords', JSON.stringify(shopForm.keywords || []));
+            fd.append('latitude', String(shopForm.latitude || ''));
+            fd.append('longitude', String(shopForm.longitude || ''));
+            if (shopForm.shop_image instanceof File) fd.append('shop_image', shopForm.shop_image);
+
             const token = localStorage.getItem('nearzo_token');
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/profile/shops`, { 
-                method: 'POST', 
-                headers: { 'Authorization': `Bearer ${token}` }, 
-                body: fd 
+            const res = await fetch(`${API_URL}/profile/shops`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: fd
             });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                let errMsg = `Server error ${res.status}`;
+                try { errMsg = JSON.parse(errText).message || errMsg; } catch { }
+                throw new Error(errMsg);
+            }
+
             const r = await res.json();
-            if (r.success) { 
-                showToast('Shop created successfully!'); 
-                closeModal(); 
-                loadProfile(); 
-                loadUserShopsForJob(); 
-                loadTotalViews(); 
-                setShopForm(emptyShop); 
-                setShopLocationVerified(false);
-                // Clean up object URL
-                if (shopObjUrl) {
-                    URL.revokeObjectURL(shopObjUrl);
-                    setShopObjUrl('');
-                }
+            if (r.success) {
+                showToast('Shop created successfully! 🎉');
+                closeModal(); loadProfile(); loadUserShopsForJob(); loadTotalViews();
+                setShopForm(emptyShop); setShopLocationVerified(false);
+                if (shopObjUrl) { URL.revokeObjectURL(shopObjUrl); setShopObjUrl(''); }
             } else {
                 showToast(r.message || 'Failed to create shop', 'error');
             }
-        } catch (error) { 
-            showToast(error.message || 'Network error. Please try again.', 'error'); 
-        }
+        } catch (err) {
+            console.error('Create shop error:', err);
+            showToast(err.message || 'Network error. Please check your connection.', 'error');
+        } finally { setCreatingShop(false); }
     };
 
     const handleUpdateShop = async () => {
-        if (!shopForm.business_name || !shopForm.category) { 
-            showToast('Business name and category are required', 'error'); 
-            return; 
+        if (!shopForm.business_name?.trim() || !shopForm.category) {
+            showToast('Business name and category are required', 'error'); return;
         }
-        
         setUpdatingShop(true);
-        const fd = new FormData();
-        ['business_name', 'category', 'additional_phone', 'area', 'city', 'state', 'description', 'opening_time', 'closing_time'].forEach(k => fd.append(k, shopForm[k] || ''));
-        fd.append('keywords', JSON.stringify(shopForm.keywords));
-        fd.append('latitude', shopForm.latitude || '');
-        fd.append('longitude', shopForm.longitude || '');
-        
-        // IMPORTANT: Always append the image if it's a File object (new image selected)
-        if (shopForm.shop_image instanceof File) {
-            fd.append('shop_image', shopForm.shop_image);
-        }
-        
         try {
+            const fd = new FormData();
+            ['business_name', 'category', 'additional_phone', 'area', 'city', 'state', 'description', 'opening_time', 'closing_time'].forEach(k => fd.append(k, shopForm[k] || ''));
+            fd.append('keywords', JSON.stringify(shopForm.keywords || []));
+            fd.append('latitude', String(shopForm.latitude || ''));
+            fd.append('longitude', String(shopForm.longitude || ''));
+            // FIX: Only append new image if user selected one (instanceof File check)
+            if (shopForm.shop_image instanceof File) {
+                fd.append('shop_image', shopForm.shop_image);
+            }
+
             const token = localStorage.getItem('nearzo_token');
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/profile/shops/${editingShop.id}`, { 
-                method: 'PUT', 
-                headers: { 'Authorization': `Bearer ${token}` }, 
-                body: fd 
+            const res = await fetch(`${API_URL}/profile/shops/${editingShop.id}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: fd
             });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                let errMsg = `Server error ${res.status}`;
+                try { errMsg = JSON.parse(errText).message || errMsg; } catch { }
+                throw new Error(errMsg);
+            }
+
             const r = await res.json();
-            if (r.success) { 
-                showToast('Shop updated successfully!'); 
-                closeModal(); 
-                loadProfile(); 
-                loadUserShopsForJob(); 
-                loadTotalViews(); 
+            if (r.success) {
+                showToast('Shop updated successfully! ✓');
+                closeModal(); loadProfile(); loadUserShopsForJob(); loadTotalViews();
                 setEditingShop(null);
-                // Clean up object URL
-                if (shopObjUrl) {
-                    URL.revokeObjectURL(shopObjUrl);
-                    setShopObjUrl('');
-                }
+                if (shopObjUrl) { URL.revokeObjectURL(shopObjUrl); setShopObjUrl(''); }
             } else {
                 showToast(r.message || 'Failed to update shop', 'error');
             }
-        } catch (error) { 
-            showToast(error.message || 'Network error. Please try again.', 'error'); 
-        } finally {
-            setUpdatingShop(false);
-        }
+        } catch (err) {
+            console.error('Update shop error:', err);
+            showToast(err.message || 'Network error. Please check your connection.', 'error');
+        } finally { setUpdatingShop(false); }
     };
 
     const handleDeleteShopConfirm = async () => {
         if (!deleteConfirm) return;
         try {
             const r = await deleteShop(deleteConfirm.id);
-            showToast(r.message || 'Shop deleted successfully'); 
-            closeModal(); 
-            loadProfile(); 
-            loadUserShopsForJob(); 
-            loadTotalViews();
-        } catch (error) { 
-            showToast(error.message || 'Failed to delete shop', 'error'); 
-        }
+            showToast(r.message || 'Shop deleted successfully');
+            closeModal(); loadProfile(); loadUserShopsForJob(); loadTotalViews();
+        } catch (err) { showToast(err.message || 'Failed to delete shop', 'error'); }
     };
 
     const openEditShop = async (shop) => {
@@ -1110,217 +1234,182 @@ export default function Profile() {
             let keywordsArray = [];
             if (s.keywords) {
                 if (Array.isArray(s.keywords)) keywordsArray = s.keywords;
-                else if (typeof s.keywords === 'string') { 
-                    try { keywordsArray = JSON.parse(s.keywords); } 
-                    catch { keywordsArray = []; }
+                else if (typeof s.keywords === 'string') {
+                    try { keywordsArray = JSON.parse(s.keywords); } catch { keywordsArray = []; }
                 }
             }
             setShopForm({
-                business_name: s.business_name, 
+                business_name: s.business_name,
                 category: s.category,
-                additional_phone: s.additional_phone || '', 
-                keywords: keywordsArray, 
+                additional_phone: s.additional_phone || '',
+                keywords: keywordsArray,
                 custom_keyword: '',
-                latitude: s.latitude || '', 
+                latitude: s.latitude || '',
                 longitude: s.longitude || '',
-                area: s.area || '', 
-                city: s.city || '', 
+                area: s.area || '',
+                city: s.city || '',
                 state: s.state || '',
                 description: s.description || '',
                 opening_time: s.opening_time ? s.opening_time.slice(0, 5) : '',
                 closing_time: s.closing_time ? s.closing_time.slice(0, 5) : '',
-                shop_image: null, 
+                shop_image: null,
                 shop_image_preview: s.shop_image || ''
             });
             setShopLocationVerified(s.is_verified);
             setModal('editShop');
-        } catch (error) { 
-            showToast(error.message || 'Failed to load shop details', 'error'); 
-        }
+        } catch (err) { showToast(err.message || 'Failed to load shop details', 'error'); }
     };
 
-    const openDeleteShopConfirm = (shop) => { 
-        setDeleteConfirm(shop); 
-        setModal('deleteShopConfirm'); 
-    };
+    const openDeleteShopConfirm = (shop) => { setDeleteConfirm(shop); setModal('deleteShopConfirm'); };
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // FIX: House create/update — proper error handling
+    // ─────────────────────────────────────────────────────────────────────────
     const handleCreateHouse = async () => {
-        if (!houseForm.rooms || !houseForm.rent_per_month) { 
-            showToast('Please fill all required fields', 'error'); 
-            return; 
+        if (!houseForm.rooms || !houseForm.rent_per_month) {
+            showToast('Rooms and rent amount are required', 'error'); return;
         }
-        if (!houseLocationVerified) { 
-            const ok = await verifyHouseLoc(); 
-            if (!ok) return; 
+        if (!houseLocationVerified) {
+            const ok = await verifyHouseLoc(); if (!ok) return;
         }
-        const fd = new FormData();
-        ['rooms', 'halls', 'kitchens', 'floor', 'rent_per_month', 'advance_amount', 'latitude', 'longitude', 'area', 'city', 'state', 'description'].forEach(k => fd.append(k, houseForm[k] || ''));
-        fd.append('is_available', houseForm.is_available);
-        if (houseForm.house_image instanceof File) fd.append('house_image', houseForm.house_image);
-        
+        setCreatingHouse(true);
         try {
+            const fd = new FormData();
+            ['rooms', 'halls', 'kitchens', 'floor', 'rent_per_month', 'advance_amount', 'latitude', 'longitude', 'area', 'city', 'state', 'description'].forEach(k => fd.append(k, houseForm[k] || ''));
+            fd.append('is_available', String(houseForm.is_available));
+            if (houseForm.house_image instanceof File) fd.append('house_image', houseForm.house_image);
+
             const token = localStorage.getItem('nearzo_token');
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/profile/houses`, { 
-                method: 'POST', 
-                headers: { 'Authorization': `Bearer ${token}` }, 
-                body: fd 
+            const res = await fetch(`${API_URL}/profile/houses`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: fd
             });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                let errMsg = `Server error ${res.status}`;
+                try { errMsg = JSON.parse(errText).message || errMsg; } catch { }
+                throw new Error(errMsg);
+            }
+
             const r = await res.json();
-            if (r.success) { 
-                showToast('House listed successfully!'); 
-                closeModal(); 
-                loadProfile(); 
-                loadTotalViews(); 
-                setHouseForm(emptyHouse); 
-                setHouseLocationVerified(false);
-                if (houseObjUrl) {
-                    URL.revokeObjectURL(houseObjUrl);
-                    setHouseObjUrl('');
-                }
+            if (r.success) {
+                showToast('House listed successfully! 🏠');
+                closeModal(); loadProfile(); loadTotalViews();
+                setHouseForm(emptyHouse); setHouseLocationVerified(false);
+                if (houseObjUrl) { URL.revokeObjectURL(houseObjUrl); setHouseObjUrl(''); }
             } else {
                 showToast(r.message || 'Failed to list house', 'error');
             }
-        } catch (error) { 
-            showToast(error.message || 'Network error. Please try again.', 'error'); 
-        }
+        } catch (err) {
+            console.error('Create house error:', err);
+            showToast(err.message || 'Network error. Please check your connection.', 'error');
+        } finally { setCreatingHouse(false); }
     };
 
     const handleUpdateHouse = async () => {
         setUpdatingHouse(true);
-        const fd = new FormData();
-        ['rooms', 'halls', 'kitchens', 'floor', 'rent_per_month', 'advance_amount', 'latitude', 'longitude', 'area', 'city', 'state', 'description'].forEach(k => fd.append(k, houseForm[k] || ''));
-        fd.append('is_available', houseForm.is_available);
-        
-        // IMPORTANT: Always append the image if it's a File object (new image selected)
-        if (houseForm.house_image instanceof File) {
-            fd.append('house_image', houseForm.house_image);
-        }
-        
         try {
+            const fd = new FormData();
+            ['rooms', 'halls', 'kitchens', 'floor', 'rent_per_month', 'advance_amount', 'latitude', 'longitude', 'area', 'city', 'state', 'description'].forEach(k => fd.append(k, houseForm[k] || ''));
+            fd.append('is_available', String(houseForm.is_available));
+            // FIX: Only append if new image selected
+            if (houseForm.house_image instanceof File) {
+                fd.append('house_image', houseForm.house_image);
+            }
+
             const token = localStorage.getItem('nearzo_token');
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/profile/houses/${editingHouse.id}`, { 
-                method: 'PUT', 
-                headers: { 'Authorization': `Bearer ${token}` }, 
-                body: fd 
+            const res = await fetch(`${API_URL}/profile/houses/${editingHouse.id}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: fd
             });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                let errMsg = `Server error ${res.status}`;
+                try { errMsg = JSON.parse(errText).message || errMsg; } catch { }
+                throw new Error(errMsg);
+            }
+
             const r = await res.json();
-            if (r.success) { 
-                showToast('House updated successfully!'); 
-                closeModal(); 
-                loadProfile(); 
-                loadTotalViews();
-                if (houseObjUrl) {
-                    URL.revokeObjectURL(houseObjUrl);
-                    setHouseObjUrl('');
-                }
+            if (r.success) {
+                showToast('House updated successfully! ✓');
+                closeModal(); loadProfile(); loadTotalViews();
+                if (houseObjUrl) { URL.revokeObjectURL(houseObjUrl); setHouseObjUrl(''); }
             } else {
                 showToast(r.message || 'Failed to update house', 'error');
             }
-        } catch (error) { 
-            showToast(error.message || 'Network error. Please try again.', 'error'); 
-        } finally {
-            setUpdatingHouse(false);
-        }
+        } catch (err) {
+            console.error('Update house error:', err);
+            showToast(err.message || 'Network error. Please check your connection.', 'error');
+        } finally { setUpdatingHouse(false); }
     };
 
     const handleCreateJob = async () => {
-        if (!jobForm.company_name || !jobForm.job_title || !jobForm.salary) { 
-            showToast('Please fill all required fields', 'error'); 
-            return; 
+        if (!jobForm.company_name?.trim() || !jobForm.job_title?.trim() || !jobForm.salary) {
+            showToast('Company name, job title, and salary are required', 'error'); return;
         }
+        setCreatingJob(true);
         try {
             const r = await createJob({ ...jobForm, salary: +jobForm.salary, shop_id: jobForm.shop_id || null, latitude: null, longitude: null });
-            if (r.success) { 
-                showToast('Job posted successfully!'); 
-                closeModal(); 
-                loadProfile(); 
-                loadTotalViews(); 
-                setJobForm(emptyJob); 
-            } else {
-                showToast(r.message || 'Failed to post job', 'error');
-            }
-        } catch (error) { 
-            showToast(error.message || 'Failed to post job', 'error'); 
-        }
+            if (r.success) {
+                showToast('Job posted successfully! 💼');
+                closeModal(); loadProfile(); loadTotalViews(); setJobForm(emptyJob);
+            } else { showToast(r.message || 'Failed to post job', 'error'); }
+        } catch (err) { showToast(err.message || 'Failed to post job', 'error'); }
+        finally { setCreatingJob(false); }
     };
 
     const handleUpdateJob = async () => {
+        setUpdatingJob(true);
         try {
             await updateJob(editingJob.id, { ...jobForm, salary: +jobForm.salary });
-            showToast('Job updated successfully!'); 
-            closeModal(); 
-            loadProfile(); 
-            loadTotalViews();
-        } catch (error) { 
-            showToast(error.message || 'Failed to update job', 'error'); 
-        }
+            showToast('Job updated successfully! ✓');
+            closeModal(); loadProfile(); loadTotalViews();
+        } catch (err) { showToast(err.message || 'Failed to update job', 'error'); }
+        finally { setUpdatingJob(false); }
     };
 
     const openEditHouse = (h) => {
         setEditingHouse(h);
-        setHouseForm({ 
-            rooms: h.rooms, 
-            halls: h.halls, 
-            kitchens: h.kitchens, 
-            floor: h.floor, 
-            rent_per_month: h.rent_per_month, 
-            advance_amount: h.advance_amount || '', 
-            latitude: h.latitude || '', 
-            longitude: h.longitude || '', 
-            area: h.area || '', 
-            city: h.city || '', 
-            state: h.state || '', 
-            description: h.description || '', 
-            is_available: h.is_available, 
-            house_image: null, 
-            house_image_preview: h.house_image || '' 
+        setHouseForm({
+            rooms: h.rooms, halls: h.halls, kitchens: h.kitchens, floor: h.floor,
+            rent_per_month: h.rent_per_month, advance_amount: h.advance_amount || '',
+            latitude: h.latitude || '', longitude: h.longitude || '',
+            area: h.area || '', city: h.city || '', state: h.state || '',
+            description: h.description || '', is_available: h.is_available,
+            house_image: null, house_image_preview: h.house_image || ''
         });
         setModal('editHouse');
     };
 
     const openEditJob = (j) => {
         setEditingJob(j);
-        setJobForm({ 
-            shop_id: j.shop_id || '', 
-            company_name: j.company_name, 
-            job_title: j.job_title, 
-            salary: j.salary, 
-            salary_type: j.salary_type, 
-            qualification: j.qualification || '', 
-            job_type: j.job_type, 
-            area: j.area || '', 
-            city: j.city || '', 
-            state: j.state || '', 
-            is_open: j.is_open 
+        setJobForm({
+            shop_id: j.shop_id || '', company_name: j.company_name, job_title: j.job_title,
+            salary: j.salary, salary_type: j.salary_type, qualification: j.qualification || '',
+            job_type: j.job_type, area: j.area || '', city: j.city || '', state: j.state || '', is_open: j.is_open
         });
         setModal('editJob');
     };
 
     const handleShopSelect = (id) => {
         const s = userShopsForJob.find(x => x.id === Number(id));
-        setJobForm(p => ({ 
-            ...p, 
-            shop_id: id, 
-            company_name: s ? s.business_name : '', 
-            area: s?.area || '', 
-            city: s?.city || '', 
-            state: s?.state || '' 
-        }));
+        setJobForm(p => ({ ...p, shop_id: id, company_name: s ? s.business_name : '', area: s?.area || '', city: s?.city || '', state: s?.state || '' }));
     };
 
     const handleAddCustomKeyword = () => {
         const kw = shopForm.custom_keyword.trim();
         if (!kw) return;
-        if (shopForm.keywords.some(k => k.toLowerCase() === kw.toLowerCase())) { 
-            showToast('Keyword already added', 'error'); 
-            return; 
-        }
+        if (shopForm.keywords.some(k => k.toLowerCase() === kw.toLowerCase())) { showToast('Keyword already added', 'error'); return; }
         setShopForm(p => ({ ...p, keywords: [...p.keywords, kw], custom_keyword: '' }));
     };
 
     const handleRemoveKeyword = (kw) => setShopForm(p => ({ ...p, keywords: p.keywords.filter(k => k !== kw) }));
 
-    // ── Shared shop form fields
+    // ─── Shared shop form fields
     const ShopFormFields = () => (
         <FormGrid>
             <FormItem full>
@@ -1354,10 +1443,13 @@ export default function Profile() {
             <FormItem full>
                 <FieldLabel>Custom Keyword</FieldLabel>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    <input style={{ flex: 1, padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 10, fontSize: 14, color: '#111827', background: '#FAFAFA', outline: 'none', fontFamily: 'var(--font)', minWidth: 0 }}
-                        placeholder="e.g. Fresh Juice" value={shopForm.custom_keyword}
+                    <input
+                        style={{ flex: 1, padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 10, fontSize: 14, color: '#111827', background: '#FAFAFA', outline: 'none', fontFamily: 'var(--font)', minWidth: 0 }}
+                        placeholder="e.g. Fresh Juice"
+                        value={shopForm.custom_keyword}
                         onChange={e => setShopForm(p => ({ ...p, custom_keyword: e.target.value }))}
-                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddCustomKeyword())} />
+                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddCustomKeyword())}
+                    />
                     <button onClick={handleAddCustomKeyword} style={{ padding: '0 14px', borderRadius: 10, border: '1.5px solid #2563EB', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0 }}>Add</button>
                 </div>
             </FormItem>
@@ -1441,7 +1533,8 @@ export default function Profile() {
                                     )}
                                 </div>
                             </div>
-                            <button onClick={() => { setFormData({ full_name: profile?.full_name || '', area: profile?.area || '', city: profile?.city || '', state: profile?.state || '' }); setModal('editProfile'); }}
+                            <button
+                                onClick={() => { setFormData({ full_name: profile?.full_name || '', area: profile?.area || '', city: profile?.city || '', state: profile?.state || '' }); setModal('editProfile'); }}
                                 style={{ marginTop: 14, width: '100%', padding: '9px', borderRadius: 10, border: '1.5px solid #E5E7EB', background: '#F9FAFB', color: '#374151', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'var(--font)' }}>
                                 <Icon name="edit" size={14} color="#374151" /> Edit Profile
                             </button>
@@ -1458,8 +1551,8 @@ export default function Profile() {
                         {/* Other */}
                         <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: '4px 16px', boxShadow: 'var(--shadow-sm)' }}>
                             <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', padding: '10px 0 2px', textTransform: 'uppercase', letterSpacing: '.6px' }}>Other</div>
-                            <DetailRow iconName="help_outline" iconColor="#2563EB" iconBg="#EFF6FF" label="Help & Support" onClick={() => {}} />
-                            <DetailRow iconName="info_outline" iconColor="#7C3AED" iconBg="#F5F3FF" label="About NearZO" onClick={() => {}} last />
+                            <DetailRow iconName="help_outline" iconColor="#2563EB" iconBg="#EFF6FF" label="Help & Support" onClick={() => setModal('support')} />
+                            <DetailRow iconName="info_outline" iconColor="#7C3AED" iconBg="#F5F3FF" label="About NearZO" onClick={() => setModal('about')} last />
                         </div>
 
                         {/* Settings */}
@@ -1476,7 +1569,7 @@ export default function Profile() {
                     {/* ── RIGHT COLUMN ── */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         <div>
-                            <div style={{ fontSize: 15, fontWeight: 800, color: '#111827', marginBottom: 10,marginTop:20}}>Manage Your Listings</div>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: '#111827', marginBottom: 10, marginTop: 20 }}>Manage Your Listings</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                 <ListingSection iconName="storefront" iconColor="#2563EB" iconBg="#DBEAFE" title="Manage Shops" subtitle="Add, edit or manage your shop listings" badgeCount={shopLive} badgeColor="#2563EB" badgeBg="#EFF6FF" liveCount={shopLive} verifiedCount={shopVerified} unverifiedCount={shopUnverified} onAdd={() => setModal('shop')} addLabel="Add Shop" onManage={() => {}} viewCount={viewBreakdown.shops} />
                                 <ListingSection iconName="home" iconColor="#16A34A" iconBg="#DCFCE7" title="Manage Houses" subtitle="Add, edit or manage your house listings" badgeCount={houseLive} badgeColor="#16A34A" badgeBg="#F0FDF4" liveCount={houseLive} verifiedCount={houseVerified} unverifiedCount={houseUnverified} onAdd={() => setModal('house')} addLabel="Add House" onManage={() => {}} viewCount={viewBreakdown.houses} />
@@ -1668,7 +1761,7 @@ export default function Profile() {
 
             {/* Add Shop */}
             <Modal open={modal === 'shop'} onClose={closeModal} title="Add New Shop"
-                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleCreateShop} icon={<Icon name="storefront" size={15} color="#fff" />}>Create Shop</Btn></>}>
+                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleCreateShop} loading={creatingShop} icon={<Icon name="storefront" size={15} color="#fff" />}>Create Shop</Btn></>}>
                 <ShopFormFields />
                 <div style={{ height: 12 }} />
                 <div className="form-grid">
@@ -1719,7 +1812,7 @@ export default function Profile() {
 
             {/* Add House */}
             <Modal open={modal === 'house'} onClose={closeModal} title="Add New House"
-                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleCreateHouse} icon={<Icon name="home" size={15} color="#fff" />}>List House</Btn></>}>
+                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleCreateHouse} loading={creatingHouse} icon={<Icon name="home" size={15} color="#fff" />}>List House</Btn></>}>
                 <FormGrid>
                     <FormItem half><Input label="Rooms *" type="number" value={houseForm.rooms} onChange={e => setHouseForm(p => ({ ...p, rooms: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Halls" type="number" value={houseForm.halls} onChange={e => setHouseForm(p => ({ ...p, halls: e.target.value }))} /></FormItem>
@@ -1782,7 +1875,7 @@ export default function Profile() {
 
             {/* Add Job */}
             <Modal open={modal === 'job'} onClose={closeModal} title="Post a Job"
-                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleCreateJob} icon={<Icon name="work" size={15} color="#fff" />}>Post Job</Btn></>}>
+                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleCreateJob} loading={creatingJob} icon={<Icon name="work" size={15} color="#fff" />}>Post Job</Btn></>}>
                 <FormGrid>
                     <FormItem full>
                         <SelectField label="Link to Shop (Optional)" value={jobForm.shop_id}
@@ -1827,7 +1920,7 @@ export default function Profile() {
 
             {/* Edit Job */}
             <Modal open={modal === 'editJob'} onClose={closeModal} title="Edit Job"
-                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleUpdateJob}>Save Changes</Btn></>}>
+                footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleUpdateJob} loading={updatingJob}>Save Changes</Btn></>}>
                 <FormGrid>
                     <FormItem half><Input label="Job Title *" value={jobForm.job_title} onChange={e => setJobForm(p => ({ ...p, job_title: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Company Name *" value={jobForm.company_name} onChange={e => setJobForm(p => ({ ...p, company_name: e.target.value }))} /></FormItem>
@@ -1849,6 +1942,16 @@ export default function Profile() {
                     <FormItem half><Input label="City" value={jobForm.city} onChange={e => setJobForm(p => ({ ...p, city: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="State" value={jobForm.state} onChange={e => setJobForm(p => ({ ...p, state: e.target.value }))} /></FormItem>
                 </FormGrid>
+            </Modal>
+
+            {/* About NearZO */}
+            <Modal open={modal === 'about'} onClose={closeModal} title="About NearZO">
+                <AboutNearZOContent />
+            </Modal>
+
+            {/* Help & Support */}
+            <Modal open={modal === 'support'} onClose={closeModal} title="Help & Support">
+                <SupportContent />
             </Modal>
         </div>
     );
