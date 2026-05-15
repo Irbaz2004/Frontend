@@ -36,6 +36,13 @@ export const getUserCity = async () => {
     return apiCall('/home/user-city');
 };
 
+export const updateUserCity = async (city) => {
+    return apiCall('/home/update-city', {
+        method: 'POST',
+        body: JSON.stringify({ city })
+    });
+};
+
 export const getShopsByCategory = async (city, category, limit = 20) => {
     const params = new URLSearchParams({ city, category, limit: limit.toString() });
     return apiCall(`/home/shops-by-category?${params}`);
@@ -44,5 +51,6 @@ export const getShopsByCategory = async (city, category, limit = 20) => {
 export default {
     getHomeData,
     getUserCity,
+    updateUserCity,
     getShopsByCategory,
 };

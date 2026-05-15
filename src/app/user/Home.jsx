@@ -7,6 +7,12 @@ import {
     Button,
     Alert,
     Skeleton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    CircularProgress
 } from '@mui/material';
 import {
     LocationOn as LocationIcon,
@@ -22,9 +28,11 @@ import {
     Map as MapIcon,
     Search as SearchIcon,
     Business as BusinessIcon,
+    MyLocation as MyLocationIcon,
+    Close as CloseIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { getHomeData, getUserCity } from '../../services/homeUser';
+import { getHomeData, getUserCity, updateUserCity } from '../../services/homeUser';
 import { useAuth } from '../context/AuthContext';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
@@ -391,7 +399,6 @@ const BoostBanner = ({ onLearnMore }) => (
 );
 
 // ── NearZO Promo Banner (replaces Category Marquee) ───────────────────────────
-// Three feature tiles auto-sliding as a mini carousel + a CTA strip below.
 const NEARZO_SLIDES = [
     {
         icon: MapIcon,
@@ -430,180 +437,180 @@ const NearZOPromoBanner = ({ onExplore }) => {
     return (
         <Box sx={{ px: 2, mb: 3, animation: 'fadeInUp 0.5s ease both', animationDelay: '0.15s' }}>
             {/* Main slide card */}
-         <Box
-    onClick={onExplore}
-    sx={{
-        borderRadius: '22px',
-        overflow: 'hidden',
-        position: 'relative',
-        cursor: 'pointer',
-        background: '#325fec',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 10px 30px rgba(50,95,236,0.28)',
-        transition: 'all 0.2s ease',
-        '&:active': {
-            transform: 'scale(0.985)',
-        },
-        '&:hover': {
-            boxShadow: '0 14px 36px rgba(50,95,236,0.38)',
-        },
-        minHeight: 148,
-        p: '18px 20px 16px',
-    }}
->
-    {/* Decorative circles */}
-    <Box
-        sx={{
-            position: 'absolute',
-            right: -18,
-            top: -18,
-            width: 110,
-            height: 110,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.07)',
-            border: '1px solid rgba(255,255,255,0.10)',
-            pointerEvents: 'none',
-        }}
-    />
-
-    <Box
-        sx={{
-            position: 'absolute',
-            right: 28,
-            bottom: -28,
-            width: 72,
-            height: 72,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            pointerEvents: 'none',
-        }}
-    />
-
-    {/* Tag pill */}
-    <Box
-        sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 0.5,
-            background: 'rgba(255,255,255,0.14)',
-            border: '1px solid rgba(255,255,255,0.22)',
-            borderRadius: '20px',
-            px: 1,
-            py: 0.3,
-            mb: 1.1,
-            backdropFilter: 'blur(8px)',
-        }}
-    >
-        <SparkleIcon sx={{ fontSize: '0.6rem', color: '#ffd700' }} />
-
-        <Typography
-            sx={{
-                fontFamily: '"Inter", sans-serif',
-                fontSize: '0.58rem',
-                fontWeight: 700,
-                color: '#fff',
-                letterSpacing: '0.07em',
-                textTransform: 'uppercase',
-            }}
-        >
-            {slide.tag}
-        </Typography>
-    </Box>
-
-    <Box
-        sx={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: 1,
-        }}
-    >
-        <Box sx={{ flex: 1 }}>
-            <Typography
-                sx={{
-                    fontFamily: '"Inter", sans-serif',
-                    fontWeight: 800,
-                    fontSize: '1.08rem',
-                    color: '#fff',
-                    lineHeight: 1.25,
-                    mb: 0.5,
-                    letterSpacing: '-0.02em',
-                }}
-            >
-                {slide.headline}
-            </Typography>
-
-            <Typography
-                sx={{
-                    fontFamily: '"Inter", sans-serif',
-                    fontSize: '0.72rem',
-                    color: 'rgba(255,255,255,0.78)',
-                    lineHeight: 1.45,
-                    mb: 1.4,
-                }}
-            >
-                {slide.sub}
-            </Typography>
-
             <Box
+                onClick={onExplore}
                 sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    background: 'rgba(255,255,255,0.16)',
-                    border: '1px solid rgba(255,255,255,0.24)',
-                    borderRadius: '10px',
-                    px: 1.3,
-                    py: 0.65,
-                    backdropFilter: 'blur(10px)',
+                    borderRadius: '22px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    background: '#325fec',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    boxShadow: '0 10px 30px rgba(50,95,236,0.28)',
+                    transition: 'all 0.2s ease',
+                    '&:active': {
+                        transform: 'scale(0.985)',
+                    },
+                    '&:hover': {
+                        boxShadow: '0 14px 36px rgba(50,95,236,0.38)',
+                    },
+                    minHeight: 148,
+                    p: '18px 20px 16px',
                 }}
             >
-                <Typography
+                {/* Decorative circles */}
+                <Box
                     sx={{
-                        fontFamily: '"Inter", sans-serif',
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        color: '#fff',
-                    }}
-                >
-                    Explore NearZO
-                </Typography>
-
-                <ArrowForwardIcon
-                    sx={{
-                        fontSize: '0.72rem',
-                        color: '#fff',
+                        position: 'absolute',
+                        right: -18,
+                        top: -18,
+                        width: 110,
+                        height: 110,
+                        borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.07)',
+                        border: '1px solid rgba(255,255,255,0.10)',
+                        pointerEvents: 'none',
                     }}
                 />
-            </Box>
-        </Box>
 
-        {/* Icon box */}
-        <Box
-            sx={{
-                width: 52,
-                height: 52,
-                flexShrink: 0,
-                borderRadius: '16px',
-                background: 'rgba(255,255,255,0.14)',
-                border: '1px solid rgba(255,255,255,0.22)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mt: 0.5,
-                backdropFilter: 'blur(10px)',
-            }}
-        >
-            <IconComp
-                sx={{
-                    fontSize: '1.4rem',
-                    color: '#fff',
-                }}
-            />
-        </Box>
-    </Box>
-</Box>
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        right: 28,
+                        bottom: -28,
+                        width: 72,
+                        height: 72,
+                        borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        pointerEvents: 'none',
+                    }}
+                />
+
+                {/* Tag pill */}
+                <Box
+                    sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        background: 'rgba(255,255,255,0.14)',
+                        border: '1px solid rgba(255,255,255,0.22)',
+                        borderRadius: '20px',
+                        px: 1,
+                        py: 0.3,
+                        mb: 1.1,
+                        backdropFilter: 'blur(8px)',
+                    }}
+                >
+                    <SparkleIcon sx={{ fontSize: '0.6rem', color: '#ffd700' }} />
+
+                    <Typography
+                        sx={{
+                            fontFamily: '"Inter", sans-serif',
+                            fontSize: '0.58rem',
+                            fontWeight: 700,
+                            color: '#fff',
+                            letterSpacing: '0.07em',
+                            textTransform: 'uppercase',
+                        }}
+                    >
+                        {slide.tag}
+                    </Typography>
+                </Box>
+
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'space-between',
+                        gap: 1,
+                    }}
+                >
+                    <Box sx={{ flex: 1 }}>
+                        <Typography
+                            sx={{
+                                fontFamily: '"Inter", sans-serif',
+                                fontWeight: 800,
+                                fontSize: '1.08rem',
+                                color: '#fff',
+                                lineHeight: 1.25,
+                                mb: 0.5,
+                                letterSpacing: '-0.02em',
+                            }}
+                        >
+                            {slide.headline}
+                        </Typography>
+
+                        <Typography
+                            sx={{
+                                fontFamily: '"Inter", sans-serif',
+                                fontSize: '0.72rem',
+                                color: 'rgba(255,255,255,0.78)',
+                                lineHeight: 1.45,
+                                mb: 1.4,
+                            }}
+                        >
+                            {slide.sub}
+                        </Typography>
+
+                        <Box
+                            sx={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                background: 'rgba(255,255,255,0.16)',
+                                border: '1px solid rgba(255,255,255,0.24)',
+                                borderRadius: '10px',
+                                px: 1.3,
+                                py: 0.65,
+                                backdropFilter: 'blur(10px)',
+                            }}
+                        >
+                            <Typography
+                                sx={{
+                                    fontFamily: '"Inter", sans-serif',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    color: '#fff',
+                                }}
+                            >
+                                Explore NearZO
+                            </Typography>
+
+                            <ArrowForwardIcon
+                                sx={{
+                                    fontSize: '0.72rem',
+                                    color: '#fff',
+                                }}
+                            />
+                        </Box>
+                    </Box>
+
+                    {/* Icon box */}
+                    <Box
+                        sx={{
+                            width: 52,
+                            height: 52,
+                            flexShrink: 0,
+                            borderRadius: '16px',
+                            background: 'rgba(255,255,255,0.14)',
+                            border: '1px solid rgba(255,255,255,0.22)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mt: 0.5,
+                            backdropFilter: 'blur(10px)',
+                        }}
+                    >
+                        <IconComp
+                            sx={{
+                                fontSize: '1.4rem',
+                                color: '#fff',
+                            }}
+                        />
+                    </Box>
+                </Box>
+            </Box>
             {/* Dot indicators */}
             <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.7, mt: 1.2 }}>
                 {NEARZO_SLIDES.map((_, i) => (
@@ -625,63 +632,193 @@ const NearZOPromoBanner = ({ onExplore }) => {
             {/* Quick feature pills row */}
             <Box sx={{ display: 'flex', gap: 1, mt: 1.6, flexWrap: 'wrap' }}>
                 {[
-    {
-        label: 'Shops',
-        route: '/app/shops',
-        icon: <StorefrontIcon sx={{ fontSize: '1rem' }} />
-    },
-    {
-        label: 'Houses',
-        route: '/app/houses',
-        icon: <HomeWorkIcon sx={{ fontSize: '1rem' }} />
-    },
-    {
-        label: 'Jobs',
-        route: '/app/jobs',
-        icon: <WorkOutlineIcon sx={{ fontSize: '1rem' }} />
-    },
-].map((item) => (
-                   <Box
-    key={item.label}
-    onClick={() => onExplore(item.route)}
-    sx={{
-        flex: 1,
-        minWidth: 80,
-        py: 0.9,
-        px: 1,
-        borderRadius: '14px',
-        border: '1.5px solid rgba(50,95,236,0.18)',
-        background: 'rgba(50,95,236,0.05)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 0.7,
-        cursor: 'pointer',
-        transition: 'background 0.18s ease, border-color 0.18s ease, transform 0.15s ease',
-        '&:active': { transform: 'scale(0.95)' },
-        '&:hover': {
-            background: 'rgba(50,95,236,0.1)',
-            borderColor: 'rgba(50,95,236,0.32)'
-        },
-    }}
->
-    {item.icon}
+                    {
+                        label: 'Shops',
+                        route: '/app/shops',
+                        icon: <StorefrontIcon sx={{ fontSize: '1rem' }} />
+                    },
+                    {
+                        label: 'Houses',
+                        route: '/app/houses',
+                        icon: <HomeWorkIcon sx={{ fontSize: '1rem' }} />
+                    },
+                    {
+                        label: 'Jobs',
+                        route: '/app/jobs',
+                        icon: <WorkOutlineIcon sx={{ fontSize: '1rem' }} />
+                    },
+                ].map((item) => (
+                    <Box
+                        key={item.label}
+                        onClick={() => onExplore(item.route)}
+                        sx={{
+                            flex: 1,
+                            minWidth: 80,
+                            py: 0.9,
+                            px: 1,
+                            borderRadius: '14px',
+                            border: '1.5px solid rgba(50,95,236,0.18)',
+                            background: 'rgba(50,95,236,0.05)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 0.7,
+                            cursor: 'pointer',
+                            transition: 'background 0.18s ease, border-color 0.18s ease, transform 0.15s ease',
+                            '&:active': { transform: 'scale(0.95)' },
+                            '&:hover': {
+                                background: 'rgba(50,95,236,0.1)',
+                                borderColor: 'rgba(50,95,236,0.32)'
+                            },
+                        }}
+                    >
+                        {item.icon}
 
-    <Typography
-        sx={{
-            fontFamily: '"Inter", sans-serif',
-            fontWeight: 600,
-            fontSize: '0.72rem',
-            color: '#325fec',
-            letterSpacing: '-0.01em'
-        }}
-    >
-        {item.label}
-    </Typography>
-</Box>
+                        <Typography
+                            sx={{
+                                fontFamily: '"Inter", sans-serif',
+                                fontWeight: 600,
+                                fontSize: '0.72rem',
+                                color: '#325fec',
+                                letterSpacing: '-0.01em'
+                            }}
+                        >
+                            {item.label}
+                        </Typography>
+                    </Box>
                 ))}
             </Box>
         </Box>
+    );
+};
+
+// ── Location Permission Dialog ────────────────────────────────────────────────
+const LocationPermissionDialog = ({ open, onClose, onAllow, onManualCity, loading }) => {
+    const [manualCity, setManualCity] = useState('');
+
+    const handleManualSubmit = () => {
+        if (manualCity.trim()) {
+            onManualCity(manualCity.trim());
+            setManualCity('');
+        }
+    };
+
+    return (
+        <Dialog 
+            open={open} 
+            onClose={onClose}
+            PaperProps={{
+                sx: {
+                    borderRadius: '24px',
+                    maxWidth: '340px',
+                    width: '90%',
+                    p: 1
+                }
+            }}
+        >
+            <DialogTitle sx={{ 
+                fontFamily: '"Inter", sans-serif',
+                fontWeight: 700,
+                fontSize: '1.2rem',
+                color: '#0a1628',
+                pb: 1,
+                pt: 2.5
+            }}>
+                Allow Location Access
+            </DialogTitle>
+            <DialogContent>
+                <Typography sx={{ 
+                    fontFamily: '"Inter", sans-serif',
+                    fontSize: '0.85rem',
+                    color: '#64748b',
+                    mb: 2
+                }}>
+                    NearZO needs your location to show shops, houses, and jobs near you. 
+                    We don't store your precise location.
+                </Typography>
+                
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        startIcon={<MyLocationIcon />}
+                        onClick={onAllow}
+                        disabled={loading}
+                        sx={{
+                            background: '#325fec',
+                            borderRadius: '14px',
+                            py: 1.2,
+                            textTransform: 'none',
+                            fontFamily: '"Inter", sans-serif',
+                            fontWeight: 600,
+                            fontSize: '0.85rem',
+                            '&:hover': {
+                                background: '#254bc4'
+                            }
+                        }}
+                    >
+                        {loading ? <CircularProgress size={20} color="inherit" /> : 'Allow Location'}
+                    </Button>
+
+                    <Typography sx={{ 
+                        textAlign: 'center',
+                        color: '#94a3b8',
+                        fontSize: '0.75rem'
+                    }}>
+                        OR
+                    </Typography>
+
+                    <TextField
+                        placeholder="Enter your city name"
+                        value={manualCity}
+                        onChange={(e) => setManualCity(e.target.value)}
+                        size="small"
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: '14px',
+                                fontFamily: '"Inter", sans-serif'
+                            }
+                        }}
+                    />
+                    
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={handleManualSubmit}
+                        disabled={!manualCity.trim() || loading}
+                        sx={{
+                            borderRadius: '14px',
+                            py: 1,
+                            textTransform: 'none',
+                            fontFamily: '"Inter", sans-serif',
+                            fontWeight: 600,
+                            fontSize: '0.85rem',
+                            borderColor: '#cbd5e1',
+                            color: '#475569',
+                            '&:hover': {
+                                borderColor: '#325fec',
+                                color: '#325fec'
+                            }
+                        }}
+                    >
+                        Use this city
+                    </Button>
+                </Box>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2.5 }}>
+                <Button 
+                    onClick={onClose}
+                    sx={{
+                        color: '#94a3b8',
+                        textTransform: 'none',
+                        fontFamily: '"Inter", sans-serif',
+                        fontSize: '0.8rem'
+                    }}
+                >
+                    Skip for now
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 };
 
@@ -709,37 +846,180 @@ const LoadingSkeleton = () => (
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function Home() {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [homeData, setHomeData] = useState({ ads: [], categories: [], shops: [], houses: [], jobs: [], city: '' });
+    const [homeData, setHomeData] = useState({ ads: [], shops: [], houses: [], jobs: [], city: '' });
+    const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+    const [locationLoading, setLocationLoading] = useState(false);
+    const [cityDetected, setCityDetected] = useState(false);
 
-    useEffect(() => {
-        loadHomeData();
-    }, []);
-
-    const loadHomeData = async () => {
-        setLoading(true);
+    // Function to get city from coordinates using reverse geocoding
+    const getCityFromCoordinates = async (latitude, longitude) => {
         try {
-            let userCity = 'Vellore';
-            if (user?.city) {
-                userCity = user.city;
-            } else {
-                try {
-                    const cityResult = await getUserCity();
-                    if (cityResult.city) userCity = cityResult.city;
-                } catch { /* use default */ }
+            // Using OpenStreetMap Nominatim API (free, no API key required)
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`,
+                {
+                    headers: {
+                        'User-Agent': 'NearZO-App/1.0'
+                    }
+                }
+            );
+            const data = await response.json();
+            
+            if (data && data.address) {
+                // Try to get city in order of specificity
+                const city = data.address.city || 
+                           data.address.town || 
+                           data.address.village || 
+                           data.address.municipality ||
+                           data.address.county;
+                
+                if (city) {
+                    return city;
+                }
             }
-            const result = await getHomeData(userCity);
+            throw new Error('City not found');
+        } catch (error) {
+            console.error('Reverse geocoding error:', error);
+            throw error;
+        }
+    };
+
+    // Function to get user's current location and city
+    const getCurrentLocationCity = () => {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported by your browser'));
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    try {
+                        const { latitude, longitude } = position.coords;
+                        const city = await getCityFromCoordinates(latitude, longitude);
+                        resolve(city);
+                    } catch (error) {
+                        reject(error);
+                    }
+                },
+                (error) => {
+                    let errorMessage = 'Unable to get your location';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = 'Location permission denied. Please allow location access.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = 'Location information is unavailable.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = 'Location request timed out.';
+                            break;
+                    }
+                    reject(new Error(errorMessage));
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        });
+    };
+
+    // Function to load home data with city
+    const loadHomeData = async (city) => {
+        setLoading(true);
+        setError('');
+        try {
+            const result = await getHomeData(city);
             setHomeData(result);
+            
+            // Update user's city in backend if user is logged in and city changed
+            if (user?.id && city !== user.city) {
+                try {
+                    await updateUserCity(city);
+                    if (updateUser) {
+                        updateUser({ ...user, city });
+                    }
+                } catch (err) {
+                    console.error('Failed to update user city:', err);
+                }
+            }
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'Failed to load home data');
+            console.error('Error loading home data:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    // Responsive slider settings
+    // Handle location permission
+    const handleAllowLocation = async () => {
+        setLocationLoading(true);
+        try {
+            const city = await getCurrentLocationCity();
+            if (city) {
+                setCityDetected(true);
+                setLocationDialogOpen(false);
+                await loadHomeData(city);
+            } else {
+                throw new Error('Could not detect your city');
+            }
+        } catch (err) {
+            console.error('Location error:', err);
+            setError(err.message);
+            // Fallback to user's saved city or default
+            const fallbackCity = user?.city || 'Vellore';
+            await loadHomeData(fallbackCity);
+        } finally {
+            setLocationLoading(false);
+        }
+    };
+
+    // Handle manual city entry
+    const handleManualCity = async (city) => {
+        setLocationDialogOpen(false);
+        await loadHomeData(city);
+    };
+
+    // Handle skip location
+    const handleSkipLocation = async () => {
+        setLocationDialogOpen(false);
+        const fallbackCity = user?.city || 'Vellore';
+        await loadHomeData(fallbackCity);
+    };
+
+    // Initialize component - check for existing city
+    useEffect(() => {
+        const initializeCity = async () => {
+            // Check if user already has a city in profile
+            if (user?.city && !cityDetected) {
+                await loadHomeData(user.city);
+            } else if (!cityDetected && !user?.city) {
+                // Try to get user's saved city from backend
+                try {
+                    const cityResult = await getUserCity();
+                    if (cityResult.city) {
+                        setCityDetected(true);
+                        await loadHomeData(cityResult.city);
+                    } else {
+                        // No city found, show location dialog
+                        setLocationDialogOpen(true);
+                    }
+                } catch (err) {
+                    console.error('Error getting user city:', err);
+                    setLocationDialogOpen(true);
+                }
+            }
+        };
+
+        initializeCity();
+    }, [user?.city]);
+
+    // Ad slider settings
     const adSliderSettings = {
         dots: true,
         infinite: true,
@@ -754,11 +1034,21 @@ export default function Home() {
         adaptiveHeight: false,
     };
 
-    if (loading) return <LoadingSkeleton />;
+    if (loading && !homeData.city) return <LoadingSkeleton />;
 
-    if (error) return (
+    if (error && !locationDialogOpen) return (
         <Box sx={{ p: 2 }}>
-            <Alert severity="error" sx={{ borderRadius: '14px', fontFamily: '"Inter", sans-serif' }}>{error}</Alert>
+            <Alert 
+                severity="error" 
+                sx={{ borderRadius: '14px', fontFamily: '"Inter", sans-serif' }}
+                action={
+                    <Button color="inherit" size="small" onClick={() => setLocationDialogOpen(true)}>
+                        Retry
+                    </Button>
+                }
+            >
+                {error}
+            </Alert>
         </Box>
     );
 
@@ -799,6 +1089,14 @@ export default function Home() {
                 }
             `}</style>
 
+            <LocationPermissionDialog
+                open={locationDialogOpen}
+                onClose={handleSkipLocation}
+                onAllow={handleAllowLocation}
+                onManualCity={handleManualCity}
+                loading={locationLoading}
+            />
+
             <Box sx={{ bgcolor: '#ffffff', minHeight: '100vh' }}>
 
                 {/* ── City Header ──────────────────────────────────── */}
@@ -811,13 +1109,17 @@ export default function Home() {
                         Exploring
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Box sx={{
-                            width: 26, height: 26, borderRadius: '8px',
-                            background: 'rgba(50,95,236,0.12)',
-                            border: '1px solid rgba(50,95,236,0.2)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            animation: 'pulseGlow 2.5s ease infinite',
-                        }}>
+                        <Box 
+                            sx={{
+                                width: 26, height: 26, borderRadius: '8px',
+                                background: 'rgba(50,95,236,0.12)',
+                                border: '1px solid rgba(50,95,236,0.2)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                animation: 'pulseGlow 2.5s ease infinite',
+                                cursor: 'pointer',
+                            }}
+                            onClick={() => setLocationDialogOpen(true)}
+                        >
                             <LocationIcon sx={{ fontSize: '0.85rem', color: '#325fec' }} />
                         </Box>
                         <Typography sx={{
@@ -831,84 +1133,28 @@ export default function Home() {
                 </Box>
 
                 {/* ── Ad Banner (shops ads) ─────────────────────────── */}
-             {homeData.ads?.length > 0 && (
-    <Box
-        sx={{
-            px: { xs: 1.5, sm: 2 },
-            py: 1,
-            mb: 3,
-            animation: 'fadeInUp 0.5s ease both',
-            animationDelay: '0.1s',
-        }}
-    >
-        <Box
-            sx={{
-                borderRadius: '18px',
-                overflow: 'hidden',
-                // boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                background: '#fff',
-                p: 1, // clean surrounding space
-                height: { xs: 225, sm: 275, md: 335 },
-                position: 'relative',
-            }}
-            className="nearzo-ad-slider"
-        >
-            <Slider {...adSliderSettings} style={{ height: '100%' }}>
-                {homeData.ads.map((ad) => (
-                    <Box
-                        key={ad.id}
-                        onClick={() => navigate(`/app/shops/${ad.shop_id}`)}
-                        sx={{
-                            cursor: 'pointer',
-                            height: '100%',
-                            display: 'block !important',
-                            borderRadius: '18px',
-                            overflow: 'hidden',
-                            position: 'relative',
-                        }}
-                    >
-                        <Box
-                            component="img"
-                            src={ad.image_url}
-                            alt={ad.title}
-                            sx={{
-                                width: '100%',
-                                height: { xs: 210, sm: 260, md: 320 },
-                                objectFit: 'cover',
-                                objectPosition: 'center',
-                                display: 'block',
-                                borderRadius: '18px',
-                            }}
-                        />
-
-                        <Box
-                            sx={{
-                                position: 'absolute',
-                                inset: 0,
-                                background:
-                                    'linear-gradient(to top, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 45%)',
-                                pointerEvents: 'none',
-                                borderRadius: '18px',
-                            }}
-                        />
+                {homeData.ads?.length > 0 && (
+                    <Box sx={{ px: { xs: 1.5, sm: 2 }, py: 1, mb: 3, animation: 'fadeInUp 0.5s ease both', animationDelay: '0.1s' }}>
+                        <Box sx={{ borderRadius: '18px', overflow: 'hidden', background: '#fff', p: 1, height: { xs: 225, sm: 275, md: 335 }, position: 'relative' }} className="nearzo-ad-slider">
+                            <Slider {...adSliderSettings} style={{ height: '100%' }}>
+                                {homeData.ads.map((ad) => (
+                                    <Box key={ad.id} onClick={() => navigate(`/app/shops/${ad.shop_id}`)} sx={{ cursor: 'pointer', height: '100%', display: 'block !important', borderRadius: '18px', overflow: 'hidden', position: 'relative' }}>
+                                        <Box component="img" src={ad.image_url} alt={ad.title} sx={{ width: '100%', height: { xs: 210, sm: 260, md: 320 }, objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '18px' }} />
+                                        <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 45%)', pointerEvents: 'none', borderRadius: '18px' }} />
+                                    </Box>
+                                ))}
+                            </Slider>
+                        </Box>
                     </Box>
-                ))}
-            </Slider>
-        </Box>
-    </Box>
-)}
-                {/* ── NearZO Promo Banner (replaces category marquee) ── */}
-                <NearZOPromoBanner
-                    onExplore={(route) => navigate(typeof route === 'string' ? route : '/app/shops')}
-                />
+                )}
 
-                {/* ── Shops ─────────────────────────────────────────── */}
+                {/* ── NearZO Promo Banner ── */}
+                <NearZOPromoBanner onExplore={(route) => navigate(typeof route === 'string' ? route : '/app/shops')} />
+
+                {/* ── Shops ── */}
                 {homeData.shops?.length > 0 && (
                     <Box sx={{ mb: 3, px: 2, animation: 'fadeInUp 0.5s ease both', animationDelay: '0.2s' }}>
-                        <SectionHeader
-                            title={`Shops in ${homeData.city}`}
-                            onSeeAll={() => navigate('/app/shops')}
-                        />
+                        <SectionHeader title={`Shops in ${homeData.city}`} onSeeAll={() => navigate('/app/shops')} />
                         <ScrollRail>
                             {homeData.shops.map((shop, i) => (
                                 <ShopCard key={shop.id} shop={shop} index={i} onClick={() => navigate(`/app/shops/${shop.id}`)} />
@@ -917,13 +1163,10 @@ export default function Home() {
                     </Box>
                 )}
 
-                {/* ── Houses + Boost Banner ─────────────────────────── */}
+                {/* ── Houses + Boost Banner ── */}
                 {homeData.houses?.length > 0 && (
                     <Box sx={{ mb: 3, px: 2, animation: 'fadeInUp 0.5s ease both', animationDelay: '0.25s' }}>
-                        <SectionHeader
-                            title={`Houses in ${homeData.city}`}
-                            onSeeAll={() => navigate('/app/houses')}
-                        />
+                        <SectionHeader title={`Houses in ${homeData.city}`} onSeeAll={() => navigate('/app/houses')} />
                         <ScrollRail>
                             {homeData.houses.map((house, i) => (
                                 <HouseCard key={house.id} house={house} index={i} onClick={() => navigate(`/app/houses/${house.id}`)} />
@@ -935,13 +1178,10 @@ export default function Home() {
                     </Box>
                 )}
 
-                {/* ── Jobs ──────────────────────────────────────────── */}
+                {/* ── Jobs ── */}
                 {homeData.jobs?.length > 0 && (
                     <Box sx={{ mb: 5, px: 2, animation: 'fadeInUp 0.5s ease both', animationDelay: '0.3s' }}>
-                        <SectionHeader
-                            title={`Jobs in ${homeData.city}`}
-                            onSeeAll={() => navigate('/app/jobs')}
-                        />
+                        <SectionHeader title={`Jobs in ${homeData.city}`} onSeeAll={() => navigate('/app/jobs')} />
                         <ScrollRail>
                             {homeData.jobs.map((job, i) => (
                                 <JobCard key={job.id} job={job} index={i} onClick={() => navigate(`/app/jobs/${job.id}`)} />
@@ -950,8 +1190,8 @@ export default function Home() {
                     </Box>
                 )}
 
-                {/* ── Empty State ───────────────────────────────────── */}
-                {!homeData.shops?.length && !homeData.houses?.length && !homeData.jobs?.length && (
+                {/* ── Empty State ── */}
+                {!homeData.shops?.length && !homeData.houses?.length && !homeData.jobs?.length && !loading && (
                     <Box sx={{ textAlign: 'center', py: 10, px: 4 }}>
                         <Box sx={{
                             width: 64, height: 64, borderRadius: '20px',
@@ -964,11 +1204,28 @@ export default function Home() {
                             <LocationIcon sx={{ fontSize: '1.8rem', color: '#325fec' }} />
                         </Box>
                         <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '1rem', color: '#334155', mb: 0.5 }}>
-                            Nothing here yet
+                            No listings found
                         </Typography>
                         <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: '#94a3b8' }}>
-                            Listings for {homeData.city} will appear here
+                            No shops, houses, or jobs found in {homeData.city}
                         </Typography>
+                        <Button
+                            variant="contained"
+                            onClick={() => setLocationDialogOpen(true)}
+                            sx={{
+                                mt: 3,
+                                background: '#325fec',
+                                borderRadius: '14px',
+                                textTransform: 'none',
+                                fontFamily: '"Inter", sans-serif',
+                                fontWeight: 600,
+                                px: 3,
+                                py: 1,
+                                '&:hover': { background: '#254bc4' }
+                            }}
+                        >
+                            Try Different Location
+                        </Button>
                     </Box>
                 )}
 
