@@ -25,6 +25,7 @@ import {
     Menu,
     MenuItem,
     Badge,
+    CircularProgress,
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -37,10 +38,15 @@ import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import CloseIcon from '@mui/icons-material/Close';
+import StoreIcon from '@mui/icons-material/Store';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import { LocationOnOutlined, HouseOutlined, StoreOutlined, GridViewOutlined } from '@mui/icons-material';
 import { PlaceOutlined } from '@mui/icons-material';
 import logo from '../assets/nearzologo.png';
 import loadingGif from '../assets/Radar.gif';
+import { getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead } from '../services/notification';
+import { useAuth } from './context/AuthContext';
 
 const NAV_CONFIG = {
     user: [
@@ -72,11 +78,21 @@ const COLLAPSED_DRAWER_WIDTH = 68;
 const BOTTOM_NAV_HEIGHT = 66;
 const TOP_BAR_HEIGHT = 64;
 
+// Get user initial for avatar
+const getUserInitial = (role, user) => {
+    if (user?.full_name) {
+        return user.full_name.charAt(0).toUpperCase();
+    }
+   
+    return role ? role.charAt(0).toUpperCase() : 'U';
+};
+
 function AppLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const { user } = useAuth();
 
     const [role, setRole] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -84,7 +100,38 @@ function AppLayout() {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
+    const [notificationsAnchorEl, setNotificationsAnchorEl] = useState(null);
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [notificationsLoading, setNotificationsLoading] = useState(false);
+    const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
+    
     const open = Boolean(anchorEl);
+    const notificationsOpen = Boolean(notificationsAnchorEl);
+
+    // Load notifications
+    const loadNotifications = async () => {
+        setNotificationsLoading(true);
+        try {
+            const data = await getNotifications(100, 0);
+            setNotifications(data.notifications || []);
+            setUnreadCount(data.unread_count || 0);
+        } catch (err) {
+            console.error('Failed to load notifications:', err);
+        } finally {
+            setNotificationsLoading(false);
+        }
+    };
+
+    // Load unread count
+    const loadUnreadCount = async () => {
+        try {
+            const data = await getUnreadCount();
+            setUnreadCount(data.unread_count || 0);
+        } catch (err) {
+            console.error('Failed to load unread count:', err);
+        }
+    };
 
     useEffect(() => {
         const storedRole = localStorage.getItem('nearzo_role');
@@ -101,6 +148,9 @@ function AppLayout() {
             navigate(defaultPath, { replace: true });
         }
         setLoading(false);
+        
+        // Load notifications
+        loadUnreadCount();
     }, [navigate, location.pathname]);
 
     const handleLogoutRedirect = () => {
@@ -122,6 +172,70 @@ function AppLayout() {
     const isActivePath = (path) =>
         location.pathname === path || location.pathname.startsWith(path + '/');
 
+    // Handle notification click
+    const handleNotificationClick = async (notification) => {
+        if (!notification.is_read) {
+            await markNotificationRead(notification.id);
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        }
+        setNotificationDialogOpen(false);
+        setNotificationsAnchorEl(null);
+        
+        // Navigate based on notification type
+        if (notification.reference_type === 'shop') {
+            navigate(`/app/shops/${notification.reference_id}`);
+        } else if (notification.reference_type === 'house') {
+            navigate(`/app/houses/${notification.reference_id}`);
+        } else if (notification.reference_type === 'job') {
+            navigate(`/app/jobs/${notification.reference_id}`);
+        }
+    };
+
+    // Handle mark all as read
+    const handleMarkAllRead = async () => {
+        try {
+            await markAllNotificationsRead();
+            setUnreadCount(0);
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        } catch (err) {
+            console.error('Failed to mark all as read:', err);
+        }
+    };
+
+    // Open notifications dialog
+    const openNotificationsDialog = async () => {
+        setNotificationDialogOpen(true);
+        await loadNotifications();
+    };
+
+    const getNotificationIcon = (type) => {
+        switch (type) {
+            case 'new_shop':
+                return <StoreIcon sx={{ fontSize: 20, color: '#325fec' }} />;
+            case 'new_house':
+                return <HomeOutlinedIcon sx={{ fontSize: 20, color: '#16a34a' }} />;
+            case 'new_job':
+                return <WorkIcon sx={{ fontSize: 20, color: '#ea580c' }} />;
+            default:
+                return <NotificationsIcon sx={{ fontSize: 20, color: '#325fec' }} />;
+        }
+    };
+
+    const formatTimeAgo = (dateStr) => {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return date.toLocaleDateString();
+    };
+
     // ─── SIDEBAR (Admin) ───────────────────────────────────────────────────────
     const renderSidebar = () => {
         const sidebarContent = (
@@ -132,7 +246,6 @@ function AppLayout() {
                 bgcolor: '#fff',
                 borderRight: '1px solid #f0f0f0',
             }}>
-                {/* Logo */}
                 <Box sx={{
                     p: sidebarCollapsed ? 1.5 : 2.5,
                     display: 'flex',
@@ -173,7 +286,6 @@ function AppLayout() {
                     </Box>
                 )}
 
-                {/* Nav Items */}
                 <List sx={{ flex: 1, pt: 1.5, px: 1 }}>
                     {navItems.map((item) => {
                         const active = isActivePath(item.path);
@@ -302,7 +414,7 @@ function AppLayout() {
         );
     };
 
-    // ─── BOTTOM NAV (User/Business) — iOS Liquid Glass Style ──────────────────
+    // ─── BOTTOM NAV (User/Business) — White background ──────────────────
     const renderBottomNav = () => {
         const currentIndex = navItems.findIndex(item =>
             location.pathname === item.path || location.pathname.startsWith(item.path + '/')
@@ -311,7 +423,6 @@ function AppLayout() {
 
         return (
             <>
-                {/* Keyframe injection */}
                 <style>{`
                     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -358,36 +469,19 @@ function AppLayout() {
                         pointerEvents: 'none',
                     }}
                 >
-                    {/* Glass pill container */}
+                    {/* White pill container - no gradient */}
                     <Box
                         sx={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: '4px',
                             pointerEvents: 'all',
-
-                            // Liquid glass base
-                            bgcolor: 'rgba(255, 255, 255, 0.72)',
-                            backdropFilter: 'blur(40px) saturate(180%) brightness(1.08)',
-                            WebkitBackdropFilter: 'blur(40px) saturate(180%) brightness(1.08)',
-
-                            // Shape
+                            bgcolor: '#ffffff',
                             borderRadius: '100px',
                             px: '6px',
                             py: '6px',
-
-                            // Glass border — iOS style refraction ring
-                            border: '1px solid rgba(255, 255, 255, 0.85)',
-                            outline: '1px solid rgba(0, 0, 0, 0.07)',
-
-                            // Layered shadow for depth
-                            boxShadow: `
-                                0 2px 0px rgba(255,255,255,0.9) inset,
-                                0 -1px 0px rgba(0,0,0,0.04) inset,
-                                0 8px 32px rgba(0, 0, 0, 0.13),
-                                0 2px 8px rgba(0, 0, 0, 0.08),
-                                0 0 0 0.5px rgba(255,255,255,0.6)
-                            `,
+                            border: '1px solid rgba(0, 0, 0, 0.08)',
+                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.05)',
                         }}
                     >
                         {navItems.map((item, index) => {
@@ -405,7 +499,6 @@ function AppLayout() {
                                     }}
                                 >
                                     {active ? (
-                                        // ── ACTIVE: Dark capsule pill with icon + label ──
                                         <Box
                                             className="nearzo-active-pill"
                                             sx={{
@@ -415,34 +508,18 @@ function AppLayout() {
                                                 px: '14px',
                                                 height: '44px',
                                                 borderRadius: '100px',
-
-                                                // Deep rich dark fill — matches reference
                                                 bgcolor: '#325fec',
-                                                // background: 'linear-gradient(145deg, #1e2240 0%, #111827 100%)',
-
-                                                // Inner glow
-                                                boxShadow: `
-                                                    0 1px 0 rgba(255,255,255,0.12) inset,
-                                                    0 -1px 0 rgba(0,0,0,0.3) inset,
-                                                    0 4px 16px rgba(50, 95, 236, 0.25),
-                                                    0 2px 6px rgba(0,0,0,0.3)
-                                                `,
+                                                boxShadow: '0 2px 8px rgba(50, 95, 236, 0.3)',
                                             }}
                                         >
-                                            {/* Icon */}
                                             <Box sx={{
                                                 color: '#ffffff',
                                                 display: 'flex',
                                                 alignItems: 'center',
-                                                '& svg': {
-                                                    fontSize: '1.15rem',
-                                                    filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.3))',
-                                                }
+                                                '& svg': { fontSize: '1.15rem' }
                                             }}>
                                                 {item.icon}
                                             </Box>
-
-                                            {/* Label */}
                                             <Typography
                                                 className="nearzo-active-label"
                                                 sx={{
@@ -459,7 +536,6 @@ function AppLayout() {
                                             </Typography>
                                         </Box>
                                     ) : (
-                                        // ── INACTIVE: Just icon, no label ──
                                         <Box
                                             className="nearzo-nav-inner"
                                             sx={{
@@ -475,10 +551,7 @@ function AppLayout() {
                                                     bgcolor: 'rgba(50, 95, 236, 0.08)',
                                                     color: '#325fec',
                                                 },
-                                                '& svg': {
-                                                    fontSize: '1.22rem',
-                                                    transition: 'all 0.18s ease',
-                                                }
+                                                '& svg': { fontSize: '1.22rem' }
                                             }}
                                         >
                                             {item.icon}
@@ -514,17 +587,16 @@ function AppLayout() {
                     zIndex: 1100,
                 }}
             >
-                {/* Logo */}
                 <Box
                     component="img" src={logo} alt="NearZO"
                     sx={{ width: 90, height: 'auto', objectFit: 'contain', cursor: 'pointer' }}
                     onClick={() => navigate('/')}
                 />
 
-                {/* Right actions */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <IconButton
                         size="small"
+                        onClick={openNotificationsDialog}
                         sx={{
                             width: 38, height: 38,
                             borderRadius: '12px',
@@ -534,7 +606,7 @@ function AppLayout() {
                             transition: 'all 0.15s ease',
                         }}
                     >
-                        <Badge badgeContent={0} color="error" invisible>
+                        <Badge badgeContent={unreadCount} color="error" invisible={unreadCount === 0}>
                             <NotificationsIcon sx={{ fontSize: '1.15rem' }} />
                         </Badge>
                     </IconButton>
@@ -567,7 +639,7 @@ function AppLayout() {
                                 fontFamily: '"Inter", sans-serif',
                             }}
                         >
-                            {role ? role[0].toUpperCase() : 'U'}
+                            {getUserInitial(role, user)}
                         </Avatar>
                         <Typography sx={{
                             fontSize: '0.75rem',
@@ -625,6 +697,195 @@ function AppLayout() {
             </Box>
         );
     };
+
+    // ─── NOTIFICATION FULL SCREEN DIALOG ───────────────────────────────────────
+    const renderNotificationDialog = () => (
+        <Dialog
+            open={notificationDialogOpen}
+            onClose={() => setNotificationDialogOpen(false)}
+            fullScreen
+            PaperProps={{
+                sx: {
+                    bgcolor: '#f8f9fa',
+                    backgroundImage: 'none',
+                }
+            }}
+        >
+            <Box sx={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
+                bgcolor: '#ffffff',
+                borderBottom: '1px solid #f0f0f0',
+                px: 2,
+                py: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+            }}>
+                <Typography sx={{
+                    fontFamily: '"Inter", sans-serif',
+                    fontWeight: 700,
+                    fontSize: '1.1rem',
+                    color: '#1a1a1a',
+                }}>
+                    Notifications
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    {notifications.length > 0 && unreadCount > 0 && (
+                        <Button
+                            size="small"
+                            onClick={handleMarkAllRead}
+                            sx={{
+                                textTransform: 'none',
+                                fontFamily: '"Inter", sans-serif',
+                                fontSize: '0.75rem',
+                                color: '#325fec',
+                                fontWeight: 600,
+                            }}
+                        >
+                            Mark all as read
+                        </Button>
+                    )}
+                    <IconButton onClick={() => setNotificationDialogOpen(false)} size="small">
+                        <CloseIcon sx={{ fontSize: '1.2rem', color: '#888' }} />
+                    </IconButton>
+                </Box>
+            </Box>
+
+            <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
+                {notificationsLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                        <CircularProgress size={32} sx={{ color: '#325fec' }} />
+                    </Box>
+                ) : notifications.length === 0 ? (
+                    <Box sx={{ 
+                        textAlign: 'center', 
+                        py: 12,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 2
+                    }}>
+                        <Box sx={{
+                            width: 64, height: 64,
+                            borderRadius: '50%',
+                            bgcolor: '#f0f4ff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}>
+                            <NotificationsIcon sx={{ fontSize: 28, color: '#325fec', opacity: 0.6 }} />
+                        </Box>
+                        <Typography sx={{
+                            fontFamily: '"Inter", sans-serif',
+                            fontSize: '0.9rem',
+                            color: '#888',
+                            fontWeight: 500,
+                        }}>
+                            No notifications yet
+                        </Typography>
+                        <Typography sx={{
+                            fontFamily: '"Inter", sans-serif',
+                            fontSize: '0.75rem',
+                            color: '#aaa',
+                        }}>
+                            When someone posts in your city, you'll see it here
+                        </Typography>
+                    </Box>
+                ) : (
+                    notifications.map((notification, index) => (
+                        <Box
+                            key={notification.id}
+                            onClick={() => handleNotificationClick(notification)}
+                            sx={{
+                                bgcolor: notification.is_read ? '#ffffff' : '#f0f7ff',
+                                borderRadius: '14px',
+                                p: 2,
+                                mb: 1.5,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                border: '1px solid',
+                                borderColor: notification.is_read ? '#f0f0f0' : '#d6e4ff',
+                                '&:hover': {
+                                    transform: 'translateY(-1px)',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                    borderColor: '#c7d2fe',
+                                },
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', gap: 1.5 }}>
+                                <Box sx={{
+                                    width: 40, height: 40,
+                                    borderRadius: '12px',
+                                    bgcolor: notification.type === 'new_shop' ? '#f0f4ff' : 
+                                             notification.type === 'new_house' ? '#f0fdf4' : '#fff7ed',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                }}>
+                                    {getNotificationIcon(notification.type)}
+                                </Box>
+                                <Box sx={{ flex: 1 }}>
+                                    <Typography sx={{
+                                        fontFamily: '"Inter", sans-serif',
+                                        fontWeight: notification.is_read ? 500 : 700,
+                                        fontSize: '0.85rem',
+                                        color: '#1a1a1a',
+                                        mb: 0.5,
+                                    }}>
+                                        {notification.title}
+                                    </Typography>
+                                    <Typography sx={{
+                                        fontFamily: '"Inter", sans-serif',
+                                        fontSize: '0.75rem',
+                                        color: '#666',
+                                        lineHeight: 1.5,
+                                        mb: 0.75,
+                                    }}>
+                                        {notification.message}
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Typography sx={{
+                                            fontFamily: '"Inter", sans-serif',
+                                            fontSize: '0.65rem',
+                                            color: '#aaa',
+                                        }}>
+                                            {formatTimeAgo(notification.created_at)}
+                                        </Typography>
+                                        {!notification.is_read && (
+                                            <Box sx={{
+                                                width: 6, height: 6,
+                                                borderRadius: '50%',
+                                                bgcolor: '#325fec',
+                                            }} />
+                                        )}
+                                    </Box>
+                                </Box>
+                                {notification.reference_image && (
+                                    <Box sx={{
+                                        width: 48, height: 48,
+                                        borderRadius: '10px',
+                                        overflow: 'hidden',
+                                        bgcolor: '#f5f5f5',
+                                        flexShrink: 0,
+                                    }}>
+                                        <img 
+                                            src={notification.reference_image} 
+                                            alt=""
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            onError={(e) => { e.target.style.display = 'none'; }}
+                                        />
+                                    </Box>
+                                )}
+                            </Box>
+                        </Box>
+                    ))
+                )}
+            </Box>
+        </Dialog>
+    );
 
     // ─── LOGOUT DIALOG ─────────────────────────────────────────────────────────
     const renderLogoutDialog = () => (
@@ -770,6 +1031,7 @@ function AppLayout() {
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <IconButton
                                     size="small"
+                                    onClick={openNotificationsDialog}
                                     sx={{
                                         width: 38, height: 38,
                                         borderRadius: '12px',
@@ -778,7 +1040,9 @@ function AppLayout() {
                                         '&:hover': { bgcolor: '#f0f4ff', color: '#325fec' },
                                     }}
                                 >
-                                    <NotificationsIcon sx={{ fontSize: '1.15rem' }} />
+                                    <Badge badgeContent={unreadCount} color="error" invisible={unreadCount === 0}>
+                                        <NotificationsIcon sx={{ fontSize: '1.15rem' }} />
+                                    </Badge>
                                 </IconButton>
 
                                 <Box
@@ -800,7 +1064,7 @@ function AppLayout() {
                                         fontWeight: 700,
                                         fontFamily: '"Inter", sans-serif',
                                     }}>
-                                        A
+                                        {getUserInitial(role, user)}
                                     </Avatar>
                                     <Typography sx={{
                                         fontSize: '0.75rem',
@@ -821,35 +1085,35 @@ function AppLayout() {
                     </Box>
                 </Box>
 
+                {renderNotificationDialog()}
                 {renderLogoutDialog()}
             </>
         );
     }
-// ─── USER / BUSINESS LAYOUT ────────────────────────────────────────────────
-return (
-    <>
-        <Box
-            sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: '100vh',
-                bgcolor: '#f8f9fa',
-                pb: `${BOTTOM_NAV_HEIGHT + 32}px`, // Always add padding for bottom nav
-            }}
-        >
-            {renderTopBar()}
 
-            <Box sx={{ flex: 1 }}>
-                <Outlet />
+    // ─── USER / BUSINESS LAYOUT ────────────────────────────────────────────────
+    return (
+        <>
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: '100vh',
+                    bgcolor: '#f8f9fa',
+                    pb: `${BOTTOM_NAV_HEIGHT + 32}px`,
+                }}
+            >
+                {renderTopBar()}
+                <Box sx={{ flex: 1 }}>
+                    <Outlet />
+                </Box>
             </Box>
-        </Box>
 
-        {/* Always render bottom nav on all devices */}
-        {renderBottomNav()}
-        {renderLogoutDialog()}
-    </>
-);
-
+            {renderBottomNav()}
+            {renderNotificationDialog()}
+            {renderLogoutDialog()}
+        </>
+    );
 }
 
 export default AppLayout;

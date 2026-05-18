@@ -25,6 +25,7 @@ import {
     DialogContent,
     DialogActions,
     Tooltip,
+    Snackbar,
 } from '@mui/material';
 import {
     LocationOn as LocationIcon,
@@ -40,8 +41,10 @@ import {
     KeyboardArrowDown as ArrowDownIcon,
     Description as DescriptionIcon,
     Visibility as VisibilityIcon,
+    GpsFixed as GpsFixedIcon,
 } from '@mui/icons-material';
-import { getJobsByLocation, getJobById, getJobFilterOptions, applyForJob, incrementJobViewCount } from '../../services/jobs';import { useAuth } from '../context/AuthContext';
+import { getJobsByLocation, getJobById, getJobFilterOptions, applyForJob, incrementJobViewCount } from '../../services/jobs';
+import { useAuth } from '../context/AuthContext';
 
 /* ─── Design tokens ──────────────────────────────────────────────────────── */
 const T = {
@@ -142,9 +145,9 @@ function JobCard({ job, index, onApply, onView }) {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
                 >
-                    {job.shop_image_base64 ? (
+                    {job.shop_image ? (
                         <img
-                            src={`data:image/jpeg;base64,${job.shop_image_base64}`}
+                            src={job.shop_image}
                             alt={job.company_name}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
@@ -284,6 +287,136 @@ function FilterPanel({ radius, setRadius, jobType, setJobType, salaryRange, setS
     );
 }
 
+// ── Location Permission Dialog ────────────────────────────────────────────────
+const LocationPermissionDialog = ({ open, onClose, onAllow, onManualCity, loading }) => {
+    const [manualCity, setManualCity] = useState('');
+
+    const handleManualSubmit = () => {
+        if (manualCity.trim()) {
+            onManualCity(manualCity.trim());
+            setManualCity('');
+        }
+    };
+
+    return (
+        <Dialog 
+            open={open} 
+            onClose={onClose}
+            PaperProps={{
+                sx: {
+                    borderRadius: '24px',
+                    maxWidth: '340px',
+                    width: '90%',
+                    p: 1
+                }
+            }}
+        >
+            <DialogTitle sx={{ 
+                fontFamily: '"Inter", sans-serif',
+                fontWeight: 700,
+                fontSize: '1.2rem',
+                color: '#0a1628',
+                pb: 1,
+                pt: 2.5
+            }}>
+                Allow Location Access
+            </DialogTitle>
+            <DialogContent>
+                <Typography sx={{ 
+                    fontFamily: '"Inter", sans-serif',
+                    fontSize: '0.85rem',
+                    color: '#64748b',
+                    mb: 2
+                }}>
+                    NearZO needs your location to show jobs near you. 
+                    We don't store your precise location.
+                </Typography>
+                
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        startIcon={<GpsFixedIcon />}
+                        onClick={onAllow}
+                        disabled={loading}
+                        sx={{
+                            background: '#325fec',
+                            borderRadius: '14px',
+                            py: 1.2,
+                            textTransform: 'none',
+                            fontFamily: '"Inter", sans-serif',
+                            fontWeight: 600,
+                            fontSize: '0.85rem',
+                            '&:hover': {
+                                background: '#254bc4'
+                            }
+                        }}
+                    >
+                        {loading ? <CircularProgress size={20} color="inherit" /> : 'Allow Location'}
+                    </Button>
+
+                    <Typography sx={{ 
+                        textAlign: 'center',
+                        color: '#94a3b8',
+                        fontSize: '0.75rem'
+                    }}>
+                        OR
+                    </Typography>
+
+                    <TextField
+                        placeholder="Enter your city name"
+                        value={manualCity}
+                        onChange={(e) => setManualCity(e.target.value)}
+                        size="small"
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: '14px',
+                                fontFamily: '"Inter", sans-serif'
+                            }
+                        }}
+                    />
+                    
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={handleManualSubmit}
+                        disabled={!manualCity.trim() || loading}
+                        sx={{
+                            borderRadius: '14px',
+                            py: 1,
+                            textTransform: 'none',
+                            fontFamily: '"Inter", sans-serif',
+                            fontWeight: 600,
+                            fontSize: '0.85rem',
+                            borderColor: '#cbd5e1',
+                            color: '#475569',
+                            '&:hover': {
+                                borderColor: '#325fec',
+                                color: '#325fec'
+                            }
+                        }}
+                    >
+                        Use this city
+                    </Button>
+                </Box>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2.5 }}>
+                <Button 
+                    onClick={onClose}
+                    sx={{
+                        color: '#94a3b8',
+                        textTransform: 'none',
+                        fontFamily: '"Inter", sans-serif',
+                        fontSize: '0.8rem'
+                    }}
+                >
+                    Skip for now
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Main Component
 ═══════════════════════════════════════════════════════════════════════════ */
@@ -291,7 +424,7 @@ export default function Jobs() {
     const { isAuthenticated, user } = useAuth();
     const theme    = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-const viewedJobsRef = useRef(new Set());
+    const viewedJobsRef = useRef(new Set());
 
     const [loading,          setLoading]          = useState(true);
     const [jobs,             setJobs]             = useState([]);
@@ -303,6 +436,10 @@ const viewedJobsRef = useRef(new Set());
     const [userLocation,     setUserLocation]     = useState(null);
     const [gettingLocation,  setGettingLocation]  = useState(true);
     const [filterOptions,    setFilterOptions]    = useState({ job_types: [], min_salary: 0, max_salary: 100000, job_titles: [] });
+    const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+    const [locationLoading,  setLocationLoading]  = useState(false);
+    const [detectedCity,     setDetectedCity]     = useState('');
+    const [showCitySnackbar, setShowCitySnackbar] = useState(false);
 
     const [radius,           setRadius]           = useState(10);
     const [salaryRange,      setSalaryRange]      = useState([0, 100000]);
@@ -322,31 +459,179 @@ const viewedJobsRef = useRef(new Set());
 
     const scrollRef = useRef(null);
 
+    /* ── Function to get city from coordinates ── */
+    const getCityFromCoordinates = async (latitude, longitude) => {
+        try {
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`,
+                {
+                    headers: {
+                        'User-Agent': 'NearZO-App/1.0'
+                    }
+                }
+            );
+            const data = await response.json();
+            
+            if (data && data.address) {
+                const city = data.address.city || 
+                           data.address.town || 
+                           data.address.village || 
+                           data.address.municipality ||
+                           data.address.county;
+                
+                if (city) {
+                    return city;
+                }
+            }
+            throw new Error('City not found');
+        } catch (error) {
+            console.error('Reverse geocoding error:', error);
+            throw error;
+        }
+    };
+
+    /* ── Get current location city ── */
+    const getCurrentLocationCity = () => {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported by your browser'));
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    try {
+                        const { latitude, longitude } = position.coords;
+                        const city = await getCityFromCoordinates(latitude, longitude);
+                        resolve({ city, latitude, longitude });
+                    } catch (error) {
+                        reject(error);
+                    }
+                },
+                (error) => {
+                    let errorMessage = 'Unable to get your location';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = 'Location permission denied';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = 'Location information is unavailable';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = 'Location request timed out';
+                            break;
+                    }
+                    reject(new Error(errorMessage));
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        });
+    };
+
+    /* ── Get current location coordinates only ── */
+    const getCurrentLocationCoords = () => {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported'));
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    });
+                },
+                (error) => {
+                    reject(error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        });
+    };
+
+    /* ── Handle location permission ── */
+    const handleAllowLocation = async () => {
+        setLocationLoading(true);
+        try {
+            const { city, latitude, longitude } = await getCurrentLocationCity();
+            if (city) {
+                setDetectedCity(city);
+                setLocationDialogOpen(false);
+                setUserLocation({ latitude, longitude });
+                setShowCitySnackbar(true);
+                // Load jobs will be triggered by useEffect
+            } else {
+                throw new Error('Could not detect your city');
+            }
+        } catch (err) {
+            console.error('Location error:', err);
+            setError(err.message);
+            // Fallback to default location
+            setUserLocation({ latitude: 12.9165, longitude: 79.1325 });
+        } finally {
+            setLocationLoading(false);
+        }
+    };
+
+    /* ── Handle manual city entry ── */
+    const handleManualCity = async (city) => {
+        setLocationDialogOpen(false);
+        setDetectedCity(city);
+        setShowCitySnackbar(true);
+        // For manual city, we still need coordinates for distance calculation
+        // Use default coordinates for that city or skip distance filter
+        setUserLocation({ latitude: 12.9165, longitude: 79.1325, manualCity: city });
+    };
+
+    /* ── Handle skip location ── */
+    const handleSkipLocation = async () => {
+        setLocationDialogOpen(false);
+        setUserLocation({ latitude: 12.9165, longitude: 79.1325 });
+    };
+
+    /* ── Refresh location ── */
+    const handleRefreshLocation = () => {
+        setLocationDialogOpen(true);
+    };
+
     /* ── Effects ── */
     useEffect(() => {
-        getCurrentLocation();
+        // Initialize location on mount
+        const initializeLocation = async () => {
+            setGettingLocation(true);
+            try {
+                const coords = await getCurrentLocationCoords();
+                setUserLocation(coords);
+            } catch (err) {
+                console.log('Could not get location automatically, showing dialog');
+                setLocationDialogOpen(true);
+                setGettingLocation(false);
+            } finally {
+                setGettingLocation(false);
+            }
+        };
+        
+        initializeLocation();
         loadFilterOptions();
     }, []);
 
     useEffect(() => {
-        if (userLocation) loadJobs();
+        if (userLocation) {
+            loadJobs();
+        }
     }, [userLocation, radius, salaryRange, jobType, jobTitle, searchTerm, sortBy, currentPage]);
 
     /* ── Handlers ── */
-    const getCurrentLocation = () => {
-        setGettingLocation(true);
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => { setUserLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }); setGettingLocation(false); },
-                () => { setError('Unable to get your location.'); setGettingLocation(false); setUserLocation({ latitude: 12.9165, longitude: 79.1325 }); },
-                { enableHighAccuracy: true, timeout: 10000 }
-            );
-        } else {
-            setGettingLocation(false);
-            setUserLocation({ latitude: 12.9165, longitude: 79.1325 });
-        }
-    };
-
     const loadFilterOptions = async () => {
         try {
             const result = await getJobFilterOptions();
@@ -358,6 +643,7 @@ const viewedJobsRef = useRef(new Set());
     const loadJobs = async () => {
         if (!userLocation) return;
         setLoading(true);
+        setError('');
         try {
             const result = await getJobsByLocation({
                 latitude: userLocation.latitude,
@@ -382,12 +668,30 @@ const viewedJobsRef = useRef(new Set());
         }
     };
 
-   // Update handleView function
-const handleView = async (job) => {
-    // Check if already viewed in this session
-    if (viewedJobsRef.current.has(job.id)) {
+    const handleView = async (job) => {
+        if (viewedJobsRef.current.has(job.id)) {
+            setLoadingDetails(true);
+            setDetailsOpen(true);
+            try {
+                const result = await getJobById(job.id, userLocation);
+                setSelectedJob(result.job);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoadingDetails(false);
+            }
+            return;
+        }
+        
         setLoadingDetails(true);
         setDetailsOpen(true);
+        viewedJobsRef.current.add(job.id);
+        
+        incrementJobViewCount(job.id).catch(err => {
+            console.log('View count error:', err);
+            viewedJobsRef.current.delete(job.id);
+        });
+        
         try {
             const result = await getJobById(job.id, userLocation);
             setSelectedJob(result.job);
@@ -396,34 +700,10 @@ const handleView = async (job) => {
         } finally {
             setLoadingDetails(false);
         }
-        return;
-    }
-    
-    setLoadingDetails(true);
-    setDetailsOpen(true);
-    
-    // Mark as viewed
-    viewedJobsRef.current.add(job.id);
-    
-    // Increment view count in background
-    incrementJobViewCount(job.id).catch(err => {
-        console.log('View count error:', err);
-        viewedJobsRef.current.delete(job.id);
-    });
-    
-    try {
-        const result = await getJobById(job.id, userLocation);
-        setSelectedJob(result.job);
-    } catch (err) {
-        setError(err.message);
-    } finally {
-        setLoadingDetails(false);
-    }
-};
+    };
+
     const handleApplyIntent = (job) => {
-        window.open(`tel:${job.contact_number}`, '_self');
-        // setSelectedJob(job);
-        // setApplyDialogOpen(true);
+        window.open(`tel:${job.employer_phone}`, '_self');
     };
 
     const handleApplyConfirm = async () => {
@@ -451,8 +731,8 @@ const handleView = async (job) => {
         setCurrentPage(1);
     };
 
-    /* ── Location loading ── */
-    if (gettingLocation) {
+    /* ── Location loading screen ── */
+    if (gettingLocation && !locationDialogOpen) {
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', gap: 2 }}>
                 <CircularProgress sx={{ color: T.brand }} size={36} />
@@ -477,6 +757,36 @@ const handleView = async (job) => {
                 fontFamily: T.font,
             }}
         >
+            <LocationPermissionDialog
+                open={locationDialogOpen}
+                onClose={handleSkipLocation}
+                onAllow={handleAllowLocation}
+                onManualCity={handleManualCity}
+                loading={locationLoading}
+            />
+
+            {/* Snackbar for city change notification */}
+            <Snackbar
+                open={showCitySnackbar}
+                autoHideDuration={5000}
+                onClose={() => setShowCitySnackbar(false)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert 
+                    severity="info" 
+                    sx={{ 
+                        borderRadius: '12px',
+                        fontFamily: '"Inter", sans-serif',
+                        alignItems: 'center',
+                        bgcolor: '#325fec',
+                        color: '#fff',
+                        '& .MuiAlert-icon': { color: '#fff' }
+                    }}
+                    icon={<GpsFixedIcon />}
+                >
+                    Showing jobs near <strong>{detectedCity || 'your location'}</strong>
+                </Alert>
+            </Snackbar>
 
             {/* ══ STICKY HEADER ══ */}
             <Box
@@ -493,38 +803,58 @@ const handleView = async (job) => {
                 {/* Title row + Filter */}
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.25 }}>
                     <Box>
-                        <Typography variant="h6"                         sx={{ fontFamily: T.font, fontWeight: 700, fontSize: 18, color: T.textPrimary }}
->
+                        <Typography variant="h6" sx={{ fontFamily: T.font, fontWeight: 700, fontSize: 18, color: T.textPrimary }}>
                             Nearby Jobs
                         </Typography>
-                      
-                    </Box>                            
-
+                        {detectedCity && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.3 }}>
+                                <LocationIcon sx={{ fontSize: 12, color: T.brand }} />
+                                <Typography variant="caption" sx={{ fontFamily: T.font, fontSize: 11, color: T.textMuted }}>
+                                    {detectedCity}
+                                </Typography>
+                            </Box>
+                        )}
+                    </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                           <Button
-                                               onClick={() => setFilterDrawerOpen(true)}
-                                               startIcon={<FilterIcon sx={{ fontSize: '18px !important' }} />}
-                                               sx={{
-                                                   minWidth: 0,
-                                                   flexDirection: 'column',
-                                                   gap: 0,
-                                                   px: 1,
-                                                   py: 0.5,
-                                                   color: T.textMuted,
-                                                   fontSize: 11,
-                                                   fontFamily: T.font,
-                                                   textTransform: 'none',
-                                                   lineHeight: 1.3,
-                                                   borderRadius: '8px',
-                                                   '&:hover': { color: T.brand, background: T.brandLight },
-                                               }}
-                                           >
-                                               Filter
-                                           </Button>
-                   
-                                         
-                                       </Box>
+                        <Button
+                            onClick={handleRefreshLocation}
+                            startIcon={<GpsFixedIcon sx={{ fontSize: '18px !important' }} />}
+                            sx={{
+                                minWidth: 0,
+                                px: 1,
+                                py: 0.5,
+                                color: T.textMuted,
+                                fontSize: 11,
+                                fontFamily: T.font,
+                                textTransform: 'none',
+                                borderRadius: '8px',
+                                '&:hover': { color: T.brand, background: T.brandLight },
+                            }}
+                        >
+                            Refresh
+                        </Button>
+                        <Button
+                            onClick={() => setFilterDrawerOpen(true)}
+                            startIcon={<FilterIcon sx={{ fontSize: '18px !important' }} />}
+                            sx={{
+                                minWidth: 0,
+                                flexDirection: 'column',
+                                gap: 0,
+                                px: 1,
+                                py: 0.5,
+                                color: T.textMuted,
+                                fontSize: 11,
+                                fontFamily: T.font,
+                                textTransform: 'none',
+                                lineHeight: 1.3,
+                                borderRadius: '8px',
+                                '&:hover': { color: T.brand, background: T.brandLight },
+                            }}
+                        >
+                            Filter
+                        </Button>
+                    </Box>
                 </Box>
 
                 {/* Search bar */}
@@ -606,7 +936,7 @@ const handleView = async (job) => {
                 {!loading && (
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: { xs: 2, md: 2.5 }, pt: 1.5, pb: 1 }}>
                         <Typography variant="body2" sx={{ fontFamily: T.font, fontWeight: 600, fontSize: 13.5, color: T.textPrimary }}>
-                            {total} Jobs Found
+                            {total} Job{total !== 1 ? 's' : ''} Found
                         </Typography>
                         <Box onClick={() => setSortDrawerOpen(true)} sx={{ display: 'flex', alignItems: 'center', gap: 0.4, cursor: 'pointer' }}>
                             <Typography variant="body2" sx={{ fontFamily: T.font, fontSize: 13, color: T.textMuted }}>Sort by:</Typography>
@@ -622,10 +952,19 @@ const handleView = async (job) => {
                 ) : jobs.length === 0 ? (
                     <Box sx={{ p: 6, textAlign: 'center' }}>
                         <WorkIcon sx={{ fontSize: 56, color: '#d1d5db', mb: 2 }} />
-                        <Typography variant="h6" sx={{ fontFamily: T.font, fontWeight: 600, color: T.textPrimary, mb: 1 }}>No jobs found</Typography>
-                        <Typography variant="body2" sx={{ fontFamily: T.font, color: T.textMuted, mb: 3 }}>Try expanding your radius or changing filters.</Typography>
+                        <Typography variant="h6" sx={{ fontFamily: T.font, fontWeight: 600, color: T.textPrimary, mb: 1 }}>No jobs found near you</Typography>
+                        <Typography variant="body2" sx={{ fontFamily: T.font, color: T.textMuted, mb: 3 }}>
+                            {detectedCity ? `No jobs found in ${detectedCity} within ${radius} km.` : 'Try expanding your radius or changing filters.'}
+                        </Typography>
                         <Button variant="contained" onClick={clearFilters} sx={{ fontFamily: T.font, textTransform: 'none', borderRadius: '8px', background: T.brand, px: 3 }}>
                             Clear Filters
+                        </Button>
+                        <Button 
+                            variant="outlined" 
+                            onClick={handleRefreshLocation} 
+                            sx={{ fontFamily: T.font, textTransform: 'none', borderRadius: '8px', ml: 2, borderColor: T.brand, color: T.brand }}
+                        >
+                            Change Location
                         </Button>
                     </Box>
                 ) : (
@@ -731,27 +1070,25 @@ const handleView = async (job) => {
                             >
                                 <CloseIcon fontSize="small" />
                             </IconButton>
-                            <Typography variant="h6" sx={{ fontFamily: T.font, fontWeight: 700, lineHeight: 1.3, pr: 4, mb: 0.5,display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="h6" sx={{ fontFamily: T.font, fontWeight: 700, lineHeight: 1.3, pr: 4, mb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
                                 {selectedJob.job_title}
-                                      {selectedJob.views_count !== undefined && (
-    <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: 0.5, 
-        bgcolor: '#eaf0fe',
-        borderRadius: '20px',
-        px: 1.5,
-        py: 0.5,
-        width: 'fit-content'
-    }}>
-        <VisibilityIcon sx={{ fontSize: 14, color: '#1a6ef5' }} />
-        <Typography variant="caption" sx={{ color: '#1a6ef5', fontWeight: 500 }}>
-            {selectedJob.views_count} views
-        </Typography>
-    </Box>
-)}
+                                {selectedJob.views_count !== undefined && (
+                                    <Box sx={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: 0.5, 
+                                        bgcolor: 'rgba(255,255,255,0.2)',
+                                        borderRadius: '20px',
+                                        px: 1,
+                                        py: 0.3,
+                                    }}>
+                                        <VisibilityIcon sx={{ fontSize: 12 }} />
+                                        <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                                            {selectedJob.views_count} views
+                                        </Typography>
+                                    </Box>
+                                )}
                             </Typography>
-                      
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.9 }}>
                                 <BusinessIcon sx={{ fontSize: 15 }} />
                                 <Typography variant="body2" sx={{ fontFamily: T.font, fontSize: 13 }}>

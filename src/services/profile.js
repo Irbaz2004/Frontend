@@ -199,11 +199,21 @@ export async function getUserJobs() {
     return apiCall('/profile/jobs');
 }
 
+// services/profile.js - Update the updateJob function
+
 export async function updateJob(id, data) {
-    return apiCall(`/profile/jobs/${id}`, {
+    const token = localStorage.getItem('nearzo_token');
+    const response = await fetch(`${API_BASE}/profile/jobs/${id}`, {
         method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(data),
     });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'API call failed');
+    return result;
 }
 
 export async function deleteJob(id) {

@@ -926,7 +926,7 @@ export default function Profile() {
 
     const emptyShop = { business_name: '', category: '', additional_phone: '', keywords: [], custom_keyword: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', opening_time: '', closing_time: '', shop_image: null, shop_image_preview: '' };
     const emptyHouse = { rooms: '', halls: '', kitchens: '', floor: '', rent_per_month: '', advance_amount: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', is_available: true, house_image: null, house_image_preview: '' };
-    const emptyJob = { shop_id: '', company_name: '', job_title: '', salary: '', salary_type: 'month', qualification: '', job_type: 'full_time', area: '', city: '', state: '', is_open: true };
+    const emptyJob = { shop_id: '', company_name: '', job_title: '', salary: '', salary_type: 'month', qualification: '', job_type: 'full_time', area: '', city: '', state: '', is_open: true, contact_phone: '' };
     const emptyProfile = { full_name: '', area: '', city: '', state: '' };
 
     const [shopForm, setShopForm] = useState(emptyShop);
@@ -1347,30 +1347,120 @@ export default function Profile() {
         } finally { setUpdatingHouse(false); }
     };
 
-    const handleCreateJob = async () => {
-        if (!jobForm.company_name?.trim() || !jobForm.job_title?.trim() || !jobForm.salary) {
-            showToast('Company name, job title, and salary are required', 'error'); return;
-        }
-        setCreatingJob(true);
-        try {
-            const r = await createJob({ ...jobForm, salary: +jobForm.salary, shop_id: jobForm.shop_id || null, latitude: null, longitude: null });
-            if (r.success) {
-                showToast('Job posted successfully! 💼');
-                closeModal(); loadProfile(); loadTotalViews(); setJobForm(emptyJob);
-            } else { showToast(r.message || 'Failed to post job', 'error'); }
-        } catch (err) { showToast(err.message || 'Failed to post job', 'error'); }
-        finally { setCreatingJob(false); }
-    };
 
-    const handleUpdateJob = async () => {
-        setUpdatingJob(true);
-        try {
-            await updateJob(editingJob.id, { ...jobForm, salary: +jobForm.salary });
-            showToast('Job updated successfully! ✓');
-            closeModal(); loadProfile(); loadTotalViews();
-        } catch (err) { showToast(err.message || 'Failed to update job', 'error'); }
-        finally { setUpdatingJob(false); }
-    };
+// Update the handleCreateJob function to include contact_phone:
+const handleCreateJob = async () => {
+    if (!jobForm.company_name?.trim() || !jobForm.job_title?.trim() || !jobForm.salary) {
+        showToast('Company name, job title, and salary are required', 'error'); 
+        return;
+    }
+    if (!jobForm.contact_phone?.trim()) {
+        showToast('Contact phone number is required', 'error');
+        return;
+    }
+    setCreatingJob(true);
+    try {
+        const r = await createJob({ 
+            ...jobForm, 
+            salary: +jobForm.salary, 
+            shop_id: jobForm.shop_id || null, 
+            contact_phone: jobForm.contact_phone  // Add this
+        });
+        if (r.success) {
+            showToast('Job posted successfully! 💼');
+            closeModal(); 
+            loadProfile(); 
+            loadTotalViews(); 
+            setJobForm(emptyJob);
+        } else { 
+            showToast(r.message || 'Failed to post job', 'error'); 
+        }
+    } catch (err) { 
+        showToast(err.message || 'Failed to post job', 'error'); 
+    } finally { 
+        setCreatingJob(false); 
+    }
+};
+
+// In Profile.jsx - Fix handleUpdateJob
+
+const handleUpdateJob = async () => {
+    // Validate required fields
+    if (!jobForm.company_name?.trim()) {
+        showToast('Company name is required', 'error');
+        return;
+    }
+    if (!jobForm.job_title?.trim()) {
+        showToast('Job title is required', 'error');
+        return;
+    }
+    if (!jobForm.salary) {
+        showToast('Salary is required', 'error');
+        return;
+    }
+    if (!jobForm.city?.trim()) {
+        showToast('City is required', 'error');
+        return;
+    }
+    if (!jobForm.state?.trim()) {
+        showToast('State is required', 'error');
+        return;
+    }
+    
+    setUpdatingJob(true);
+    try {
+        const updateData = {
+            shop_id: jobForm.shop_id || null,
+            company_name: jobForm.company_name,
+            job_title: jobForm.job_title,
+            salary: parseFloat(jobForm.salary),
+            salary_type: jobForm.salary_type,
+            qualification: jobForm.qualification || null,
+            job_type: jobForm.job_type,
+            area: jobForm.area || null,
+            city: jobForm.city,
+            state: jobForm.state,
+            is_open: jobForm.is_open,
+            contact_phone: jobForm.contact_phone || null
+        };
+        
+        console.log('Updating job with data:', updateData);
+        
+        await updateJob(editingJob.id, updateData);
+        
+        showToast('Job updated successfully! ✓');
+        closeModal();
+        loadProfile();
+        loadTotalViews();
+    } catch (err) {
+        console.error('Update job error:', err);
+        showToast(err.message || 'Failed to update job', 'error');
+    } finally {
+        setUpdatingJob(false);
+    }
+};
+
+// Update openEditJob to include contact_phone:
+// In Profile.jsx - Fix openEditJob function
+
+const openEditJob = (j) => {
+    setEditingJob(j);
+    setJobForm({
+        shop_id: j.shop_id || '', 
+        company_name: j.company_name || '', 
+        job_title: j.job_title || '',
+        salary: j.salary || '', 
+        salary_type: j.salary_type || 'month', 
+        qualification: j.qualification || '',
+        job_type: j.job_type || 'full_time', 
+        area: j.area || '', 
+        city: j.city || '', 
+        state: j.state || '', 
+        is_open: j.is_open === true || j.is_open === false ? j.is_open : true,
+        contact_phone: j.contact_phone || ''
+    });
+    setModal('editJob');
+};
 
     const openEditHouse = (h) => {
         setEditingHouse(h);
@@ -1385,16 +1475,7 @@ export default function Profile() {
         setModal('editHouse');
     };
 
-    const openEditJob = (j) => {
-        setEditingJob(j);
-        setJobForm({
-            shop_id: j.shop_id || '', company_name: j.company_name, job_title: j.job_title,
-            salary: j.salary, salary_type: j.salary_type, qualification: j.qualification || '',
-            job_type: j.job_type, area: j.area || '', city: j.city || '', state: j.state || '', is_open: j.is_open
-        });
-        setModal('editJob');
-    };
-
+  
     const handleShopSelect = (id) => {
         const s = userShopsForJob.find(x => x.id === Number(id));
         setJobForm(p => ({ ...p, shop_id: id, company_name: s ? s.business_name : '', area: s?.area || '', city: s?.city || '', state: s?.state || '' }));
@@ -1895,6 +1976,12 @@ export default function Profile() {
                             onChange={e => setJobForm(p => ({ ...p, job_type: e.target.value }))}
                             options={[{ value: 'full_time', label: 'Full Time' }, { value: 'part_time', label: 'Part Time' }]} />
                     </FormItem>
+                    <FormItem half>
+    <Input label="Contact Phone *" value={jobForm.contact_phone} 
+        onChange={e => setJobForm(p => ({ ...p, contact_phone: e.target.value }))} 
+        placeholder="Phone number for candidates to call" />
+</FormItem>
+
                     <FormItem full><Textarea label="Qualification Required" value={jobForm.qualification} onChange={e => setJobForm(p => ({ ...p, qualification: e.target.value }))} /></FormItem>
                     <FormItem full><Toggle checked={jobForm.is_open} onChange={v => setJobForm(p => ({ ...p, is_open: v }))} label="Job Position is Open" /></FormItem>
                     <SectionDivider label="Location" />
@@ -1935,6 +2022,10 @@ export default function Profile() {
                             onChange={e => setJobForm(p => ({ ...p, job_type: e.target.value }))}
                             options={[{ value: 'full_time', label: 'Full Time' }, { value: 'part_time', label: 'Part Time' }]} />
                     </FormItem>
+                    <FormItem half>
+    <Input label="Contact Phone" value={jobForm.contact_phone} 
+        onChange={e => setJobForm(p => ({ ...p, contact_phone: e.target.value }))} />
+</FormItem>
                     <FormItem full><Textarea label="Qualification" value={jobForm.qualification} onChange={e => setJobForm(p => ({ ...p, qualification: e.target.value }))} /></FormItem>
                     <FormItem full><Toggle checked={jobForm.is_open} onChange={v => setJobForm(p => ({ ...p, is_open: v }))} label="Job Position is Open" /></FormItem>
                     <SectionDivider label="Location" />

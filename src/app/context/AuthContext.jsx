@@ -1,11 +1,15 @@
 // context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { getCurrentUser, getToken, getUserRole, logoutUser, checkAuth } from '../../services/auth';
+import { getCurrentUser, getToken, getUserRole, logoutUser, checkAuth, getProfile } from '../../services/auth';
 
 const AuthContext = createContext();
 
 export function useAuth() {
-    return useContext(AuthContext);
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 }
 
 export function AuthProvider({ children }) {
@@ -45,7 +49,32 @@ export function AuthProvider({ children }) {
             
             if (result.authenticated) {
                 console.log('Auth is valid, restoring session');
-                setUser(storedUser);
+                
+                // Fetch fresh user profile to get latest full_name
+                try {
+                    const profileData = await getProfile();
+                    if (profileData.success && profileData.user) {
+                        const updatedUser = {
+                            ...storedUser,
+                            full_name: profileData.user.full_name,
+                            phone: profileData.user.phone,
+                            area: profileData.user.area,
+                            city: profileData.user.city,
+                            state: profileData.user.state,
+                            is_verified: profileData.user.is_verified,
+                            wants_notifications: profileData.user.wants_notifications
+                        };
+                        setUser(updatedUser);
+                        // Update localStorage with fresh data
+                        localStorage.setItem('nearzo_user', JSON.stringify(updatedUser));
+                    } else {
+                        setUser(storedUser);
+                    }
+                } catch (profileErr) {
+                    console.error('Failed to fetch fresh profile:', profileErr);
+                    setUser(storedUser);
+                }
+                
                 setRole(storedRole);
                 setToken(storedToken);
             } else {
@@ -61,16 +90,67 @@ export function AuthProvider({ children }) {
         }
     };
 
-    const login = (userData, userToken, userRole) => {
+    const login = async (userData, userToken, userRole) => {
         console.log('Logging in user:', { userData, userToken, userRole });
         
-        setUser(userData);
+        // Fetch complete user profile to get full_name
+        try {
+            // Set token first so API calls work
+            localStorage.setItem('nearzo_token', userToken);
+            
+            const profileData = await getProfile();
+            if (profileData.success && profileData.user) {
+                const completeUserData = {
+                    id: userData.id,
+                    phone: userData.phone,
+                    role: userData.role,
+                    full_name: profileData.user.full_name || userData.full_name || userData.phone,
+                    area: profileData.user.area || userData.area || '',
+                    city: profileData.user.city || userData.city || '',
+                    state: profileData.user.state || userData.state || '',
+                    is_verified: profileData.user.is_verified || false,
+                    wants_notifications: profileData.user.wants_notifications !== false
+                };
+                setUser(completeUserData);
+                localStorage.setItem('nearzo_user', JSON.stringify(completeUserData));
+            } else {
+                // Fallback to provided user data
+                const fallbackUserData = {
+                    id: userData.id,
+                    phone: userData.phone,
+                    role: userData.role,
+                    full_name: userData.full_name || userData.phone,
+                    area: userData.area || '',
+                    city: userData.city || '',
+                    state: userData.state || '',
+                    is_verified: false,
+                    wants_notifications: true
+                };
+                setUser(fallbackUserData);
+                localStorage.setItem('nearzo_user', JSON.stringify(fallbackUserData));
+            }
+        } catch (err) {
+            console.error('Failed to fetch profile during login:', err);
+            // Fallback to provided user data
+            const fallbackUserData = {
+                id: userData.id,
+                phone: userData.phone,
+                role: userData.role,
+                full_name: userData.full_name || userData.phone,
+                area: userData.area || '',
+                city: userData.city || '',
+                state: userData.state || '',
+                is_verified: false,
+                wants_notifications: true
+            };
+            setUser(fallbackUserData);
+            localStorage.setItem('nearzo_user', JSON.stringify(fallbackUserData));
+        }
+        
         setToken(userToken);
         setRole(userRole);
         
-        // Store in localStorage
-        localStorage.setItem('nearzo_user', JSON.stringify(userData));
-        localStorage.setItem('nearzo_token', userToken);
+        // Store role in localStorage
         localStorage.setItem('nearzo_role', userRole);
         
         console.log('Stored in localStorage:', {
@@ -116,3 +196,6 @@ export function AuthProvider({ children }) {
         </AuthContext.Provider>
     );
 }
+
+// Also export AuthContext if needed elsewhere
+export { AuthContext };
