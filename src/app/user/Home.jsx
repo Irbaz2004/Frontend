@@ -12,7 +12,8 @@ import {
     DialogContent,
     DialogActions,
     TextField,
-    CircularProgress
+    CircularProgress,
+    Snackbar
 } from '@mui/material';
 import {
     LocationOn as LocationIcon,
@@ -29,7 +30,8 @@ import {
     Search as SearchIcon,
     Business as BusinessIcon,
     MyLocation as MyLocationIcon,
-    Close as CloseIcon
+    Close as CloseIcon,
+    GpsFixed as GpsFixedIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { getHomeData, getUserCity, updateUserCity } from '../../services/homeUser';
@@ -852,7 +854,9 @@ export default function Home() {
     const [homeData, setHomeData] = useState({ ads: [], shops: [], houses: [], jobs: [], city: '' });
     const [locationDialogOpen, setLocationDialogOpen] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
-    const [cityDetected, setCityDetected] = useState(false);
+    const [currentCity, setCurrentCity] = useState('');
+    const [showCitySnackbar, setShowCitySnackbar] = useState(false);
+    const [detectedCity, setDetectedCity] = useState('');
 
     // Function to get city from coordinates using reverse geocoding
     const getCityFromCoordinates = async (latitude, longitude) => {
@@ -930,12 +934,18 @@ export default function Home() {
     };
 
     // Function to load home data with city
-    const loadHomeData = async (city) => {
+    const loadHomeData = async (city, showNotification = false) => {
         setLoading(true);
         setError('');
         try {
             const result = await getHomeData(city);
             setHomeData(result);
+            setCurrentCity(city);
+            
+            if (showNotification && city !== currentCity && currentCity !== '') {
+                setDetectedCity(city);
+                setShowCitySnackbar(true);
+            }
             
             // Update user's city in backend if user is logged in and city changed
             if (user?.id && city !== user.city) {
@@ -956,15 +966,14 @@ export default function Home() {
         }
     };
 
-    // Handle location permission
+    // Handle location permission - THIS IS THE KEY FUNCTION THAT GETS CURRENT LOCATION
     const handleAllowLocation = async () => {
         setLocationLoading(true);
         try {
             const city = await getCurrentLocationCity();
             if (city) {
-                setCityDetected(true);
                 setLocationDialogOpen(false);
-                await loadHomeData(city);
+                await loadHomeData(city, true); // Load data with current location city
             } else {
                 throw new Error('Could not detect your city');
             }
@@ -982,28 +991,56 @@ export default function Home() {
     // Handle manual city entry
     const handleManualCity = async (city) => {
         setLocationDialogOpen(false);
-        await loadHomeData(city);
+        await loadHomeData(city, true);
     };
 
-    // Handle skip location
+    // Handle skip location - use saved city or default
     const handleSkipLocation = async () => {
         setLocationDialogOpen(false);
         const fallbackCity = user?.city || 'Vellore';
         await loadHomeData(fallbackCity);
     };
 
-    // Initialize component - check for existing city
+    // Handle refresh location button click
+    const handleRefreshLocation = () => {
+        setLocationDialogOpen(true);
+    };
+
+    // Initialize component - ALWAYS CHECK CURRENT LOCATION FIRST
     useEffect(() => {
-        const initializeCity = async () => {
-            // Check if user already has a city in profile
-            if (user?.city && !cityDetected) {
+        const initializeLocation = async () => {
+            // First, try to get current location immediately
+            try {
+                const currentCity = await getCurrentLocationCity();
+                if (currentCity) {
+                    // Found current location, load data for this city
+                    await loadHomeData(currentCity, false);
+                    
+                    // If user is logged in and city differs, update silently
+                    if (user?.id && currentCity !== user.city) {
+                        try {
+                            await updateUserCity(currentCity);
+                            if (updateUser) {
+                                updateUser({ ...user, city: currentCity });
+                            }
+                        } catch (err) {
+                            console.error('Failed to update user city:', err);
+                        }
+                    }
+                    return;
+                }
+            } catch (err) {
+                console.log('Could not get current location automatically:', err.message);
+            }
+            
+            // If automatic location detection failed, check for saved city
+            if (user?.city) {
                 await loadHomeData(user.city);
-            } else if (!cityDetected && !user?.city) {
-                // Try to get user's saved city from backend
+            } else {
+                // Try to get saved city from backend
                 try {
                     const cityResult = await getUserCity();
                     if (cityResult.city) {
-                        setCityDetected(true);
                         await loadHomeData(cityResult.city);
                     } else {
                         // No city found, show location dialog
@@ -1016,8 +1053,8 @@ export default function Home() {
             }
         };
 
-        initializeCity();
-    }, [user?.city]);
+        initializeLocation();
+    }, []); // Run only once on mount
 
     // Ad slider settings
     const adSliderSettings = {
@@ -1097,9 +1134,32 @@ export default function Home() {
                 loading={locationLoading}
             />
 
+            {/* Snackbar for city change notification */}
+            <Snackbar
+                open={showCitySnackbar}
+                autoHideDuration={5000}
+                onClose={() => setShowCitySnackbar(false)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert 
+                    severity="info" 
+                    sx={{ 
+                        borderRadius: '12px',
+                        fontFamily: '"Inter", sans-serif',
+                        alignItems: 'center',
+                        bgcolor: '#325fec',
+                        color: '#fff',
+                        '& .MuiAlert-icon': { color: '#fff' }
+                    }}
+                    icon={<GpsFixedIcon />}
+                >
+                    Showing results for <strong>{detectedCity}</strong>
+                </Alert>
+            </Snackbar>
+
             <Box sx={{ bgcolor: '#ffffff', minHeight: '100vh' }}>
 
-                {/* ── City Header ──────────────────────────────────── */}
+                {/* ── City Header with Refresh Button ── */}
                 <Box sx={{ px: 2, pt: 2.5, pb: 1.5, animation: 'fadeInUp 0.4s ease both' }}>
                     <Typography sx={{
                         fontFamily: '"Inter", sans-serif',
@@ -1108,31 +1168,56 @@ export default function Home() {
                     }}>
                         Exploring
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Box 
-                            sx={{
-                                width: 26, height: 26, borderRadius: '8px',
-                                background: 'rgba(50,95,236,0.12)',
-                                border: '1px solid rgba(50,95,236,0.2)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                animation: 'pulseGlow 2.5s ease infinite',
-                                cursor: 'pointer',
-                            }}
-                            onClick={() => setLocationDialogOpen(true)}
-                        >
-                            <LocationIcon sx={{ fontSize: '0.85rem', color: '#325fec' }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Box 
+                                sx={{
+                                    width: 26, height: 26, borderRadius: '8px',
+                                    background: 'rgba(50,95,236,0.12)',
+                                    border: '1px solid rgba(50,95,236,0.2)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    animation: 'pulseGlow 2.5s ease infinite',
+                                    cursor: 'pointer',
+                                }}
+                                onClick={handleRefreshLocation}
+                            >
+                                <LocationIcon sx={{ fontSize: '0.85rem', color: '#325fec' }} />
+                            </Box>
+                            <Typography sx={{
+                                fontFamily: '"Inter", sans-serif',
+                                fontWeight: 800, fontSize: '1.1rem',
+                                color: '#0a1628', letterSpacing: '-0.03em', lineHeight: 1,
+                            }}>
+                                {homeData.city || currentCity || 'Loading...'}
+                            </Typography>
                         </Box>
-                        <Typography sx={{
-                            fontFamily: '"Inter", sans-serif',
-                            fontWeight: 800, fontSize: '1.1rem',
-                            color: '#0a1628', letterSpacing: '-0.03em', lineHeight: 1,
-                        }}>
-                            {homeData.city}
-                        </Typography>
+                        
+                        {/* Refresh button */}
+                        <Button
+                            size="small"
+                            onClick={handleRefreshLocation}
+                            startIcon={<GpsFixedIcon sx={{ fontSize: '0.85rem' }} />}
+                            sx={{
+                                textTransform: 'none',
+                                fontFamily: '"Inter", sans-serif',
+                                fontWeight: 500,
+                                fontSize: '0.7rem',
+                                color: '#325fec',
+                                background: 'rgba(50,95,236,0.08)',
+                                borderRadius: '20px',
+                                px: 1.5,
+                                py: 0.5,
+                                '&:hover': {
+                                    background: 'rgba(50,95,236,0.15)',
+                                }
+                            }}
+                        >
+                            Refresh
+                        </Button>
                     </Box>
                 </Box>
 
-                {/* ── Ad Banner (shops ads) ─────────────────────────── */}
+                {/* ── Ad Banner (shops ads) ── */}
                 {homeData.ads?.length > 0 && (
                     <Box sx={{ px: { xs: 1.5, sm: 2 }, py: 1, mb: 3, animation: 'fadeInUp 0.5s ease both', animationDelay: '0.1s' }}>
                         <Box sx={{ borderRadius: '18px', overflow: 'hidden', background: '#fff', p: 1, height: { xs: 225, sm: 275, md: 335 }, position: 'relative' }} className="nearzo-ad-slider">
@@ -1211,7 +1296,7 @@ export default function Home() {
                         </Typography>
                         <Button
                             variant="contained"
-                            onClick={() => setLocationDialogOpen(true)}
+                            onClick={handleRefreshLocation}
                             sx={{
                                 mt: 3,
                                 background: '#325fec',
