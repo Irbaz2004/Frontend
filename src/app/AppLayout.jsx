@@ -57,7 +57,7 @@ import { useAuth } from './context/AuthContext';
 //   success  → [8, 20, 8, 20, 8] (confirm / mark all read)
 
 const HAPTIC_PATTERNS = {
-    tap: 5,
+    tap: [4],
     select: 12,
     action: [10, 30, 10],
     warning: [20, 60, 20],

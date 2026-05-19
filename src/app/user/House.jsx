@@ -115,7 +115,7 @@ const HouseCardSkeleton = () => (
 
 /* ─── House Card (2-column on mobile) ───────────────────────────────────────── */
 function HouseCard({ house, onClick, onCall }) {
-    const verification = house.is_verified ? 'Verified' : 'Unverified';
+    const verification = house.is_verified ? 'Verified' : 'Not Verified';
     const verificationColor = house.is_verified ? C.green : C.amber;
     const verificationBg = house.is_verified ? C.greenLight : C.amberLight;
 
@@ -134,7 +134,14 @@ function HouseCard({ house, onClick, onCall }) {
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-            }}
+                minWidth: {
+    xs: '180px', // mobile
+    sm: '250px', // desktop/tablet
+                },
+maxWidth: {
+  xs: '195px', // mobile
+  sm: '100%', // desktop/tablet
+}            }}
         >
             {/* Image Section */}
             <Box sx={{ position: 'relative', height: 160, overflow: 'hidden', flexShrink: 0 }}>
@@ -154,7 +161,23 @@ function HouseCard({ house, onClick, onCall }) {
                     </Box>
                 )}
 
-                {/* ── TOP ROW: Verification badge only (top-right) ── */}
+                {/* Price Badge */}
+                <Box sx={{
+                    position: 'absolute',
+                    top: 8,
+                    left: 8,
+                    background: C.accent,
+                    borderRadius: '8px',
+                    px: 1,
+                    py: 0.5,
+                    boxShadow: `0 2px 8px ${C.shadowMd}`,
+                }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                        ₹{(house.rent_per_month || 0).toLocaleString('en-IN')}
+                    </Typography>
+                </Box>
+
+                {/* Verification Badge */}
                 <Box sx={{
                     position: 'absolute',
                     top: 8,
@@ -162,82 +185,42 @@ function HouseCard({ house, onClick, onCall }) {
                     background: verificationBg,
                     borderRadius: '6px',
                     px: 0.8,
-                    py: 0.4,
+                    py: 0.3,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 0.4,
-                    maxWidth: 'calc(100% - 16px)',
+                    gap: 0.3,
                 }}>
                     {house.is_verified ? (
-                        <VerifiedIcon sx={{ fontSize: 11, color: verificationColor, flexShrink: 0 }} />
+                        <VerifiedIcon sx={{ fontSize: 10, color: verificationColor }} />
                     ) : (
-                        <PendingIcon sx={{ fontSize: 11, color: verificationColor, flexShrink: 0 }} />
+                        <PendingIcon sx={{ fontSize: 10, color: verificationColor }} />
                     )}
-                    <Typography sx={{
-                        fontSize: 10,
-                        fontWeight: 600,
-                        color: verificationColor,
-                        whiteSpace: 'nowrap',
-                        lineHeight: 1,
-                    }}>
+                    <Typography sx={{ fontSize: 9, fontWeight: 600, color: verificationColor }}>
                         {verification}
                     </Typography>
                 </Box>
 
-                {/* ── BOTTOM ROW: Price (left) + Distance (right) ── */}
-                <Box sx={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    px: 8,
-                    pb: 8,
-                    display: 'flex',
-                    alignItems: 'flex-end',
-                    justifyContent: 'space-between',
-                    // subtle gradient so badges are readable over any image
-                    background: 'linear-gradient(to top, rgba(0,0,0,0.38) 0%, transparent 100%)',
-                    pt: '28px',
-                    pointerEvents: 'none',
-                }}>
-                    {/* Price Badge */}
+                {/* Distance Badge */}
+                {house.distance && (
                     <Box sx={{
-                        background: C.accent,
-                        borderRadius: '8px',
-                        px: 1,
-                        py: 0.5,
-                        pointerEvents: 'auto',
-                        flexShrink: 0,
+                        position: 'absolute',
+                        bottom: 8,
+                        left: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.3,
+                        px: 0.8,
+                        py: 0.4,
+                        borderRadius: '6px',
+                        bgcolor: 'rgba(255,255,255,0.92)',
+                        backdropFilter: 'blur(4px)',
                     }}>
-                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
-                            ₹{(house.rent_per_month || 0).toLocaleString('en-IN')}
-                        </Typography>
-                        <Typography sx={{ fontSize: 9, fontWeight: 400, color: 'rgba(255,255,255,0.8)', lineHeight: 1 }}>
-                            /month
+                        <LocationIcon sx={{ fontSize: 10, color: C.accent }} />
+                        <Typography sx={{ fontSize: 10, fontWeight: 500, color: C.text }}>
+                            {house.distance.toFixed(1)} km
                         </Typography>
                     </Box>
-
-                    {/* Distance Badge */}
-                    {house.distance && (
-                        <Box sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.3,
-                            px: 0.8,
-                            py: 0.4,
-                            borderRadius: '6px',
-                            bgcolor: 'rgba(255,255,255,0.92)',
-                            backdropFilter: 'blur(4px)',
-                            pointerEvents: 'auto',
-                            flexShrink: 0,
-                        }}>
-                            <LocationIcon sx={{ fontSize: 10, color: C.accent }} />
-                            <Typography sx={{ fontSize: 10, fontWeight: 500, color: C.text, whiteSpace: 'nowrap' }}>
-                                {house.distance.toFixed(1)} km
-                            </Typography>
-                        </Box>
-                    )}
-                </Box>
+                )}
             </Box>
 
             {/* Content Section */}
@@ -258,7 +241,7 @@ function HouseCard({ house, onClick, onCall }) {
                 </Typography>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, mb: 1 }}>
-                    <LocationIcon sx={{ fontSize: 11, color: C.accent, flexShrink: 0 }} />
+                    <LocationIcon sx={{ fontSize: 11, color: C.accent }} />
                     <Typography sx={{ fontSize: 11, color: C.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {house.area}, {house.city}
                     </Typography>
@@ -328,6 +311,7 @@ function HouseDetailsDrawer({ house, onClose, onRoute, onCall, userLocation }) {
     const verificationColor = house.is_verified ? C.green : C.amber;
     const verificationBg = house.is_verified ? C.greenLight : C.amberLight;
 
+    // Apply different styles based on screen size
     const drawerStyle = isMobile ? {
         position: 'fixed',
         top: 0,
@@ -368,6 +352,7 @@ function HouseDetailsDrawer({ house, onClose, onRoute, onCall, userLocation }) {
 
     return (
         <>
+            {/* Backdrop - only visible on desktop */}
             {!isMobile && (
                 <Box
                     sx={{
@@ -385,8 +370,10 @@ function HouseDetailsDrawer({ house, onClose, onRoute, onCall, userLocation }) {
             )}
 
             <Box sx={drawerStyle}>
+                {/* Handle for desktop */}
                 {!isMobile && <Box sx={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: '10px auto 0' }} />}
 
+                {/* Close button */}
                 <IconButton
                     onClick={onClose}
                     sx={{
@@ -405,6 +392,7 @@ function HouseDetailsDrawer({ house, onClose, onRoute, onCall, userLocation }) {
                     <CloseIcon sx={{ fontSize: 18, color: C.textMuted }} />
                 </IconButton>
 
+                {/* Image Section */}
                 <Box sx={{ position: 'relative', flexShrink: 0, height: isMobile ? 250 : 220 }}>
                     {house.house_image ? (
                         <img
@@ -422,7 +410,7 @@ function HouseDetailsDrawer({ house, onClose, onRoute, onCall, userLocation }) {
                         </Box>
                     )}
 
-                    {/* Price Badge — bottom left */}
+                    {/* Price Badge */}
                     <Box sx={{
                         position: 'absolute',
                         bottom: 12,
@@ -438,11 +426,11 @@ function HouseDetailsDrawer({ house, onClose, onRoute, onCall, userLocation }) {
                         </Typography>
                     </Box>
 
-                    {/* Verification Badge — top right (below close button) */}
+                    {/* Verification Badge */}
                     <Box sx={{
                         position: 'absolute',
                         top: 12,
-                        left: 12,
+                        right: 12,
                         background: verificationBg,
                         borderRadius: '8px',
                         px: 1,
@@ -461,7 +449,7 @@ function HouseDetailsDrawer({ house, onClose, onRoute, onCall, userLocation }) {
                         </Typography>
                     </Box>
 
-                    {/* Views Badge — bottom right */}
+                    {/* Views Badge */}
                     {house.views_count !== undefined && (
                         <Box sx={{
                             position: 'absolute',
@@ -506,6 +494,7 @@ function HouseDetailsDrawer({ house, onClose, onRoute, onCall, userLocation }) {
 
                     <Divider sx={{ mb: 2, borderColor: C.borderLight }} />
 
+                    {/* Property Details Grid */}
                     <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: 14, mb: 1.5, color: C.text }}>
                         Property Details
                     </Typography>
@@ -572,6 +561,7 @@ function HouseDetailsDrawer({ house, onClose, onRoute, onCall, userLocation }) {
 
                     <Divider sx={{ my: 2.5, borderColor: C.borderLight }} />
 
+                    {/* Contact Section */}
                     <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: 14, mb: 1.5, color: C.text }}>
                         Contact
                     </Typography>
@@ -584,6 +574,7 @@ function HouseDetailsDrawer({ house, onClose, onRoute, onCall, userLocation }) {
                         </Typography>
                     </Box>
 
+                    {/* Action Buttons */}
                     <Box sx={{ display: 'flex', gap: 1.5 }}>
                         <Button
                             fullWidth
@@ -763,6 +754,7 @@ export default function Houses() {
     const [gettingLocation, setGettingLocation] = useState(true);
     const [filterOptions, setFilterOptions] = useState({ min_rent: 0, max_rent: 100000, rooms: [], furnished: [] });
 
+    // Filters
     const [radius, setRadius] = useState(10);
     const [rentRange, setRentRange] = useState([0, 50000]);
     const [rooms, setRooms] = useState(0);
@@ -772,6 +764,7 @@ export default function Houses() {
     const [selectedTenantType, setSelectedTenantType] = useState('');
     const [selectedPriceRange, setSelectedPriceRange] = useState(0);
 
+    // Selected house for details
     const [selectedHouse, setSelectedHouse] = useState(null);
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [loadingDetails, setLoadingDetails] = useState(false);
@@ -844,7 +837,9 @@ export default function Houses() {
         }
     };
 
-    const refreshLocation = () => { getCurrentLocation(); };
+    const refreshLocation = () => {
+        getCurrentLocation();
+    };
 
     const handleHouseClick = async (house) => {
         if (viewedHousesRef.current.has(house.id)) {
@@ -887,7 +882,9 @@ export default function Houses() {
     };
 
     const handleCallOwner = (phone) => {
-        if (phone) window.location.href = `tel:${phone}`;
+        if (phone) {
+            window.location.href = `tel:${phone}`;
+        }
     };
 
     const clearFilters = () => {
@@ -902,6 +899,10 @@ export default function Houses() {
         setFilterDrawerOpen(false);
     };
 
+    const formatPrice = (price) =>
+        new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price);
+
+    // Loading Screen
     if (gettingLocation) {
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', gap: 2, bgcolor: C.bg }}>
@@ -926,6 +927,7 @@ export default function Houses() {
                 pb: 1.5,
                 borderBottom: `1px solid ${C.border}`,
             }}>
+                {/* Title Row */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                     <Box>
                         <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: 18, color: C.text, letterSpacing: '-0.3px' }}>
@@ -965,6 +967,7 @@ export default function Houses() {
                     </Box>
                 </Box>
 
+                {/* Search Bar */}
                 <TextField
                     fullWidth
                     placeholder="Search houses by area or city..."
@@ -992,6 +995,7 @@ export default function Houses() {
                     }}
                 />
 
+                {/* Tenant Type Filter */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflowX: 'auto', pb: 1, mb: 1,
                     '&::-webkit-scrollbar': { display: 'none' } }}>
                     <Typography sx={{ fontSize: 13, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', mr: 0.5 }}>
@@ -1017,7 +1021,10 @@ export default function Houses() {
                                 }}
                             >
                                 <t.Icon sx={{ fontSize: 14, color: active ? '#fff' : t.color }} />
-                                <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: active ? '#fff' : t.color }}>
+                                <Typography sx={{
+                                    fontSize: 12.5, fontWeight: 600,
+                                    color: active ? '#fff' : t.color
+                                }}>
                                     {t.label}
                                 </Typography>
                             </Box>
@@ -1025,6 +1032,7 @@ export default function Houses() {
                     })}
                 </Box>
 
+                {/* Price Range Filter */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflowX: 'auto', pb: 0.5,
                     '&::-webkit-scrollbar': { display: 'none' } }}>
                     <Typography sx={{ fontSize: 13, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', mr: 0.5 }}>
@@ -1047,7 +1055,10 @@ export default function Houses() {
                                     transition: 'all 0.15s',
                                 }}
                             >
-                                <Typography sx={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#fff' : C.accent }}>
+                                <Typography sx={{
+                                    fontSize: 12, fontWeight: active ? 700 : 500,
+                                    color: active ? '#fff' : C.accent
+                                }}>
                                     {pr.label}
                                 </Typography>
                             </Box>
@@ -1055,6 +1066,7 @@ export default function Houses() {
                     })}
                 </Box>
 
+                {/* Radius Chip */}
                 <Chip
                     icon={<LocationIcon sx={{ fontSize: '14px !important', color: `${C.accent} !important` }} />}
                     label={`Within ${radius} km`}
@@ -1098,7 +1110,7 @@ export default function Houses() {
                 </Box>
             )}
 
-            {/* ── Houses Grid ── */}
+            {/* ── Houses Grid (2 column on mobile) ── */}
             <Box sx={{ px: 1.5 }}>
                 <Grid container spacing={1.5}>
                     {loading ? (
@@ -1212,7 +1224,7 @@ export default function Houses() {
                 </Box>
             </Drawer>
 
-            {/* ── HOUSE DETAIL DRAWER ── */}
+            {/* ── HOUSE DETAIL DRAWER (Full Screen on Mobile) ── */}
             {detailsOpen && selectedHouse && (
                 <HouseDetailsDrawer
                     house={selectedHouse}
