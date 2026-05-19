@@ -42,9 +42,9 @@ import {
     Visibility as VisibilityIcon,
     GpsFixed as GpsFixedIcon,
     Refresh as RefreshIcon,
-    AttachMoney as AttachMoneyIcon,
     Schedule as ScheduleIcon,
     Person as PersonIcon,
+    CurrencyRupee as RupeeIcon,
 } from '@mui/icons-material';
 import { getJobsByLocation, getJobById, getJobFilterOptions, incrementJobViewCount } from '../../services/jobs';
 import { useAuth } from '../context/AuthContext';
@@ -87,12 +87,6 @@ const LOGO_COLORS = [
 ];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
-const formatSalaryShort = (amount) => {
-    if (!amount) return '';
-    const n = Number(amount);
-    return n >= 1000 ? `₹${Math.round(n / 1000)}K` : `₹${n}`;
-};
-
 const formatPrice = (price) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price);
 
@@ -102,6 +96,12 @@ const timeAgo = (dateStr) => {
     if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     return `${Math.floor(diff / 86400)}d ago`;
+};
+
+// Clean phone number for calling
+const cleanPhoneNumber = (phone) => {
+    if (!phone) return '';
+    return phone.toString().replace(/[^0-9+]/g, '');
 };
 
 /* ─── Skeleton card ───────────────────────────────────────────────────────── */
@@ -213,8 +213,8 @@ function JobCard({ job, index, onApply, onView }) {
                     }}
                 />
                 <Chip
-                    icon={<AttachMoneyIcon sx={{ fontSize: '12px !important', color: C.accent }} />}
-                    label={`₹${job.salary.toLocaleString()}/${job.salary_type === 'month' ? 'mo' : 'day'}`}
+                    icon={<RupeeIcon sx={{ fontSize: '11px !important', color: C.accent }} />}
+                    label={`${job.salary.toLocaleString()}/${job.salary_type === 'month' ? 'mo' : 'day'}`}
                     size="small"
                     sx={{
                         height: 22, borderRadius: '6px',
@@ -330,24 +330,24 @@ function JobDetailsDrawer({ job, onClose, onCall, userLocation }) {
                         position: 'absolute',
                         top: 12,
                         right: 12,
-                        bgcolor: C.surfaceAlt,
-                        border: `1px solid ${C.border}`,
+                        bgcolor: 'rgba(255,255,255,0.2)',
+                        border: '1px solid rgba(255,255,255,0.3)',
                         borderRadius: '12px',
                         width: 36,
                         height: 36,
                         zIndex: 10,
-                        '&:hover': { bgcolor: C.borderLight },
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
                     }}
                 >
-                    <CloseIcon sx={{ fontSize: 18, color: C.textMuted }} />
+                    <CloseIcon sx={{ fontSize: 18, color: '#fff' }} />
                 </IconButton>
 
-                {/* Header Section */}
+                {/* Header Section - Text color white */}
                 <Box sx={{
                     p: 3,
                     pb: 2,
                     background: `linear-gradient(135deg, ${C.accent} 0%, ${C.accentDark} 100%)`,
-                    color: '#fff',
+                    color: '#ffffff',
                     flexShrink: 0,
                 }}>
                     <Box sx={{ pr: 4 }}>
@@ -358,12 +358,13 @@ function JobDetailsDrawer({ job, onClose, onCall, userLocation }) {
                             lineHeight: 1.25,
                             mb: 1,
                             letterSpacing: '-0.3px',
+                            color: '#ffffff',
                         }}>
                             {job.job_title}
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                            <BusinessIcon sx={{ fontSize: 14, opacity: 0.9 }} />
-                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: 13, opacity: 0.9 }}>
+                            <BusinessIcon sx={{ fontSize: 14, opacity: 0.9, color: '#ffffff' }} />
+                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: 13, opacity: 0.9, color: '#ffffff' }}>
                                 {job.shop_name || job.company_name}
                             </Typography>
                             {job.shop_verified && (
@@ -374,17 +375,17 @@ function JobDetailsDrawer({ job, onClose, onCall, userLocation }) {
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                             <Chip
-                                icon={<WorkIcon sx={{ fontSize: '12px !important' }} />}
+                                icon={<WorkIcon sx={{ fontSize: '12px !important', color: '#ffffff' }} />}
                                 label={isFullTime ? 'Full Time' : 'Part Time'}
                                 size="small"
-                                sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', fontFamily: '"Inter", sans-serif', fontWeight: 600 }}
+                                sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#ffffff', fontFamily: '"Inter", sans-serif', fontWeight: 600 }}
                             />
                             {job.views_count !== undefined && (
                                 <Chip
-                                    icon={<VisibilityIcon sx={{ fontSize: '12px !important' }} />}
+                                    icon={<VisibilityIcon sx={{ fontSize: '12px !important', color: '#ffffff' }} />}
                                     label={`${job.views_count} views`}
                                     size="small"
-                                    sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', fontFamily: '"Inter", sans-serif', fontWeight: 600 }}
+                                    sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#ffffff', fontFamily: '"Inter", sans-serif', fontWeight: 600 }}
                                 />
                             )}
                         </Box>
@@ -409,8 +410,13 @@ function JobDetailsDrawer({ job, onClose, onCall, userLocation }) {
                             fontWeight: 800,
                             fontSize: 28,
                             color: C.accent,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 0.5,
                         }}>
-                            {formatPrice(job.salary)}
+                            <RupeeIcon sx={{ fontSize: 26, color: C.accent }} />
+                            {job.salary.toLocaleString()}
                             <span style={{ fontSize: 14, fontWeight: 400, color: C.textMuted }}>
                                 /{job.salary_type === 'month' ? 'month' : 'day'}
                             </span>
@@ -889,6 +895,13 @@ export default function Jobs() {
         setLocationDialogOpen(true);
     };
 
+    const handleCall = (phone) => {
+        if (phone) {
+            const cleanNumber = cleanPhoneNumber(phone);
+            window.location.href = `tel:${cleanNumber}`;
+        }
+    };
+
     // ── Effects ──
     useEffect(() => {
         const initializeLocation = async () => {
@@ -976,10 +989,6 @@ export default function Jobs() {
         } finally {
             setLoadingDetails(false);
         }
-    };
-
-    const handleCall = (phone) => {
-        if (phone) window.location.href = `tel:${phone}`;
     };
 
     const clearFilters = () => {
