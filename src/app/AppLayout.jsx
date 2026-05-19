@@ -1,5 +1,5 @@
 // AppLayout.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     Box,
@@ -48,6 +48,28 @@ import loadingGif from '../assets/Radar.gif';
 import { getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead } from '../services/notification';
 import { useAuth } from './context/AuthContext';
 
+// ─── HAPTIC UTILITY ──────────────────────────────────────────────────────────
+// Pattern types matching Swiggy/Zomato feel:
+//   tap      → 8ms  (lightest, nav icon tap)
+//   select   → 12ms (selecting a nav item)
+//   action   → [10, 30, 10] (button press with slight double-pulse)
+//   warning  → [20, 60, 20] (logout / destructive)
+//   success  → [8, 20, 8, 20, 8] (confirm / mark all read)
+
+const HAPTIC_PATTERNS = {
+    tap: 8,
+    select: 12,
+    action: [10, 30, 10],
+    warning: [20, 60, 20],
+    success: [8, 20, 8, 20, 8],
+};
+
+const haptic = (type = 'tap') => {
+    if (!navigator.vibrate) return; // silently skip on unsupported devices
+    navigator.vibrate(HAPTIC_PATTERNS[type] ?? HAPTIC_PATTERNS.tap);
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 const NAV_CONFIG = {
     user: [
         { label: 'Home', icon: <GridViewOutlined />, path: '/app/home' },
@@ -78,12 +100,8 @@ const COLLAPSED_DRAWER_WIDTH = 68;
 const BOTTOM_NAV_HEIGHT = 66;
 const TOP_BAR_HEIGHT = 64;
 
-// Get user initial for avatar
 const getUserInitial = (role, user) => {
-    if (user?.full_name) {
-        return user.full_name.charAt(0).toUpperCase();
-    }
-   
+    if (user?.full_name) return user.full_name.charAt(0).toUpperCase();
     return role ? role.charAt(0).toUpperCase() : 'U';
 };
 
@@ -105,11 +123,10 @@ function AppLayout() {
     const [unreadCount, setUnreadCount] = useState(0);
     const [notificationsLoading, setNotificationsLoading] = useState(false);
     const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
-    
+
     const open = Boolean(anchorEl);
     const notificationsOpen = Boolean(notificationsAnchorEl);
 
-    // Load notifications
     const loadNotifications = async () => {
         setNotificationsLoading(true);
         try {
@@ -123,7 +140,6 @@ function AppLayout() {
         }
     };
 
-    // Load unread count
     const loadUnreadCount = async () => {
         try {
             const data = await getUnreadCount();
@@ -148,8 +164,6 @@ function AppLayout() {
             navigate(defaultPath, { replace: true });
         }
         setLoading(false);
-        
-        // Load notifications
         loadUnreadCount();
     }, [navigate, location.pathname]);
 
@@ -162,6 +176,7 @@ function AppLayout() {
     };
 
     const handleLogout = () => {
+        haptic('warning');
         setLogoutDialogOpen(false);
         handleLogoutRedirect();
     };
@@ -172,27 +187,21 @@ function AppLayout() {
     const isActivePath = (path) =>
         location.pathname === path || location.pathname.startsWith(path + '/');
 
-    // Handle notification click
     const handleNotificationClick = async (notification) => {
+        haptic('select');
         if (!notification.is_read) {
             await markNotificationRead(notification.id);
             setUnreadCount(prev => Math.max(0, prev - 1));
         }
         setNotificationDialogOpen(false);
         setNotificationsAnchorEl(null);
-        
-        // Navigate based on notification type
-        if (notification.reference_type === 'shop') {
-            navigate(`/app/shops/${notification.reference_id}`);
-        } else if (notification.reference_type === 'house') {
-            navigate(`/app/houses/${notification.reference_id}`);
-        } else if (notification.reference_type === 'job') {
-            navigate(`/app/jobs/${notification.reference_id}`);
-        }
+        if (notification.reference_type === 'shop') navigate(`/app/shops/${notification.reference_id}`);
+        else if (notification.reference_type === 'house') navigate(`/app/houses/${notification.reference_id}`);
+        else if (notification.reference_type === 'job') navigate(`/app/jobs/${notification.reference_id}`);
     };
 
-    // Handle mark all as read
     const handleMarkAllRead = async () => {
+        haptic('success');
         try {
             await markAllNotificationsRead();
             setUnreadCount(0);
@@ -202,22 +211,18 @@ function AppLayout() {
         }
     };
 
-    // Open notifications dialog
     const openNotificationsDialog = async () => {
+        haptic('action');
         setNotificationDialogOpen(true);
         await loadNotifications();
     };
 
     const getNotificationIcon = (type) => {
         switch (type) {
-            case 'new_shop':
-                return <StoreIcon sx={{ fontSize: 20, color: '#325fec' }} />;
-            case 'new_house':
-                return <HomeOutlinedIcon sx={{ fontSize: 20, color: '#16a34a' }} />;
-            case 'new_job':
-                return <WorkIcon sx={{ fontSize: 20, color: '#ea580c' }} />;
-            default:
-                return <NotificationsIcon sx={{ fontSize: 20, color: '#325fec' }} />;
+            case 'new_shop': return <StoreIcon sx={{ fontSize: 20, color: '#325fec' }} />;
+            case 'new_house': return <HomeOutlinedIcon sx={{ fontSize: 20, color: '#16a34a' }} />;
+            case 'new_job': return <WorkIcon sx={{ fontSize: 20, color: '#ea580c' }} />;
+            default: return <NotificationsIcon sx={{ fontSize: 20, color: '#325fec' }} />;
         }
     };
 
@@ -228,7 +233,6 @@ function AppLayout() {
         const diffMins = Math.floor(diffMs / 60000);
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
-        
         if (diffMins < 1) return 'Just now';
         if (diffMins < 60) return `${diffMins}m ago`;
         if (diffHours < 24) return `${diffHours}h ago`;
@@ -258,19 +262,22 @@ function AppLayout() {
                         <Box
                             component="img" src={logo} alt="NearZO"
                             sx={{ width: 100, height: 'auto', cursor: 'pointer', objectFit: 'contain' }}
-                            onClick={() => navigate('/')}
+                            onClick={() => { haptic('tap'); navigate('/'); }}
                         />
                     )}
                     {sidebarCollapsed && (
                         <Box
                             component="img" src={logo} alt="NearZO"
                             sx={{ width: 32, height: 'auto', cursor: 'pointer', objectFit: 'contain' }}
-                            onClick={() => navigate('/')}
+                            onClick={() => { haptic('tap'); navigate('/'); }}
                         />
                     )}
                     {!sidebarCollapsed && (
-                        <IconButton onClick={() => setSidebarCollapsed(true)} size="small"
-                            sx={{ color: '#aaa', '&:hover': { color: '#325fec', bgcolor: '#f0f4ff' } }}>
+                        <IconButton
+                            onClick={() => { haptic('tap'); setSidebarCollapsed(true); }}
+                            size="small"
+                            sx={{ color: '#aaa', '&:hover': { color: '#325fec', bgcolor: '#f0f4ff' } }}
+                        >
                             <ChevronLeftIcon sx={{ fontSize: '1.1rem' }} />
                         </IconButton>
                     )}
@@ -279,8 +286,11 @@ function AppLayout() {
 
                 {sidebarCollapsed && (
                     <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5 }}>
-                        <IconButton onClick={() => setSidebarCollapsed(false)} size="small"
-                            sx={{ color: '#aaa', '&:hover': { color: '#325fec', bgcolor: '#f0f4ff' } }}>
+                        <IconButton
+                            onClick={() => { haptic('tap'); setSidebarCollapsed(false); }}
+                            size="small"
+                            sx={{ color: '#aaa', '&:hover': { color: '#325fec', bgcolor: '#f0f4ff' } }}
+                        >
                             <ChevronLeftIcon sx={{ fontSize: '1.1rem', transform: 'rotate(180deg)' }} />
                         </IconButton>
                     </Box>
@@ -293,7 +303,11 @@ function AppLayout() {
                             <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
                                 <Tooltip title={sidebarCollapsed ? item.label : ''} placement="right">
                                     <ListItemButton
-                                        onClick={() => { navigate(item.path); if (isMobile) setMobileOpen(false); }}
+                                        onClick={() => {
+                                            haptic('select');
+                                            navigate(item.path);
+                                            if (isMobile) setMobileOpen(false);
+                                        }}
                                         sx={{
                                             minHeight: 42,
                                             borderRadius: '10px',
@@ -342,7 +356,7 @@ function AppLayout() {
                     <Divider sx={{ mb: 1.5, borderColor: '#f0f0f0' }} />
                     <Tooltip title={sidebarCollapsed ? 'Logout' : ''} placement="right">
                         <ListItemButton
-                            onClick={() => setLogoutDialogOpen(true)}
+                            onClick={() => { haptic('warning'); setLogoutDialogOpen(true); }}
                             sx={{
                                 borderRadius: '10px',
                                 justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
@@ -397,7 +411,7 @@ function AppLayout() {
                 <Drawer
                     variant="temporary"
                     open={mobileOpen}
-                    onClose={() => setMobileOpen(false)}
+                    onClose={() => { haptic('tap'); setMobileOpen(false); }}
                     ModalProps={{ keepMounted: true }}
                     sx={{
                         display: { xs: 'block', md: 'none' },
@@ -414,7 +428,7 @@ function AppLayout() {
         );
     };
 
-    // ─── BOTTOM NAV (User/Business) — White background ──────────────────
+    // ─── BOTTOM NAV (User/Business) ──────────────────────────────────────────
     const renderBottomNav = () => {
         const currentIndex = navItems.findIndex(item =>
             location.pathname === item.path || location.pathname.startsWith(item.path + '/')
@@ -442,7 +456,7 @@ function AppLayout() {
                     }
 
                     .nearzo-bottom-nav-item:active .nearzo-nav-inner {
-                        transform: scale(0.92) !important;
+                        transform: scale(0.88) !important;
                     }
 
                     .nearzo-active-pill {
@@ -452,6 +466,12 @@ function AppLayout() {
                     .nearzo-active-label {
                         animation: labelSlide 0.22s ease both;
                         animation-delay: 0.06s;
+                    }
+
+                    /* Scale feedback on active press for the pill itself */
+                    .nearzo-bottom-nav-item:active .nearzo-active-pill {
+                        transform: scale(0.93) !important;
+                        transition: transform 0.08s ease !important;
                     }
                 `}</style>
 
@@ -469,7 +489,6 @@ function AppLayout() {
                         pointerEvents: 'none',
                     }}
                 >
-                    {/* White pill container - no gradient */}
                     <Box
                         sx={{
                             display: 'flex',
@@ -491,7 +510,11 @@ function AppLayout() {
                                 <Box
                                     key={item.label}
                                     className="nearzo-bottom-nav-item"
-                                    onClick={() => navigate(item.path)}
+                                    onClick={() => {
+                                        // Already active → lighter tap, switching → select pulse
+                                        haptic(active ? 'tap' : 'select');
+                                        navigate(item.path);
+                                    }}
                                     sx={{
                                         cursor: 'pointer',
                                         userSelect: 'none',
@@ -590,10 +613,11 @@ function AppLayout() {
                 <Box
                     component="img" src={logo} alt="NearZO"
                     sx={{ width: 90, height: 'auto', objectFit: 'contain', cursor: 'pointer' }}
-                    onClick={() => navigate('/')}
+                    onClick={() => { haptic('tap'); navigate('/'); }}
                 />
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {/* Notification bell */}
                     <IconButton
                         size="small"
                         onClick={openNotificationsDialog}
@@ -604,6 +628,8 @@ function AppLayout() {
                             bgcolor: '#f7f7f7',
                             '&:hover': { bgcolor: '#f0f4ff', color: '#325fec' },
                             transition: 'all 0.15s ease',
+                            // Visual press feedback
+                            '&:active': { transform: 'scale(0.88)' },
                         }}
                     >
                         <Badge badgeContent={unreadCount} color="error" invisible={unreadCount === 0}>
@@ -611,8 +637,9 @@ function AppLayout() {
                         </Badge>
                     </IconButton>
 
+                    {/* Profile chip */}
                     <Box
-                        onClick={(e) => setAnchorEl(e.currentTarget)}
+                        onClick={(e) => { haptic('action'); setAnchorEl(e.currentTarget); }}
                         sx={{
                             display: 'flex',
                             alignItems: 'center',
@@ -627,6 +654,7 @@ function AppLayout() {
                             border: '1px solid transparent',
                             transition: 'all 0.15s ease',
                             '&:hover': { bgcolor: '#f0f4ff', borderColor: '#d6e0ff' },
+                            '&:active': { transform: 'scale(0.94)' },
                         }}
                     >
                         <Avatar
@@ -681,12 +709,12 @@ function AppLayout() {
                         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                     >
-                        <MenuItem onClick={() => navigate('/app/profile')}>
+                        <MenuItem onClick={() => { haptic('select'); navigate('/app/profile'); }}>
                             <AccountCircleIcon sx={{ fontSize: '1.1rem', color: '#325fec' }} />
                             Profile
                         </MenuItem>
                         <Divider sx={{ my: 0.5, borderColor: '#f5f5f5' }} />
-                        <MenuItem onClick={() => { setAnchorEl(null); setLogoutDialogOpen(true); }}>
+                        <MenuItem onClick={() => { haptic('warning'); setAnchorEl(null); setLogoutDialogOpen(true); }}>
                             <LogoutIcon sx={{ fontSize: '1.1rem', color: '#aaa' }} />
                             <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.82rem', color: '#888' }}>
                                 Logout
@@ -698,17 +726,14 @@ function AppLayout() {
         );
     };
 
-    // ─── NOTIFICATION FULL SCREEN DIALOG ───────────────────────────────────────
+    // ─── NOTIFICATION DIALOG ────────────────────────────────────────────────────
     const renderNotificationDialog = () => (
         <Dialog
             open={notificationDialogOpen}
-            onClose={() => setNotificationDialogOpen(false)}
+            onClose={() => { haptic('tap'); setNotificationDialogOpen(false); }}
             fullScreen
             PaperProps={{
-                sx: {
-                    bgcolor: '#f8f9fa',
-                    backgroundImage: 'none',
-                }
+                sx: { bgcolor: '#f8f9fa', backgroundImage: 'none' }
             }}
         >
             <Box sx={{
@@ -742,12 +767,17 @@ function AppLayout() {
                                 fontSize: '0.75rem',
                                 color: '#325fec',
                                 fontWeight: 600,
+                                '&:active': { transform: 'scale(0.92)' },
                             }}
                         >
                             Mark all as read
                         </Button>
                     )}
-                    <IconButton onClick={() => setNotificationDialogOpen(false)} size="small">
+                    <IconButton
+                        onClick={() => { haptic('tap'); setNotificationDialogOpen(false); }}
+                        size="small"
+                        sx={{ '&:active': { transform: 'scale(0.88)' } }}
+                    >
                         <CloseIcon sx={{ fontSize: '1.2rem', color: '#888' }} />
                     </IconButton>
                 </Box>
@@ -759,8 +789,8 @@ function AppLayout() {
                         <CircularProgress size={32} sx={{ color: '#325fec' }} />
                     </Box>
                 ) : notifications.length === 0 ? (
-                    <Box sx={{ 
-                        textAlign: 'center', 
+                    <Box sx={{
+                        textAlign: 'center',
                         py: 12,
                         display: 'flex',
                         flexDirection: 'column',
@@ -794,7 +824,7 @@ function AppLayout() {
                         </Typography>
                     </Box>
                 ) : (
-                    notifications.map((notification, index) => (
+                    notifications.map((notification) => (
                         <Box
                             key={notification.id}
                             onClick={() => handleNotificationClick(notification)}
@@ -807,10 +837,16 @@ function AppLayout() {
                                 transition: 'all 0.15s ease',
                                 border: '1px solid',
                                 borderColor: notification.is_read ? '#f0f0f0' : '#d6e4ff',
+                                WebkitTapHighlightColor: 'transparent',
                                 '&:hover': {
                                     transform: 'translateY(-1px)',
                                     boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
                                     borderColor: '#c7d2fe',
+                                },
+                                // Press scale feedback
+                                '&:active': {
+                                    transform: 'scale(0.97)',
+                                    boxShadow: 'none',
                                 },
                             }}
                         >
@@ -818,7 +854,7 @@ function AppLayout() {
                                 <Box sx={{
                                     width: 40, height: 40,
                                     borderRadius: '12px',
-                                    bgcolor: notification.type === 'new_shop' ? '#f0f4ff' : 
+                                    bgcolor: notification.type === 'new_shop' ? '#f0f4ff' :
                                              notification.type === 'new_house' ? '#f0fdf4' : '#fff7ed',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -871,8 +907,8 @@ function AppLayout() {
                                         bgcolor: '#f5f5f5',
                                         flexShrink: 0,
                                     }}>
-                                        <img 
-                                            src={notification.reference_image} 
+                                        <img
+                                            src={notification.reference_image}
                                             alt=""
                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                             onError={(e) => { e.target.style.display = 'none'; }}
@@ -887,11 +923,11 @@ function AppLayout() {
         </Dialog>
     );
 
-    // ─── LOGOUT DIALOG ─────────────────────────────────────────────────────────
+    // ─── LOGOUT DIALOG ──────────────────────────────────────────────────────────
     const renderLogoutDialog = () => (
         <Dialog
             open={logoutDialogOpen}
-            onClose={() => setLogoutDialogOpen(false)}
+            onClose={() => { haptic('tap'); setLogoutDialogOpen(false); }}
             PaperProps={{
                 sx: {
                     borderRadius: '18px',
@@ -923,7 +959,7 @@ function AppLayout() {
             </DialogContent>
             <DialogActions sx={{ p: 2, pt: 1, gap: 1 }}>
                 <Button
-                    onClick={() => setLogoutDialogOpen(false)}
+                    onClick={() => { haptic('tap'); setLogoutDialogOpen(false); }}
                     sx={{
                         textTransform: 'none',
                         borderRadius: '10px',
@@ -934,6 +970,7 @@ function AppLayout() {
                         px: 2,
                         bgcolor: '#f5f5f5',
                         '&:hover': { bgcolor: '#eee' },
+                        '&:active': { transform: 'scale(0.94)' },
                     }}
                 >
                     Cancel
@@ -951,6 +988,7 @@ function AppLayout() {
                         bgcolor: '#325fec',
                         boxShadow: 'none',
                         '&:hover': { bgcolor: '#1a4bcf', boxShadow: 'none' },
+                        '&:active': { transform: 'scale(0.94)' },
                     }}
                 >
                     Log out
@@ -959,7 +997,7 @@ function AppLayout() {
         </Dialog>
     );
 
-    // ─── LOADING ───────────────────────────────────────────────────────────────
+    // ─── LOADING ────────────────────────────────────────────────────────────────
     if (loading) {
         return (
             <Box sx={{
@@ -981,7 +1019,7 @@ function AppLayout() {
 
     if (!role) return null;
 
-    // ─── ADMIN LAYOUT ──────────────────────────────────────────────────────────
+    // ─── ADMIN LAYOUT ───────────────────────────────────────────────────────────
     if (isAdmin) {
         return (
             <>
@@ -1006,13 +1044,14 @@ function AppLayout() {
                         >
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                 <IconButton
-                                    onClick={() => setMobileOpen(!mobileOpen)}
+                                    onClick={() => { haptic('tap'); setMobileOpen(!mobileOpen); }}
                                     sx={{
                                         display: { xs: 'flex', md: 'none' },
                                         color: '#888',
                                         width: 36, height: 36,
                                         borderRadius: '10px',
                                         bgcolor: '#f5f5f5',
+                                        '&:active': { transform: 'scale(0.88)' },
                                     }}
                                 >
                                     <MenuIcon sx={{ fontSize: '1.1rem' }} />
@@ -1038,6 +1077,7 @@ function AppLayout() {
                                         color: '#888',
                                         bgcolor: '#f7f7f7',
                                         '&:hover': { bgcolor: '#f0f4ff', color: '#325fec' },
+                                        '&:active': { transform: 'scale(0.88)' },
                                     }}
                                 >
                                     <Badge badgeContent={unreadCount} color="error" invisible={unreadCount === 0}>
@@ -1046,7 +1086,7 @@ function AppLayout() {
                                 </IconButton>
 
                                 <Box
-                                    onClick={() => navigate('/app/admin/profile')}
+                                    onClick={() => { haptic('action'); navigate('/app/admin/profile'); }}
                                     sx={{
                                         display: 'flex', alignItems: 'center', gap: 1,
                                         pl: 1, pr: 1.2, py: 0.6,
@@ -1054,6 +1094,8 @@ function AppLayout() {
                                         bgcolor: '#f7f7f7',
                                         cursor: 'pointer',
                                         '&:hover': { bgcolor: '#f0f4ff' },
+                                        '&:active': { transform: 'scale(0.94)' },
+                                        transition: 'all 0.15s ease',
                                     }}
                                 >
                                     <Avatar sx={{
@@ -1091,7 +1133,7 @@ function AppLayout() {
         );
     }
 
-    // ─── USER / BUSINESS LAYOUT ────────────────────────────────────────────────
+    // ─── USER / BUSINESS LAYOUT ─────────────────────────────────────────────────
     return (
         <>
             <Box

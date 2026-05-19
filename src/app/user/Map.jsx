@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 import 'leaflet-routing-machine';
-import loadingGif from '../../assets/Radar.gif'; // Import your loading GIF
+import loadingGif from '../../assets/Radar.gif';
 
 // Material-UI Icons
 import StorefrontIcon from '@mui/icons-material/Storefront';
@@ -78,7 +78,7 @@ const TYPE = {
 // Bottom nav height — must match AppLayout.jsx BOTTOM_NAV_HEIGHT
 const BOTTOM_NAV_OFFSET = 150;
 
-// ─── SVG Markers for Leaflet (using SVG elements since Leaflet needs HTML strings) ─────────
+// ─── SVG Markers for Leaflet ───────────────────────────────────────────────
 const MARKER_SVG = {
   shop:  (color) => `<svg width="36" height="46" viewBox="0 0 36 46" xmlns="http://www.w3.org/2000/svg"><defs><filter id="ds"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="${color}" flood-opacity="0.4"/></filter></defs><path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 28 18 28S36 31.5 36 18C36 8.06 27.94 0 18 0z" fill="${color}" filter="url(#ds)"/><circle cx="18" cy="18" r="11" fill="white" opacity="0.96"/><path d="M13 15h10v6H13z" fill="${color}" opacity="0.9"/><path d="M10 12l3-4h10l3 4" stroke="${color}" stroke-width="2" fill="none"/></svg>`,
   house: (color) => `<svg width="36" height="46" viewBox="0 0 36 46" xmlns="http://www.w3.org/2000/svg"><defs><filter id="ds"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="${color}" flood-opacity="0.4"/></filter></defs><path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 28 18 28S36 31.5 36 18C36 8.06 27.94 0 18 0z" fill="${color}" filter="url(#ds)"/><circle cx="18" cy="18" r="11" fill="white" opacity="0.96"/><polygon points="18,11 12,17 12,24 15,24 15,19 21,19 21,24 24,24 24,17" fill="${color}" opacity="0.9"/></svg>`,
@@ -261,6 +261,26 @@ const injectCSS = () => {
     .m-popup-title { font-weight:700; font-size:15px; color:${C.text}; margin-bottom:2px; letter-spacing:-.2px; }
     .m-popup-sub { font-size:11.5px; color:${C.textSub}; margin-bottom:8px; }
 
+    /* Full screen drawer */
+    .detail-drawer-fullscreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      border-radius: 0 !important;
+      margin: 0 !important;
+      z-index: 1400 !important;
+      background: ${C.surface} !important;
+    }
+    
+    .detail-backdrop-fullscreen {
+      display: none !important;
+    }
+
     /* Responsive */
     @media (min-width: 600px) {
       .m-sidebar { position:absolute; left:0; top:0; bottom:0; width:340px; z-index:200;
@@ -272,20 +292,43 @@ const injectCSS = () => {
       .m-sheet { display:none !important; }
       .m-fabs { left:356px !important; bottom:20px !important; }
       .m-statusbar { left:356px !important; }
-      .m-detail-drawer { bottom: 0 !important; }
-      .m-detail-backdrop { bottom: 0 !important; }
+      /* Desktop: drawer not fullscreen */
+      .detail-drawer-desktop {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        max-height: 80vh !important;
+        border-radius: 24px 24px 0 0 !important;
+        margin: 0 15px !important;
+        margin-bottom: 0 !important;
+        z-index: 500 !important;
+      }
+      .detail-backdrop-desktop {
+        display: block !important;
+      }
     }
     @media (max-width: 599px) {
       .m-sidebar { display:none !important; }
       .m-map-zone { position:absolute; inset:0; }
-    }
-    @media (max-width: 320px) {
-      .m-popup { padding:10px 12px 12px; min-width:170px; }
-      .m-popup-title { font-size:13.5px; }
-      .btn-primary, .btn-ghost { padding:9px 12px; font-size:12px; }
-    }
-    @media (max-width: 280px) {
-      .m-popup { min-width:150px; }
+      /* Mobile: drawer fullscreen */
+      .detail-drawer-mobile {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        z-index: 1400 !important;
+      }
+      .detail-backdrop-mobile {
+        display: none !important;
+      }
     }
   `;
   document.head.appendChild(s);
@@ -726,7 +769,7 @@ export default function Map() {
         )}
       </div>
 
-      {/* DETAIL DRAWER — sits above bottom nav */}
+      {/* DETAIL DRAWER — FULL SCREEN ON MOBILE */}
       {detailItem && (
         <DetailDrawer
           item={detailItem}
@@ -974,8 +1017,16 @@ function ListView({ items, onSelect, onRoute, openGoogleMaps }) {
   );
 }
 
-// ─── DETAIL DRAWER ─────────────────────────────────────────────────────────
+// ─── DETAIL DRAWER — FULL SCREEN ON MOBILE ─────────────────────────────────
 function DetailDrawer({ item, onClose, onRoute, openGoogleMaps }) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
+  
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 600);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
   const m     = TYPE[item._type] || {};
   const name  = getName(item);
   const sub   = getSub(item);
@@ -987,80 +1038,77 @@ function DetailDrawer({ item, onClose, onRoute, openGoogleMaps }) {
     return <WorkIcon sx={{ fontSize: 28, color: C.accent }} />;
   };
 
+  // Apply different classes based on screen size
+  const drawerClass = isMobile ? 'detail-drawer-mobile' : 'detail-drawer-desktop';
+  const backdropClass = isMobile ? 'detail-backdrop-mobile' : 'detail-backdrop-desktop';
+
   return (
     <>
+      {/* Backdrop - only visible on desktop */}
       <div
-        className="m-detail-backdrop"
+        className={backdropClass}
         style={{
           position:'fixed',
           top: 0,
           left: 0,
           right: 0,
-          // bottom: BOTTOM_NAV_OFFSET,
+          bottom: 0,
           zIndex: 400,
           background:'rgba(15,23,42,0.4)',
           backdropFilter:'blur(3px)',
-          marginBottom:'0px'
         }}
         onClick={onClose}
       />
 
+      {/* Drawer */}
       <div
-        className="su m-detail-drawer"
+        className={`su ${drawerClass}`}
         style={{
-          position:'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 500,
+          position: 'fixed',
           background: C.surface,
-          borderRadius: '24px',
-          margin: '0 15px',
-          maxHeight: `calc(100dvh - 64px - ${BOTTOM_NAV_OFFSET}px)`,
           display: 'flex',
           flexDirection: 'column',
           boxShadow: `0 -12px 50px ${C.shadowLg}`,
-          border: `1.5px solid ${C.border}`,
+          border: isMobile ? 'none' : `1.5px solid ${C.border}`,
           borderBottom: 'none',
-                    marginBottom:'90px'
-
+          overflow: 'hidden',
         }}
       >
-        <div className="handle" />
+        {!isMobile && <div className="handle" />}
 
         <button
           style={{
             position:'absolute', top:14, right:14,
             background:C.surfaceAlt, border:`1.5px solid ${C.border}`,
-            borderRadius:'50%', width:30, height:30,
+            borderRadius:'50%', width:36, height:36,
             display:'flex', alignItems:'center', justifyContent:'center',
             cursor:'pointer', color:C.textSub, zIndex:10,
           }}
           onClick={onClose}
         >
-          <CloseIcon sx={{ fontSize: 15 }} />
+          <CloseIcon sx={{ fontSize: 16 }} />
         </button>
 
         <div style={{
-          padding:'12px 18px 16px',
+          padding:'20px 20px 16px',
           borderBottom:`1.5px solid ${C.borderLight}`,
           flexShrink: 0,
         }}>
           <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
             <div style={{
-              width:52, height:52, borderRadius:16, background:m.bg, border:`2px solid ${m.color}28`,
+              width:56, height:56, borderRadius:16, background:m.bg, border:`2px solid ${m.color}28`,
               display:'flex', alignItems:'center', justifyContent:'center', color: m.color,
             }}>
               {getIcon()}
             </div>
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontWeight:800, fontSize:18, color:C.text, lineHeight:1.2, marginBottom:2, letterSpacing:'-.3px' }}>{name}</div>
-              <div style={{ color:C.textSub, fontSize:12.5, marginBottom:8 }}>{sub}</div>
-              <div style={{ display:'flex', gap:7, flexWrap:'wrap', alignItems:'center' }}>
-                <span className="badge" style={{ background:m.bg, color:m.color }}>{m.label}</span>
+              <div style={{ fontWeight:800, fontSize:19, color:C.text, lineHeight:1.2, marginBottom:4, letterSpacing:'-.3px' }}>{name}</div>
+              <div style={{ color:C.textSub, fontSize:13, marginBottom:10 }}>{sub}</div>
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+                <span className="badge" style={{ background:m.bg, color:m.color, padding:'4px 10px', fontSize:11 }}>{m.label}</span>
                 {item.distance != null && (
-                  <span style={{ fontSize:12, color:C.accent, fontWeight:600, display:'flex', alignItems:'center', gap:3 }}>
-                    <LocationOnIcon sx={{ fontSize: 10, color: C.accent }} />
+                  <span style={{ fontSize:12, color:C.accent, fontWeight:600, display:'flex', alignItems:'center', gap:4 }}>
+                    <LocationOnIcon sx={{ fontSize: 11, color: C.accent }} />
                     {fmtDist(item.distance)} away
                   </span>
                 )}
@@ -1069,42 +1117,42 @@ function DetailDrawer({ item, onClose, onRoute, openGoogleMaps }) {
           </div>
         </div>
 
-        <div style={{ flex:1, overflowY:'auto', padding:'16px 18px' }}>
+        <div style={{ flex:1, overflowY:'auto', padding:'20px 20px' }}>
           {item._type === 'shop'  && <ShopBody  item={item} />}
           {item._type === 'house' && <HouseBody item={item} />}
           {item._type === 'job'   && <JobBody   item={item} />}
 
           <div style={{
-            marginTop:18, padding:14,
+            marginTop:20, padding:16,
             background:C.surfaceAlt, border:`1.5px solid ${C.borderLight}`,
             borderRadius:16,
           }}>
-            <div style={{ color:C.textMuted, fontSize:10, fontWeight:700, letterSpacing:'.07em', textTransform:'uppercase', marginBottom:10 }}>Contact</div>
+            <div style={{ color:C.textMuted, fontSize:11, fontWeight:700, letterSpacing:'.07em', textTransform:'uppercase', marginBottom:12 }}>Contact</div>
             {(item.owner_name || item.employer_name) && (
-              <div style={{ fontWeight:700, fontSize:14, color:C.text, marginBottom:2 }}>
+              <div style={{ fontWeight:700, fontSize:15, color:C.text, marginBottom:4 }}>
                 {item.owner_name || item.employer_name}
               </div>
             )}
             {phone && (
-              <a href={`tel:${phone}`} style={{ color:C.accent, fontSize:13.5, textDecoration:'none', fontWeight:600, display:'block', marginBottom:12 }}>
+              <a href={`tel:${phone}`} style={{ color:C.accent, fontSize:14, textDecoration:'none', fontWeight:600, display:'block', marginBottom:16 }}>
                 {phone}
               </a>
             )}
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-              <button className="btn btn-primary" style={{ flex:1, borderRadius:11, minWidth:100 }}
+            <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+              <button className="btn btn-primary" style={{ flex:1, borderRadius:12, minWidth:100, padding:'12px' }}
                 onClick={() => onRoute(item)}>
-                <DirectionsIcon sx={{ fontSize: 13 }} />
+                <DirectionsIcon sx={{ fontSize: 14 }} />
                 Route
               </button>
-              <button className="btn btn-ghost" style={{ flex:1, borderRadius:11, minWidth:100 }}
+              <button className="btn btn-ghost" style={{ flex:1, borderRadius:12, minWidth:100, padding:'12px' }}
                 onClick={() => openGoogleMaps(item)}>
-                <GoogleIcon sx={{ fontSize: 13 }} />
+                <GoogleIcon sx={{ fontSize: 14 }} />
                 Maps
               </button>
               {phone && (
-                <button className="btn btn-ghost" style={{ flex:1, borderRadius:11, minWidth:100 }}
+                <button className="btn btn-ghost" style={{ flex:1, borderRadius:12, minWidth:100, padding:'12px' }}
                   onClick={() => window.location.href=`tel:${phone}`}>
-                  <PhoneIcon sx={{ fontSize: 13 }} />
+                  <PhoneIcon sx={{ fontSize: 14 }} />
                   Call
                 </button>
               )}
@@ -1118,12 +1166,12 @@ function DetailDrawer({ item, onClose, onRoute, openGoogleMaps }) {
 
 function InfoRow({ label, value, icon }) {
   return (
-    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:`1px solid ${C.borderLight}` }}>
-      <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderBottom:`1px solid ${C.borderLight}` }}>
+      <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
         {icon}
-        <span style={{ color:C.textSub, fontSize:12.5 }}>{label}</span>
+        <span style={{ color:C.textSub, fontSize:13 }}>{label}</span>
       </div>
-      <span style={{ color:C.accent, fontWeight:600, fontSize:13 }}>{value||'—'}</span>
+      <span style={{ color:C.accent, fontWeight:600, fontSize:14 }}>{value||'—'}</span>
     </div>
   );
 }
@@ -1132,24 +1180,24 @@ function ShopBody({ item }) {
   return (
     <>
       {item.description && (
-        <div style={{ marginBottom:14 }}>
-          <div style={{ color:C.textMuted, fontSize:10, fontWeight:700, letterSpacing:'.07em', textTransform:'uppercase', marginBottom:5 }}>About</div>
-          <div style={{ color:C.textSub, fontSize:13, lineHeight:1.65 }}>{item.description}</div>
+        <div style={{ marginBottom:16 }}>
+          <div style={{ color:C.textMuted, fontSize:11, fontWeight:700, letterSpacing:'.07em', textTransform:'uppercase', marginBottom:8 }}>About</div>
+          <div style={{ color:C.textSub, fontSize:13.5, lineHeight:1.65 }}>{item.description}</div>
         </div>
       )}
-      {item.opening_time && item.closing_time && (
+      {(item.opening_time && item.closing_time) && (
         <InfoRow 
           label="Hours" 
           value={`${item.opening_time.slice(0,5)} – ${item.closing_time.slice(0,5)}`} 
-          icon={<AccessTimeIcon sx={{ fontSize: 14, color: C.accent }} />}
+          icon={<AccessTimeIcon sx={{ fontSize: 16, color: C.accent }} />}
         />
       )}
       {item.keywords?.length > 0 && (
-        <div style={{ marginTop:12 }}>
-          <div style={{ color:C.textMuted, fontSize:10, fontWeight:700, letterSpacing:'.07em', textTransform:'uppercase', marginBottom:7 }}>Tags</div>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+        <div style={{ marginTop:16 }}>
+          <div style={{ color:C.textMuted, fontSize:11, fontWeight:700, letterSpacing:'.07em', textTransform:'uppercase', marginBottom:10 }}>Tags</div>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
             {item.keywords.map((k,i) => (
-              <span key={i} style={{ padding:'4px 9px', borderRadius:100, fontSize:11.5, background:C.accentLight, color:C.accent, fontWeight:500 }}>#{k}</span>
+              <span key={i} style={{ padding:'5px 12px', borderRadius:100, fontSize:12, background:C.accentLight, color:C.accent, fontWeight:500 }}>#{k}</span>
             ))}
           </div>
         </div>
@@ -1161,27 +1209,27 @@ function ShopBody({ item }) {
 function HouseBody({ item }) {
   return (
     <>
-      <div style={{ background:C.accentLight, border:`1.5px solid ${C.accent}22`, borderRadius:14, padding:13, marginBottom:14, textAlign:'center' }}>
-        <div style={{ color:C.textSub, fontSize:11, marginBottom:2 }}>Monthly Rent</div>
-        <div style={{ fontWeight:800, fontSize:24, color:C.accent }}>{fmtINR(item.rent_per_month)}</div>
+      <div style={{ background:C.accentLight, border:`1.5px solid ${C.accent}22`, borderRadius:16, padding:16, marginBottom:16, textAlign:'center' }}>
+        <div style={{ color:C.textSub, fontSize:12, marginBottom:4 }}>Monthly Rent</div>
+        <div style={{ fontWeight:800, fontSize:26, color:C.accent }}>{fmtINR(item.rent_per_month)}</div>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:16 }}>
         {[
-          { label:'Rooms', value:`${item.rooms} BHK`, icon: <BedIcon sx={{ fontSize: 14 }} /> },
-          { label:'Halls', value:item.halls, icon: <MeetingRoomIcon sx={{ fontSize: 14 }} /> },
-          { label:'Kitchens', value:item.kitchens, icon: <KitchenIcon sx={{ fontSize: 14 }} /> },
-          { label:'Floor', value:item.floor, icon: <ApartmentIcon sx={{ fontSize: 14 }} /> },
+          { label:'Rooms', value:`${item.rooms} BHK`, icon: <BedIcon sx={{ fontSize: 16 }} /> },
+          { label:'Halls', value:item.halls, icon: <MeetingRoomIcon sx={{ fontSize: 16 }} /> },
+          { label:'Kitchens', value:item.kitchens, icon: <KitchenIcon sx={{ fontSize: 16 }} /> },
+          { label:'Floor', value:item.floor, icon: <ApartmentIcon sx={{ fontSize: 16 }} /> },
         ].map(r => (
-          <div key={r.label} style={{ background:C.surfaceAlt, border:`1.5px solid ${C.borderLight}`, borderRadius:11, padding:10 }}>
-            <div style={{ display:'flex', alignItems:'center', gap: 5, color:C.textMuted, fontSize:10, marginBottom:3, fontWeight:600 }}>
+          <div key={r.label} style={{ background:C.surfaceAlt, border:`1.5px solid ${C.borderLight}`, borderRadius:12, padding:12 }}>
+            <div style={{ display:'flex', alignItems:'center', gap: 6, color:C.textMuted, fontSize:11, marginBottom:4, fontWeight:600 }}>
               {r.icon}
               <span>{r.label}</span>
             </div>
-            <div style={{ color:C.text, fontWeight:700, fontSize:14 }}>{r.value||'—'}</div>
+            <div style={{ color:C.text, fontWeight:700, fontSize:15 }}>{r.value||'—'}</div>
           </div>
         ))}
       </div>
-      {item.description && <div style={{ color:C.textSub, fontSize:13, lineHeight:1.65 }}>{item.description}</div>}
+      {item.description && <div style={{ color:C.textSub, fontSize:13.5, lineHeight:1.65 }}>{item.description}</div>}
     </>
   );
 }
@@ -1189,25 +1237,25 @@ function HouseBody({ item }) {
 function JobBody({ item }) {
   return (
     <>
-      <div style={{ background:C.accentLight, border:`1.5px solid ${C.accent}22`, borderRadius:14, padding:13, marginBottom:14, textAlign:'center' }}>
-        <div style={{ color:C.textSub, fontSize:11, marginBottom:2 }}>Salary</div>
-        <div style={{ fontWeight:800, fontSize:24, color:C.accent }}>
+      <div style={{ background:C.accentLight, border:`1.5px solid ${C.accent}22`, borderRadius:16, padding:16, marginBottom:16, textAlign:'center' }}>
+        <div style={{ color:C.textSub, fontSize:12, marginBottom:4 }}>Salary</div>
+        <div style={{ fontWeight:800, fontSize:26, color:C.accent }}>
           {fmtINR(item.salary)}
-          <span style={{ fontSize:13, fontWeight:400 }}>/{item.salary_type==='month'?'month':'day'}</span>
+          <span style={{ fontSize:14, fontWeight:400 }}>/{item.salary_type==='month'?'month':'day'}</span>
         </div>
       </div>
-      <div style={{ display:'flex', gap:7, marginBottom:12, flexWrap:'wrap' }}>
-        <span style={{ padding:'5px 11px', borderRadius:100, fontSize:12, background:C.accentLight, color:C.accent, fontWeight:600, border:`1.5px solid ${C.accentMid}` }}>
+      <div style={{ display:'flex', gap:8, marginBottom:16, flexWrap:'wrap' }}>
+        <span style={{ padding:'6px 12px', borderRadius:100, fontSize:12.5, background:C.accentLight, color:C.accent, fontWeight:600, border:`1.5px solid ${C.accentMid}` }}>
           {item.job_type === 'full_time' ? 'Full Time' : 'Part Time'}
         </span>
         {item.qualification && (
-          <span style={{ padding:'5px 11px', borderRadius:100, fontSize:12, background:C.purpleLight, color:C.purple, fontWeight:600, border:`1.5px solid ${C.purple}22`, display:'flex', alignItems:'center', gap: 4 }}>
-            <SchoolIcon sx={{ fontSize: 12 }} />
+          <span style={{ padding:'6px 12px', borderRadius:100, fontSize:12.5, background:C.purpleLight, color:C.purple, fontWeight:600, border:`1.5px solid ${C.purple}22`, display:'flex', alignItems:'center', gap: 5 }}>
+            <SchoolIcon sx={{ fontSize: 13 }} />
             {item.qualification}
           </span>
         )}
       </div>
-      {item.description && <div style={{ color:C.textSub, fontSize:13, lineHeight:1.65 }}>{item.description}</div>}
+      {item.description && <div style={{ color:C.textSub, fontSize:13.5, lineHeight:1.65 }}>{item.description}</div>}
     </>
   );
 }
@@ -1231,13 +1279,13 @@ function SkeletonList() {
 
 function EmptyState() {
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'48px 20px', textAlign:'center', gap:11 }}>
-      <div style={{ width:60, height:60, borderRadius:18, background:C.accentLight, border:`2px solid ${C.accentMid}`,
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'48px 20px', textAlign:'center', gap:12 }}>
+      <div style={{ width:64, height:64, borderRadius:20, background:C.accentLight, border:`2px solid ${C.accentMid}`,
         display:'flex', alignItems:'center', justifyContent:'center', color: C.accent }}>
-        <SearchIcon sx={{ fontSize: 26 }} />
+        <SearchIcon sx={{ fontSize: 28 }} />
       </div>
-      <div style={{ fontWeight:700, fontSize:16, color:C.text }}>Nothing nearby</div>
-      <div style={{ color:C.textSub, fontSize:13, maxWidth:210 }}>Try increasing the radius or clearing filters</div>
+      <div style={{ fontWeight:700, fontSize:17, color:C.text }}>Nothing nearby</div>
+      <div style={{ color:C.textSub, fontSize:13.5, maxWidth:220 }}>Try increasing the radius or clearing filters</div>
     </div>
   );
 }

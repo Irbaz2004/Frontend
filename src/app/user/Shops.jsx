@@ -1,4 +1,4 @@
-// app/user/Shops.jsx - Updated version with Cloudinary URL support
+// app/user/Shops.jsx - Updated with full-screen drawer and Map.jsx design consistency
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -21,6 +21,7 @@ import {
     Drawer,
     useMediaQuery,
     useTheme,
+    Dialog,
 } from '@mui/material';
 import {
     LocationOn as LocationIcon,
@@ -33,36 +34,53 @@ import {
     Clear as ClearIcon,
     Verified as VerifiedIcon,
     Pending as PendingIcon,
-    Sort as SortIcon,
     KeyboardArrowDown as ArrowDownIcon,
     ChevronRight as ChevronRightIcon,
     ShoppingBag as ShoppingBagIcon,
     Visibility as VisibilityIcon,
+    MyLocation as MyLocationIcon,
+    Refresh as RefreshIcon,
+    Info as InfoIcon,
 } from '@mui/icons-material';
 import { getShopsByLocation, getShopById, getShopCategoriesWithCount, incrementShopViewCount } from '../../services/shops';
 
-/* ─── Design tokens ──────────────────────────────────────────────────────── */
-const T = {
-    brand:       '#1a6ef5',
-    brandLight:  '#e8f0fe',
-    bg:          '#f5f7fa',
-    surface:     '#ffffff',
-    border:      '#e8eaed',
-    textPrimary: '#111827',
-    textMuted:   '#6b7280',
-    green:       '#16a34a',
-    greenDot:    '#22c55e',
-    amber:       '#d97706',
-    radius:      '14px',
-    font:        '"Roboto", sans-serif',
+// ─── Design tokens (matching Map.jsx) ────────────────────────────────────────
+const C = {
+    bg:          '#F4F6FB',
+    surface:     '#FFFFFF',
+    surfaceAlt:  '#F0F3FA',
+    border:      '#E2E8F5',
+    borderLight: '#EBF0F9',
+    accent:      '#325fec',
+    accentLight: '#EEF4FF',
+    accentMid:   '#BFCFFF',
+    accentDark:  '#1A45C2',
+    green:       '#16A34A',
+    greenLight:  '#DCFCE7',
+    amber:       '#D97706',
+    amberLight:  '#FEF3C7',
+    red:         '#DC2626',
+    redLight:    '#FEE2E2',
+    purple:      '#7C3AED',
+    purpleLight: '#EDE9FE',
+    text:        '#0F172A',
+    textSub:     '#475569',
+    textMuted:   '#94A3B8',
+    shadow:      'rgba(50,95,236,0.12)',
+    shadowMd:    'rgba(15,23,42,0.07)',
+    shadowLg:    'rgba(15,23,42,0.15)',
+    white:       '#FFFFFF',
 };
+
+// Bottom nav height — must match AppLayout.jsx BOTTOM_NAV_HEIGHT
+const BOTTOM_NAV_OFFSET = 150;
 
 /* ─── Skeleton row ───────────────────────────────────────────────────────── */
 const ShopRowSkeleton = () => (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.5 }}>
         <Skeleton variant="rounded" width={78} height={78} sx={{ borderRadius: '10px', flexShrink: 0 }} />
         <Box sx={{ flex: 1 }}>
-            <Skeleton variant="text" width="60%" height={22} />
+            <Skeleton variant="text" width="60%" height={22 } />
             <Skeleton variant="text" width="40%" height={18} />
             <Skeleton variant="text" width="50%" height={16} />
         </Box>
@@ -70,7 +88,7 @@ const ShopRowSkeleton = () => (
     </Box>
 );
 
-/* ─── Shop Row - UPDATED to use Cloudinary URL directly ─────────────────── */
+/* ─── Shop Row ────────────────────────────────────────────────────────────── */
 function ShopRow({ shop, onClick, onCall }) {
     const isOpen      = shop.is_open ?? true;
     const closingTime = shop.closing_time ?? '10:00 PM';
@@ -85,19 +103,20 @@ function ShopRow({ shop, onClick, onCall }) {
                 px: 2,
                 py: 1.5,
                 cursor: 'pointer',
-                transition: 'background 0.15s',
+                transition: 'all 0.18s ease',
                 '&:hover': { background: '#f8faff' },
+                '&:active': { transform: 'scale(0.98)' },
             }}
         >
-            {/* Thumbnail - Using Cloudinary URL directly */}
+            {/* Thumbnail */}
             <Box
                 sx={{
                     width: 78,
                     height: 78,
-                    borderRadius: '10px',
+                    borderRadius: '12px',
                     flexShrink: 0,
                     overflow: 'hidden',
-                    background: 'linear-gradient(135deg, #f0f3f8 0%, #e4e8ef 100%)',
+                    background: `linear-gradient(135deg, ${C.surfaceAlt} 0%, ${C.borderLight} 100%)`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -110,7 +129,7 @@ function ShopRow({ shop, onClick, onCall }) {
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         onError={(e) => {
                             e.target.style.display = 'none';
-                            e.target.parentElement.innerHTML = '<svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="StoreIcon" style="font-size: 36px; color: #c4c9d4;"><path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"></path></svg>';
+                            e.target.parentElement.innerHTML = `<svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="StoreIcon" style="font-size: 36px; color: #c4c9d4;"><path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"></path></svg>`;
                         }}
                     />
                 ) : (
@@ -123,10 +142,10 @@ function ShopRow({ shop, onClick, onCall }) {
                 <Typography
                     variant="body2"
                     sx={{
-                        fontFamily: T.font,
+                        fontFamily: '"Inter", sans-serif',
                         fontWeight: 700,
                         fontSize: 14,
-                        color: T.textPrimary,
+                        color: C.text,
                         lineHeight: 1.3,
                         mb: 0.4,
                         overflow: 'hidden',
@@ -138,8 +157,8 @@ function ShopRow({ shop, onClick, onCall }) {
                 </Typography>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, mb: 0.5 }}>
-                    <LocationIcon sx={{ fontSize: 12, color: T.brand, flexShrink: 0 }} />
-                    <Typography variant="caption" sx={{ fontFamily: T.font, fontSize: 12, color: T.textMuted, fontWeight: 500 }}>
+                    <LocationIcon sx={{ fontSize: 12, color: C.accent, flexShrink: 0 }} />
+                    <Typography variant="caption" sx={{ fontFamily: '"Inter", sans-serif', fontSize: 12, color: C.textMuted, fontWeight: 500 }}>
                         {shop.distance ? `${shop.distance.toFixed(2)} km away` : shop.area}
                     </Typography>
                 </Box>
@@ -151,9 +170,9 @@ function ShopRow({ shop, onClick, onCall }) {
                         sx={{
                             height: 22,
                             borderRadius: '6px',
-                            bgcolor: T.brandLight,
-                            color: T.brand,
-                            fontFamily: T.font,
+                            bgcolor: C.accentLight,
+                            color: C.accent,
+                            fontFamily: '"Inter", sans-serif',
                             fontWeight: 600,
                             fontSize: 11,
                             '& .MuiChip-label': { px: '8px' },
@@ -167,20 +186,20 @@ function ShopRow({ shop, onClick, onCall }) {
                             width: 7,
                             height: 7,
                             borderRadius: '50%',
-                            background: isOpen ? T.greenDot : '#ef4444',
+                            background: isOpen ? C.green : '#ef4444',
                             flexShrink: 0,
                         }}
                     />
                     <Typography
                         variant="caption"
-                        sx={{ fontFamily: T.font, fontSize: 11.5, fontWeight: 600, color: isOpen ? T.green : '#ef4444' }}
+                        sx={{ fontFamily: '"Inter", sans-serif', fontSize: 11.5, fontWeight: 600, color: isOpen ? C.green : '#ef4444' }}
                     >
                         {isOpen ? 'Open' : 'Closed'}
                     </Typography>
                     {isOpen && closingTime && (
                         <>
-                            <Typography variant="caption" sx={{ color: T.textMuted, fontSize: 11 }}>·</Typography>
-                            <Typography variant="caption" sx={{ fontFamily: T.font, fontSize: 11, color: T.textMuted }}>
+                            <Typography variant="caption" sx={{ color: C.textMuted, fontSize: 11 }}>·</Typography>
+                            <Typography variant="caption" sx={{ fontFamily: '"Inter", sans-serif', fontSize: 11, color: C.textMuted }}>
                                 Closes {closingTime}
                             </Typography>
                         </>
@@ -195,17 +214,18 @@ function ShopRow({ shop, onClick, onCall }) {
                     sx={{
                         width: 40,
                         height: 40,
-                        borderRadius: '50%',
-                        background: T.brandLight,
+                        borderRadius: '12px',
+                        background: C.accentLight,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         cursor: 'pointer',
-                        transition: 'background 0.15s',
-                        '&:hover': { background: '#c7d9fd' },
+                        transition: 'all 0.15s',
+                        '&:hover': { background: '#c7d9fd', transform: 'scale(1.05)' },
+                        '&:active': { transform: 'scale(0.95)' },
                     }}
                 >
-                    <PhoneIcon sx={{ fontSize: 18, color: T.brand }} />
+                    <PhoneIcon sx={{ fontSize: 18, color: C.accent }} />
                 </Box>
                 <ChevronRightIcon sx={{ fontSize: 20, color: '#9ca3af' }} />
             </Box>
@@ -213,19 +233,19 @@ function ShopRow({ shop, onClick, onCall }) {
     );
 }
 
-/* ─── Sidebar filter panel ───────────────────────────────────────────────── */
-const SidebarFilters = ({ radius, setRadius, selectedCategory, setSelectedCategory, categories, clearFilters }) => (
+/* ─── Filter panel ───────────────────────────────────────────────────────── */
+const FilterPanel = ({ radius, setRadius, selectedCategory, setSelectedCategory, categories, clearFilters, onApply }) => (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <Typography variant="subtitle1" sx={{ fontFamily: T.font, fontWeight: 700, color: T.textPrimary }}>
+        <Typography variant="subtitle1" sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, color: C.text }}>
             Filters
         </Typography>
 
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2" sx={{ fontFamily: T.font, fontWeight: 500, color: T.textMuted }}>
+                <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 500, color: C.textMuted }}>
                     Distance Radius
                 </Typography>
-                <Typography variant="body2" sx={{ fontFamily: T.font, fontWeight: 700, color: T.brand }}>
+                <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, color: C.accent }}>
                     {radius} km
                 </Typography>
             </Box>
@@ -236,27 +256,27 @@ const SidebarFilters = ({ radius, setRadius, selectedCategory, setSelectedCatego
                 max={50}
                 valueLabelDisplay="auto"
                 sx={{
-                    color: T.brand,
+                    color: C.accent,
                     height: 4,
-                    '& .MuiSlider-thumb': { width: 16, height: 16 },
+                    '& .MuiSlider-thumb': { width: 16, height: 16, '&:hover': { boxShadow: `0 0 0 6px ${C.accent}22` } },
                     '& .MuiSlider-rail': { opacity: 0.2 },
                 }}
             />
         </Box>
 
         <FormControl fullWidth size="small">
-            <InputLabel sx={{ fontFamily: T.font }}>Category</InputLabel>
+            <InputLabel sx={{ fontFamily: '"Inter", sans-serif' }}>Category</InputLabel>
             <Select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 label="Category"
-                sx={{ borderRadius: '8px', fontFamily: T.font, fontSize: 14 }}
+                sx={{ borderRadius: '8px', fontFamily: '"Inter", sans-serif', fontSize: 14 }}
             >
                 <MenuItem value="">All Categories</MenuItem>
                 {categories.map((cat) => (
-                    <MenuItem key={cat.category} value={cat.category} sx={{ fontFamily: T.font, fontSize: 14 }}>
+                    <MenuItem key={cat.category} value={cat.category} sx={{ fontFamily: '"Inter", sans-serif', fontSize: 14 }}>
                         {cat.category}
-                        <Typography component="span" variant="caption" sx={{ ml: 'auto', pl: 1, color: T.textMuted }}>
+                        <Typography component="span" variant="caption" sx={{ ml: 'auto', pl: 1, color: C.textMuted }}>
                             {cat.count}
                         </Typography>
                     </MenuItem>
@@ -271,19 +291,371 @@ const SidebarFilters = ({ radius, setRadius, selectedCategory, setSelectedCatego
             onClick={clearFilters}
             size="small"
             sx={{
-                fontFamily: T.font,
+                fontFamily: '"Inter", sans-serif',
                 textTransform: 'none',
                 borderRadius: '8px',
-                borderColor: T.border,
-                color: T.textMuted,
+                borderColor: C.border,
+                color: C.textMuted,
                 fontSize: 13,
-                '&:hover': { borderColor: T.brand, color: T.brand, background: T.brandLight },
+                '&:hover': { borderColor: C.accent, color: C.accent, background: C.accentLight },
             }}
         >
             Clear All Filters
         </Button>
+
+        <Button
+            fullWidth
+            variant="contained"
+            onClick={onApply}
+            sx={{
+                fontFamily: '"Inter", sans-serif',
+                textTransform: 'none',
+                borderRadius: '10px',
+                background: C.accent,
+                fontWeight: 600,
+                '&:hover': { background: C.accentDark },
+            }}
+        >
+            Apply Filters
+        </Button>
     </Box>
 );
+
+// ─── Full Screen Shop Details Drawer ───────────────────────────────────────
+function ShopDetailsDrawer({ shop, onClose, onRoute, onCall, userLocation }) {
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
+    
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 600);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+    
+    const isOpen = shop?.is_open ?? true;
+    const closingTime = shop?.closing_time ?? '10:00 PM';
+    const openingTime = shop?.opening_time ?? '9:00 AM';
+
+    // Apply different styles based on screen size
+    const drawerStyle = isMobile ? {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100%',
+        maxHeight: '100%',
+        borderRadius: 0,
+        margin: 0,
+        zIndex: 1400,
+        background: C.surface,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+    } : {
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        top: 'auto',
+        maxHeight: '85vh',
+        borderRadius: '24px 24px 0 0',
+        margin: '0 15px',
+        marginBottom: 0,
+        zIndex: 500,
+        background: C.surface,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        boxShadow: `0 -12px 50px ${C.shadowLg}`,
+        border: `1.5px solid ${C.border}`,
+        borderBottom: 'none',
+    };
+
+    if (!shop) return null;
+
+    return (
+        <>
+            {/* Backdrop - only visible on desktop */}
+            {!isMobile && (
+                <Box
+                    sx={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        zIndex: 400,
+                        background: 'rgba(15,23,42,0.4)',
+                        backdropFilter: 'blur(3px)',
+                    }}
+                    onClick={onClose}
+                />
+            )}
+
+            <Box sx={drawerStyle}>
+                {/* Handle for desktop */}
+                {!isMobile && <Box sx={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: '10px auto 0' }} />}
+
+                {/* Close button */}
+                <IconButton
+                    onClick={onClose}
+                    sx={{
+                        position: 'absolute',
+                        top: 12,
+                        right: 12,
+                        bgcolor: C.surfaceAlt,
+                        border: `1.5px solid ${C.border}`,
+                        borderRadius: '12px',
+                        width: 36,
+                        height: 36,
+                        zIndex: 10,
+                        '&:hover': { bgcolor: C.borderLight },
+                    }}
+                >
+                    <CloseIcon sx={{ fontSize: 18, color: C.textMuted }} />
+                </IconButton>
+
+                {/* Shop Image Header */}
+                <Box sx={{ position: 'relative', flexShrink: 0, height: isMobile ? 250 : 200 }}>
+                    {shop.shop_image ? (
+                        <img
+                            src={shop.shop_image}
+                            alt={shop.business_name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = `<div style="height:100%;background:linear-gradient(135deg, ${C.surfaceAlt} 0%, ${C.borderLight} 100%);display:flex;align-items:center;justify-content:center"><svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeLarge" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="StoreIcon" style="font-size: 72px; color: #c4c9d4;"><path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"></path></svg></div>`;
+                            }}
+                        />
+                    ) : (
+                        <Box
+                            sx={{
+                                height: '100%',
+                                background: `linear-gradient(135deg, ${C.surfaceAlt} 0%, ${C.borderLight} 100%)`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            <StoreIcon sx={{ fontSize: 72, color: '#c4c9d4' }} />
+                        </Box>
+                    )}
+
+                    {/* Status Badges */}
+                    <Box sx={{ position: 'absolute', bottom: 12, left: 12, display: 'flex', gap: 1 }}>
+                        <Chip
+                            label={shop.is_verified ? 'Verified' : 'Not Verified'}
+                            icon={shop.is_verified ? <VerifiedIcon sx={{ fontSize: '14px !important' }} /> : <PendingIcon sx={{ fontSize: '14px !important' }} />}
+                            sx={{
+                                bgcolor: shop.is_verified ? C.green : C.amber,
+                                color: 'white',
+                                fontFamily: '"Inter", sans-serif',
+                                fontWeight: 600,
+                                fontSize: 11,
+                                '& .MuiChip-icon': { color: 'white' },
+                            }}
+                        />
+                        <Chip
+                            label={isOpen ? 'Open Now' : 'Closed'}
+                            sx={{
+                                bgcolor: isOpen ? C.green : '#ef4444',
+                                color: 'white',
+                                fontFamily: '"Inter", sans-serif',
+                                fontWeight: 600,
+                                fontSize: 11,
+                            }}
+                        />
+                    </Box>
+
+                    {shop.views_count !== undefined && (
+                        <Box sx={{ 
+                            position: 'absolute', 
+                            bottom: 12, 
+                            right: 12, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 1, 
+                            bgcolor: 'rgba(255,255,255,0.95)',
+                            borderRadius: '20px',
+                            px: 1.5,
+                            py: 0.6,
+                            boxShadow: `0 2px 8px ${C.shadowMd}`,
+                        }}>
+                            <VisibilityIcon sx={{ fontSize: 14, color: C.accent }} />
+                            <Typography variant="caption" sx={{ fontFamily: '"Inter", sans-serif', color: C.accent, fontWeight: 600 }}>
+                                {shop.views_count} views
+                            </Typography>
+                        </Box>
+                    )}
+                </Box>
+
+                {/* Details Body */}
+                <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+                    <Typography
+                        variant="h5"
+                        sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, color: C.text, mb: 1, letterSpacing: '-0.3px' }}
+                    >
+                        {shop.business_name}
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5 }}>
+                        <Chip
+                            label={shop.category}
+                            size="small"
+                            sx={{
+                                borderRadius: '6px',
+                                bgcolor: C.accentLight,
+                                color: C.accent,
+                                fontFamily: '"Inter", sans-serif',
+                                fontWeight: 600,
+                                fontSize: 12,
+                            }}
+                        />
+                        {shop.distance && (
+                            <Chip
+                                label={`${shop.distance.toFixed(1)} km away`}
+                                size="small"
+                                sx={{
+                                    borderRadius: '6px',
+                                    bgcolor: C.surfaceAlt,
+                                    color: C.textSub,
+                                    fontFamily: '"Inter", sans-serif',
+                                    fontSize: 11,
+                                }}
+                                icon={<LocationIcon sx={{ fontSize: 12, color: C.accent }} />}
+                            />
+                        )}
+                    </Box>
+
+                    <Divider sx={{ mb: 2.5, borderColor: C.borderLight }} />
+
+                    {/* Description */}
+                    {shop.description && (
+                        <>
+                            <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, color: C.text, mb: 1.5 }}>
+                                About
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', color: C.textSub, lineHeight: 1.65, mb: 2.5 }}>
+                                {shop.description}
+                            </Typography>
+                            <Divider sx={{ mb: 2.5, borderColor: C.borderLight }} />
+                        </>
+                    )}
+
+                    {/* Business Hours */}
+                    <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, color: C.text, mb: 1.5 }}>
+                        Business Hours
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
+                        <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: C.accentLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <AccessTimeIcon sx={{ fontSize: 16, color: C.accent }} />
+                        </Box>
+                        <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', color: C.text }}>
+                            {openingTime.slice(0,5)} – {closingTime.slice(0,5)}
+                        </Typography>
+                    </Box>
+
+                    <Divider sx={{ mb: 2.5, borderColor: C.borderLight }} />
+
+                    {/* Key Items */}
+                    {shop.keywords?.length > 0 && (
+                        <>
+                            <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, color: C.text, mb: 1.5 }}>
+                                Key Items Available
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2.5 }}>
+                                {shop.keywords.map((item, idx) => (
+                                    <Chip
+                                        key={idx}
+                                        label={item}
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{
+                                            borderRadius: '6px',
+                                            fontFamily: '"Inter", sans-serif',
+                                            fontSize: 12,
+                                            borderColor: C.border,
+                                            color: C.textSub,
+                                        }}
+                                    />
+                                ))}
+                            </Box>
+                            <Divider sx={{ mb: 2.5, borderColor: C.borderLight }} />
+                        </>
+                    )}
+
+                    {/* Contact */}
+                    <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, color: C.text, mb: 1.5 }}>
+                        Contact Information
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: C.accentLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <PhoneIcon sx={{ fontSize: 16, color: C.accent }} />
+                            </Box>
+                            <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', color: C.text }}>
+                                {shop.additional_phone || shop.owner_phone || 'Not available'}
+                            </Typography>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: C.accentLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <LocationIcon sx={{ fontSize: 16, color: C.accent }} />
+                            </Box>
+                            <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', color: C.text }}>
+                                {shop.area}, {shop.city}, {shop.state}
+                            </Typography>
+                        </Box>
+                    </Box>
+
+                    {/* Action Buttons */}
+                    <Box sx={{ display: 'flex', gap: 1.5 }}>
+                        <Button
+                            fullWidth
+                            variant="contained"
+                            startIcon={<DirectionsIcon />}
+                            onClick={() => onRoute(shop)}
+                            sx={{
+                                fontFamily: '"Inter", sans-serif',
+                                textTransform: 'none',
+                                borderRadius: '12px',
+                                background: C.accent,
+                                fontWeight: 600,
+                                py: 1.2,
+                                '&:hover': { background: C.accentDark },
+                            }}
+                        >
+                            Directions
+                        </Button>
+                        <Button
+                            fullWidth
+                            variant="outlined"
+                            startIcon={<PhoneIcon />}
+                            onClick={() => onCall(shop.additional_phone || shop.owner_phone)}
+                            sx={{
+                                fontFamily: '"Inter", sans-serif',
+                                textTransform: 'none',
+                                borderRadius: '12px',
+                                borderColor: C.accent,
+                                color: C.accent,
+                                fontWeight: 600,
+                                py: 1.2,
+                                '&:hover': { bgcolor: C.accentLight },
+                            }}
+                        >
+                            Call
+                        </Button>
+                    </Box>
+                </Box>
+            </Box>
+        </>
+    );
+}
+
+// Missing AccessTimeIcon import
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Main Component
@@ -355,7 +727,7 @@ export default function Shops() {
                 category: selectedCategory,
                 search: searchTerm,
                 page: 1,
-                limit: 20,
+                limit: 50,
             });
             setShops(result.shops || []);
         } catch (err) {
@@ -375,7 +747,6 @@ export default function Shops() {
     };
 
     const handleShopClick = useCallback(async (shop) => {
-        // Check if this shop has already been viewed in this session
         if (viewedShopsRef.current.has(shop.id)) {
             setLoadingDetails(true);
             setDetailsOpen(true);
@@ -393,10 +764,8 @@ export default function Shops() {
         setLoadingDetails(true);
         setDetailsOpen(true);
         
-        // Mark as viewed immediately to prevent duplicate calls
         viewedShopsRef.current.add(shop.id);
         
-        // Increment view count in background
         incrementShopViewCount(shop.id).catch(err => {
             console.log('View count error:', err);
             viewedShopsRef.current.delete(shop.id);
@@ -413,21 +782,30 @@ export default function Shops() {
     }, [userLocation]);
 
     const handleGetDirections = (shop) => {
+        if (!userLocation) return;
         window.open(
             `https://www.google.com/maps/dir/?api=1&origin=${userLocation.latitude},${userLocation.longitude}&destination=${shop.latitude},${shop.longitude}`,
             '_blank'
         );
+        setDetailsOpen(false);
     };
 
     const handleCallShop = (e, phone) => {
-        e.stopPropagation();
-        window.location.href = `tel:${phone}`;
+        if (e) e.stopPropagation();
+        if (phone) {
+            window.location.href = `tel:${phone}`;
+        }
     };
 
     const clearFilters = () => {
         setRadius(10);
         setSelectedCategory('');
         setSearchTerm('');
+        setFilterDrawerOpen(false);
+    };
+
+    const refreshLocation = () => {
+        getCurrentLocation();
     };
 
     /* ── Location loading screen ── */
@@ -441,10 +819,11 @@ export default function Shops() {
                     justifyContent: 'center',
                     minHeight: '80vh',
                     gap: 2,
+                    bgcolor: C.bg,
                 }}
             >
-                <CircularProgress sx={{ color: T.brand }} size={36} />
-                <Typography variant="body2" sx={{ fontFamily: T.font, color: T.textMuted }}>
+                <CircularProgress sx={{ color: C.accent }} size={36} />
+                <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', color: C.textMuted }}>
                     Detecting your location…
                 </Typography>
             </Box>
@@ -461,59 +840,69 @@ export default function Shops() {
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
-                background: T.bg,
-                fontFamily: T.font,
+                background: C.bg,
+                fontFamily: '"Inter", sans-serif',
             }}
         >
-
             {/* ══ STICKY HEADER ══ */}
             <Box
                 sx={{
                     flexShrink: 0,
-                    background: T.surface,
+                    background: C.surface,
                     px: 2,
                     pt: 1.5,
                     pb: 1.5,
-                    borderBottom: `1px solid ${T.border}`,
+                    borderBottom: `1px solid ${C.border}`,
                     zIndex: 100,
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                    <Typography
-                        variant="h6"
-                        sx={{ fontFamily: T.font, fontWeight: 700, fontSize: 18, color: T.textPrimary }}
-                    >
-                        Nearby Shops
-                    </Typography>
+                    <Box>
+                        <Typography
+                            variant="h6"
+                            sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: 18, color: C.text, letterSpacing: '-0.3px' }}
+                        >
+                            Nearby Shops
+                        </Typography>
+                        {userLocation && (
+                            <Typography variant="caption" sx={{ fontFamily: '"Inter", sans-serif', color: C.textMuted, fontSize: 11 }}>
+                                Showing shops near your location
+                            </Typography>
+                        )}
+                    </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Button
-                            onClick={() => setFilterDrawerOpen(true)}
-                            startIcon={<FilterIcon sx={{ fontSize: '18px !important' }} />}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <IconButton
+                            onClick={refreshLocation}
                             sx={{
-                                minWidth: 0,
-                                flexDirection: 'column',
-                                gap: 0,
-                                px: 1,
-                                py: 0.5,
-                                color: T.textMuted,
-                                fontSize: 11,
-                                fontFamily: T.font,
-                                textTransform: 'none',
-                                lineHeight: 1.3,
-                                borderRadius: '8px',
-                                '&:hover': { color: T.brand, background: T.brandLight },
+                                width: 34, height: 34,
+                                borderRadius: '10px',
+                                bgcolor: C.surfaceAlt,
+                                color: C.textMuted,
+                                '&:hover': { bgcolor: C.accentLight, color: C.accent },
                             }}
                         >
-                            Filter
-                        </Button>
+                            <RefreshIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                        <IconButton
+                            onClick={() => setFilterDrawerOpen(true)}
+                            sx={{
+                                width: 34, height: 34,
+                                borderRadius: '10px',
+                                bgcolor: filterDrawerOpen ? C.accentLight : C.surfaceAlt,
+                                color: filterDrawerOpen ? C.accent : C.textMuted,
+                                '&:hover': { bgcolor: C.accentLight, color: C.accent },
+                            }}
+                        >
+                            <FilterIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
                     </Box>
                 </Box>
 
                 {/* Search bar */}
                 <TextField
                     fullWidth
-                    placeholder="Search items... (e.g. milk, rice, vegetables)"
+                    placeholder="Search shops or items... (e.g. milk, rice, vegetables)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     size="small"
@@ -521,43 +910,43 @@ export default function Shops() {
                         mb: 1.5,
                         '& .MuiOutlinedInput-root': {
                             borderRadius: '28px',
-                            fontFamily: T.font,
+                            fontFamily: '"Inter", sans-serif',
                             fontSize: 14,
                             background: '#f1f3f4',
                             '& fieldset': { border: 'none' },
                             '&:hover fieldset': { border: 'none' },
-                            '&.Mui-focused fieldset': { border: `2px solid ${T.brand}` },
+                            '&.Mui-focused fieldset': { border: `2px solid ${C.accent}` },
                         },
                     }}
                     InputProps={{
                         startAdornment: (
                             <InputAdornment position="start">
-                                <SearchIcon sx={{ fontSize: 20, color: T.textMuted }} />
+                                <SearchIcon sx={{ fontSize: 20, color: C.textMuted }} />
                             </InputAdornment>
                         ),
                     }}
                 />
 
-                {/* Radius pill */}
+                {/* Radius chip */}
                 <Chip
-                    icon={<LocationIcon sx={{ fontSize: '14px !important', color: `${T.brand} !important` }} />}
+                    icon={<LocationIcon sx={{ fontSize: '14px !important', color: `${C.accent} !important` }} />}
                     label={`Within ${radius} km`}
-                    deleteIcon={<ArrowDownIcon sx={{ fontSize: '16px !important', color: `${T.textMuted} !important` }} />}
+                    deleteIcon={<ArrowDownIcon sx={{ fontSize: '16px !important', color: `${C.textMuted} !important` }} />}
                     onDelete={() => setFilterDrawerOpen(true)}
                     onClick={() => setFilterDrawerOpen(true)}
                     size="small"
                     sx={{
                         borderRadius: '20px',
-                        border: `1px solid ${T.border}`,
-                        background: T.surface,
-                        fontFamily: T.font,
+                        border: `1px solid ${C.border}`,
+                        background: C.surface,
+                        fontFamily: '"Inter", sans-serif',
                         fontWeight: 500,
                         fontSize: 13,
-                        color: T.textPrimary,
+                        color: C.text,
                         height: 32,
                         cursor: 'pointer',
                         '& .MuiChip-label': { px: '8px' },
-                        '&:hover': { background: T.brandLight },
+                        '&:hover': { background: C.accentLight },
                     }}
                 />
             </Box>
@@ -565,9 +954,9 @@ export default function Shops() {
 
             {error && (
                 <Alert
-                    severity="warning"
+                    severity="error"
                     onClose={() => setError('')}
-                    sx={{ mx: 2, mt: 1, borderRadius: '10px', fontFamily: T.font, flexShrink: 0 }}
+                    sx={{ mx: 2, mt: 1, borderRadius: '10px', fontFamily: '"Inter", sans-serif', flexShrink: 0 }}
                 >
                     {error}
                 </Alert>
@@ -580,39 +969,39 @@ export default function Shops() {
                     flex: 1,
                     overflowY: 'auto',
                     WebkitOverflowScrolling: 'touch',
-                    pb: { xs: '80px', md: '16px' },
+                    pb: { xs: `${BOTTOM_NAV_OFFSET + 20}px`, md: '16px' },
                 }}
             >
                 <Box
                     sx={{
-                        background: T.surface,
+                        background: C.surface,
                         mt: 1.5,
                         mx: { xs: 0, md: 2 },
-                        borderRadius: { md: T.radius },
+                        borderRadius: { md: '16px' },
                         overflow: 'hidden',
-                        border: { md: `1px solid ${T.border}` },
+                        border: { md: `1px solid ${C.border}` },
                     }}
                 >
                     {loading ? (
                         Array.from({ length: 6 }).map((_, i) => (
                             <React.Fragment key={i}>
                                 <ShopRowSkeleton />
-                                {i < 5 && <Divider sx={{ mx: 2 }} />}
+                                {i < 5 && <Divider sx={{ mx: 2, borderColor: C.borderLight }} />}
                             </React.Fragment>
                         ))
                     ) : shops.length === 0 ? (
                         <Box sx={{ p: 6, textAlign: 'center' }}>
                             <StoreIcon sx={{ fontSize: 56, color: '#d1d5db', mb: 2 }} />
-                            <Typography variant="h6" sx={{ fontFamily: T.font, fontWeight: 600, color: T.textPrimary, mb: 1 }}>
+                            <Typography variant="h6" sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 600, color: C.text, mb: 1 }}>
                                 No shops found
                             </Typography>
-                            <Typography variant="body2" sx={{ fontFamily: T.font, color: T.textMuted, mb: 3 }}>
+                            <Typography variant="body2" sx={{ fontFamily: '"Inter", sans-serif', color: C.textMuted, mb: 3 }}>
                                 Try expanding your radius or changing filters.
                             </Typography>
                             <Button
                                 variant="contained"
                                 onClick={clearFilters}
-                                sx={{ fontFamily: T.font, textTransform: 'none', borderRadius: '8px', background: T.brand, px: 3 }}
+                                sx={{ fontFamily: '"Inter", sans-serif', textTransform: 'none', borderRadius: '10px', background: C.accent, px: 3 }}
                             >
                                 Clear Filters
                             </Button>
@@ -625,24 +1014,24 @@ export default function Shops() {
                                     onClick={() => handleShopClick(shop)}
                                     onCall={(e) => handleCallShop(e, shop.additional_phone || shop.owner_phone)}
                                 />
-                                {idx < shops.length - 1 && <Divider sx={{ mx: 2 }} />}
+                                {idx < shops.length - 1 && <Divider sx={{ mx: 2, borderColor: C.borderLight }} />}
                             </React.Fragment>
                         ))
                     )}
                 </Box>
 
                 {/* Can't find banner */}
-                {!loading && (
+                {!loading && shops.length > 0 && (
                     <Box
                         sx={{
                             mx: { xs: 1.5, md: 2 },
-                            mt: 1.5,
+                            mt: 2,
                             mb: 2,
                             px: 2.5,
-                            py: 1.5,
-                            background: '#eef2ff',
-                            borderRadius: T.radius,
-                            border: '1px solid #c7d2fe',
+                            py: 1.8,
+                            background: C.accentLight,
+                            borderRadius: '16px',
+                            border: `1px solid ${C.accentMid}`,
                             display: 'flex',
                             alignItems: 'center',
                             gap: 2,
@@ -650,27 +1039,27 @@ export default function Shops() {
                     >
                         <Box
                             sx={{
-                                width: 44,
-                                height: 44,
-                                borderRadius: '10px',
-                                background: T.brand,
+                                width: 48,
+                                height: 48,
+                                borderRadius: '12px',
+                                background: C.accent,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 flexShrink: 0,
                             }}
                         >
-                            <ShoppingBagIcon sx={{ color: 'white', fontSize: 22 }} />
+                            <ShoppingBagIcon sx={{ color: 'white', fontSize: 24 }} />
                         </Box>
 
                         <Box sx={{ flex: 1 }}>
                             <Typography
                                 variant="body2"
-                                sx={{ fontFamily: T.font, fontWeight: 700, color: T.textPrimary, fontSize: 13, lineHeight: 1.3 }}
+                                sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, color: C.text, fontSize: 13, lineHeight: 1.3 }}
                             >
                                 Can't find what you need?
                             </Typography>
-                            <Typography variant="caption" sx={{ fontFamily: T.font, color: T.textMuted, fontSize: 11 }}>
+                            <Typography variant="caption" sx={{ fontFamily: '"Inter", sans-serif', color: C.textMuted, fontSize: 11 }}>
                                 Tell us the item, we'll help you find it near you!
                             </Typography>
                         </Box>
@@ -679,17 +1068,18 @@ export default function Shops() {
                             variant="contained"
                             size="small"
                             sx={{
-                                fontFamily: T.font,
+                                fontFamily: '"Inter", sans-serif',
                                 textTransform: 'none',
-                                borderRadius: '20px',
-                                background: T.brand,
+                                borderRadius: '12px',
+                                background: C.accent,
                                 fontWeight: 600,
                                 fontSize: 12,
-                                px: 2,
-                                py: 0.7,
+                                px: 2.5,
+                                py: 0.9,
                                 flexShrink: 0,
                                 whiteSpace: 'nowrap',
                                 boxShadow: 'none',
+                                '&:hover': { background: C.accentDark },
                             }}
                         >
                             Search Items
@@ -699,295 +1089,41 @@ export default function Shops() {
             </Box>
             {/* ══ END SCROLLABLE BODY ══ */}
 
-            {/* ══ FILTER DRAWER ══ */}
+            {/* ══ FILTER DRAWER (Bottom Sheet) ══ */}
             <Drawer
                 anchor="bottom"
                 open={filterDrawerOpen}
                 onClose={() => setFilterDrawerOpen(false)}
-                PaperProps={{ sx: { borderRadius: '20px 20px 0 0', p: 3, maxHeight: '80vh' } }}
+                PaperProps={{ sx: { borderRadius: '20px 20px 0 0', p: 3, maxHeight: '85vh', background: C.surface } }}
             >
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h6" sx={{ fontFamily: T.font, fontWeight: 700 }}>Filters</Typography>
-                    <IconButton onClick={() => setFilterDrawerOpen(false)} size="small">
-                        <CloseIcon />
+                    <Typography variant="h6" sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, color: C.text }}>Filters</Typography>
+                    <IconButton onClick={() => setFilterDrawerOpen(false)} size="small" sx={{ bgcolor: C.surfaceAlt, borderRadius: '10px' }}>
+                        <CloseIcon sx={{ fontSize: 16, color: C.textMuted }} />
                     </IconButton>
                 </Box>
-                <Divider sx={{ mb: 3 }} />
-                <SidebarFilters
+                <Divider sx={{ mb: 3, borderColor: C.borderLight }} />
+                <FilterPanel
                     radius={radius}
                     setRadius={setRadius}
                     selectedCategory={selectedCategory}
                     setSelectedCategory={setSelectedCategory}
                     categories={categories}
                     clearFilters={clearFilters}
+                    onApply={() => setFilterDrawerOpen(false)}
                 />
-                <Button
-                    fullWidth
-                    variant="contained"
-                    onClick={() => setFilterDrawerOpen(false)}
-                    sx={{
-                        mt: 3,
-                        fontFamily: T.font,
-                        textTransform: 'none',
-                        borderRadius: '10px',
-                        background: T.brand,
-                        fontWeight: 600,
-                    }}
-                >
-                    Apply Filters
-                </Button>
             </Drawer>
 
-            {/* ══ SHOP DETAILS DRAWER - UPDATED to use Cloudinary URL ══ */}
-            <Drawer
-                anchor={isMobile ? 'bottom' : 'right'}
-                open={detailsOpen}
-                onClose={() => setDetailsOpen(false)}
-                PaperProps={{
-                    sx: {
-                        width: isMobile ? '100%' : 460,
-                        borderRadius: isMobile ? '20px 20px 0 0' : '16px 0 0 16px',
-                        maxHeight: isMobile ? '92vh' : '100vh',
-                    },
-                }}
-            >
-                {loadingDetails ? (
-                    <Box sx={{ p: 3 }}>
-                        <Skeleton variant="rectangular" height={200} sx={{ borderRadius: '12px' }} />
-                        <Skeleton variant="text" height={40} sx={{ mt: 2, width: '70%' }} />
-                        <Skeleton variant="text" height={20} width="50%" />
-                        <Skeleton variant="rectangular" height={90} sx={{ mt: 3, borderRadius: '10px' }} />
-                    </Box>
-                ) : selectedShop ? (
-                    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-
-                        {/* Shop image header - Using Cloudinary URL directly */}
-                        <Box sx={{ position: 'relative', flexShrink: 0 }}>
-                            {selectedShop.shop_image ? (
-                                <img
-                                    src={selectedShop.shop_image}
-                                    alt={selectedShop.business_name}
-                                    style={{ width: '100%', height: 210, objectFit: 'cover', display: 'block' }}
-                                    onError={(e) => {
-                                        e.target.style.display = 'none';
-                                        e.target.parentElement.innerHTML = '<div style="height:210px;background:linear-gradient(135deg, #f0f3f8 0%, #e4e8ef 100%);display:flex;align-items:center;justify-content:center"><svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeLarge" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="StoreIcon" style="font-size: 72px; color: #c4c9d4;"><path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"></path></svg></div>';
-                                    }}
-                                />
-                            ) : (
-                                <Box
-                                    sx={{
-                                        height: 210,
-                                        background: 'linear-gradient(135deg, #f0f3f8 0%, #e4e8ef 100%)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                    }}
-                                >
-                                    <StoreIcon sx={{ fontSize: 72, color: '#c4c9d4' }} />
-                                </Box>
-                            )}
-
-                            <IconButton
-                                onClick={() => setDetailsOpen(false)}
-                                sx={{
-                                    position: 'absolute',
-                                    top: 12,
-                                    right: 12,
-                                    bgcolor: 'rgba(255,255,255,0.92)',
-                                    backdropFilter: 'blur(6px)',
-                                    width: 36,
-                                    height: 36,
-                                    '&:hover': { bgcolor: 'white' },
-                                }}
-                            >
-                                <CloseIcon fontSize="small" />
-                            </IconButton>
-                           
-                            <Box sx={{ position: 'absolute', bottom: 0, left: 12, display: 'flex', flexDirection: 'row', gap: 0.5, alignItems: 'flex-start' }}>
-                                <Chip
-                                    label={selectedShop.is_verified ? 'Verified Shop' : 'Not Verified'}
-                                    icon={
-                                        selectedShop.is_verified
-                                            ? <VerifiedIcon sx={{ fontSize: '14px !important' }} />
-                                            : <PendingIcon sx={{ fontSize: '14px !important' }} />
-                                    }
-                                    sx={{
-                                        bgcolor: selectedShop.is_verified ? T.green : T.amber,
-                                        color: 'white',
-                                        fontFamily: T.font,
-                                        fontWeight: 700,
-                                        fontSize: 12,
-                                        '& .MuiChip-icon': { color: 'white' },
-                                    }}
-                                />
-                         
-                                {selectedShop.views_count !== undefined && (
-                                    <Box sx={{ 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
-                                        gap: 1, 
-                                        bgcolor: T.brandLight,
-                                        borderRadius: '20px',
-                                        px: 1.5,
-                                        py: 0.5,
-                                        width: 'fit-content'
-                                    }}>
-                                        <VisibilityIcon sx={{ fontSize: 14, color: T.brand }} />
-                                        <Typography variant="caption" sx={{ fontFamily: T.font, color: T.brand, fontWeight: 500 }}>
-                                            {selectedShop.views_count} views
-                                        </Typography>
-                                    </Box>
-                                )}
-                            </Box>
-                        </Box>
-
-                        {/* Details body */}
-                        <Box sx={{ p: 3, flex: 1, overflowY: 'auto' }}>
-                            <Typography
-                                variant="h6"
-                                sx={{ fontFamily: T.font, fontWeight: 700, color: T.textPrimary, mb: 0.5, lineHeight: 1.3 }}
-                            >
-                                {selectedShop.business_name}
-                            </Typography>
-
-                            <Chip
-                                label={selectedShop.category}
-                                size="small"
-                                sx={{
-                                    mb: 2.5,
-                                    borderRadius: '6px',
-                                    bgcolor: T.brandLight,
-                                    color: T.brand,
-                                    fontFamily: T.font,
-                                    fontWeight: 600,
-                                    fontSize: 12,
-                                }}
-                            />
-
-                            <Divider sx={{ mb: 2.5 }} />
-
-                            {selectedShop.keywords?.length > 0 && (
-                                <>
-                                    <Typography variant="body2" sx={{ fontFamily: T.font, fontWeight: 700, color: T.textPrimary, mb: 1.5 }}>
-                                        Key Items Available
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2.5 }}>
-                                        {selectedShop.keywords.map((item, idx) => (
-                                            <Chip
-                                                key={idx}
-                                                label={item}
-                                                size="small"
-                                                variant="outlined"
-                                                sx={{
-                                                    borderRadius: '6px',
-                                                    fontFamily: T.font,
-                                                    fontSize: 12,
-                                                    borderColor: T.border,
-                                                    color: T.textMuted,
-                                                }}
-                                            />
-                                        ))}
-                                    </Box>
-                                    <Divider sx={{ mb: 2.5 }} />
-                                </>
-                            )}
-
-                            <Typography variant="body2" sx={{ fontFamily: T.font, fontWeight: 700, color: T.textPrimary, mb: 1.5 }}>
-                                Contact
-                            </Typography>
-
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2.5 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                    <Box
-                                        sx={{
-                                            width: 32,
-                                            height: 32,
-                                            borderRadius: '8px',
-                                            bgcolor: T.brandLight,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            flexShrink: 0,
-                                        }}
-                                    >
-                                        <PhoneIcon sx={{ fontSize: 16, color: T.brand }} />
-                                    </Box>
-                                    <Typography variant="body2" sx={{ fontFamily: T.font, color: T.textPrimary }}>
-                                        {selectedShop.additional_phone || selectedShop.owner_phone || 'Not available'}
-                                    </Typography>
-                                </Box>
-
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                    <Box
-                                        sx={{
-                                            width: 32,
-                                            height: 32,
-                                            borderRadius: '8px',
-                                            bgcolor: T.brandLight,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            flexShrink: 0,
-                                        }}
-                                    >
-                                        <LocationIcon sx={{ fontSize: 16, color: T.brand }} />
-                                    </Box>
-                                    <Typography variant="body2" sx={{ fontFamily: T.font, color: T.textPrimary }}>
-                                        {selectedShop.area}, {selectedShop.city}, {selectedShop.state}
-                                    </Typography>
-                                </Box>
-                            </Box>
-
-                            {selectedShop.distance && (
-                                <Typography variant="caption" sx={{ fontFamily: T.font, color: T.textMuted, display: 'block', mb: 2.5 }}>
-                                    📍 {selectedShop.distance.toFixed(1)} km from your location
-                                </Typography>
-                            )}
-
-                            <Divider sx={{ mb: 2.5 }} />
-
-                            <Box sx={{ display: 'flex', gap: 1.5 }}>
-                                <Button
-                                    fullWidth
-                                    variant="contained"
-                                    startIcon={<DirectionsIcon />}
-                                    onClick={() => handleGetDirections(selectedShop)}
-                                    sx={{
-                                        fontFamily: T.font,
-                                        textTransform: 'none',
-                                        borderRadius: '10px',
-                                        background: T.brand,
-                                        fontWeight: 600,
-                                        py: 1.2,
-                                    }}
-                                >
-                                    Directions
-                                </Button>
-                                <Button
-                                    fullWidth
-                                    variant="outlined"
-                                    startIcon={<PhoneIcon />}
-                                    onClick={(e) => handleCallShop(e, selectedShop.additional_phone || selectedShop.owner_phone)}
-                                    sx={{
-                                        fontFamily: T.font,
-                                        textTransform: 'none',
-                                        borderRadius: '10px',
-                                        borderColor: T.brand,
-                                        color: T.brand,
-                                        fontWeight: 600,
-                                        py: 1.2,
-                                        '&:hover': { bgcolor: T.brandLight },
-                                    }}
-                                >
-                                    Call
-                                </Button>
-                            </Box>
-                        </Box>
-
-                    </Box>
-                ) : null}
-            </Drawer>
-
+            {/* ══ SHOP DETAILS (Full Screen on Mobile) ══ */}
+            {detailsOpen && selectedShop && (
+                <ShopDetailsDrawer
+                    shop={selectedShop}
+                    onClose={() => setDetailsOpen(false)}
+                    onRoute={handleGetDirections}
+                    onCall={handleCallShop}
+                    userLocation={userLocation}
+                />
+            )}
         </Box>
     );
 }
