@@ -51,15 +51,15 @@ const C = {
   border:      '#E2E8F5',
   borderLight: '#EBF0F9',
   // Per-type brand colors
-  shopColor:   '#F97316',   // Orange
-  shopLight:   '#FFF7ED',
-  shopDark:    '#C2410C',
+  shopColor:   '#2563EB',   // Orange
+  shopLight:   '#DBEAFE',
+  shopDark:    '#1D4ED8',
   houseColor:  '#16A34A',   // Green
   houseLight:  '#DCFCE7',
   houseDark:   '#15803D',
-  jobColor:    '#2563EB',   // Blue
-  jobLight:    '#EFF6FF',
-  jobDark:     '#1D4ED8',
+  jobColor:    '#D97706',   // Blue
+  jobLight:    '#FEF3C7',
+  jobDark:     '#B45309',
   // Globals
   accent:      '#325fec',
   accentLight: '#EEF4FF',
