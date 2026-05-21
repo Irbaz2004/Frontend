@@ -20,7 +20,7 @@ import { getAllCities, getAreasByCity, verifyLocation, getShopCategories } from 
 import { useAuth } from '../context/AuthContext';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GLOBAL STYLES
+// GLOBAL STYLES (Updated with higher z-index for modals)
 // ─────────────────────────────────────────────────────────────────────────────
 const GLOBAL_STYLE = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -103,10 +103,11 @@ const GLOBAL_STYLE = `
   }
   .icon-btn:hover { background: var(--border-light); }
 
+  /* Modal overlay - higher z-index to appear above bottom nav */
   .modal-overlay {
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    z-index: 10000 !important;
     background: rgba(0,0,0,.5);
     display: flex;
     align-items: flex-end;
@@ -121,15 +122,16 @@ const GLOBAL_STYLE = `
   .modal-sheet {
     width: 100%;
     max-width: 560px;
-    max-height: calc(100dvh - var(--bottom-nav-h) - env(safe-area-inset-bottom, 0px) - 6px);
+    max-height: calc(100dvh - env(safe-area-inset-bottom, 0px) - 6px);
     background: #fff;
     border-radius: 20px 20px 0 0;
     display: flex;
     flex-direction: column;
     animation: slideUp .28s cubic-bezier(.32,.72,0,1);
     overflow: hidden;
-    margin-bottom: var(--bottom-nav-h);
+    margin-bottom: 0;
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    margin-top: 60px; /* Added margin top to show close icon clearly */
   }
 
   @media (min-width: 640px) {
@@ -139,6 +141,7 @@ const GLOBAL_STYLE = `
       max-height: calc(100dvh - 80px);
       margin-bottom: 0;
       padding-bottom: 0;
+      margin-top: 0;
     }
   }
 
@@ -215,14 +218,12 @@ if (!document.getElementById('profile-styles-v4')) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PWA-SAFE IMAGE PICKER
-// Fix: Proper PWA/iOS standalone image picker with reliable change detection
 // ─────────────────────────────────────────────────────────────────────────────
 function openImagePicker(onFile) {
     return new Promise((resolve) => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
-        // Critical for iOS PWA: must be in DOM and visible-ish
         input.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;z-index:-1;';
         document.body.appendChild(input);
 
@@ -232,7 +233,6 @@ function openImagePicker(onFile) {
             try { document.body.removeChild(input); } catch { }
         };
 
-        // Use 'input' event as primary (more reliable in PWA)
         const handleChange = (e) => {
             if (handled) return;
             const file = e.target.files?.[0];
@@ -248,7 +248,6 @@ function openImagePicker(onFile) {
         input.addEventListener('change', handleChange);
         input.addEventListener('input', handleChange);
 
-        // Fallback: detect focus return without file selection
         window.addEventListener('focus', function onFocus() {
             window.removeEventListener('focus', onFocus);
             setTimeout(() => {
@@ -257,10 +256,8 @@ function openImagePicker(onFile) {
             }, 500);
         }, { once: true });
 
-        // iOS PWA workaround: needs a tiny delay before click
         setTimeout(() => {
             try { input.click(); } catch (err) {
-                // Some PWA contexts need dispatchEvent
                 input.dispatchEvent(new MouseEvent('click', { bubbles: true }));
             }
         }, 50);
@@ -304,7 +301,7 @@ const Icon = ({ name, size = 20, color, style = {} }) => (
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRIMITIVES
+// PRIMITIVES (same as before)
 // ─────────────────────────────────────────────────────────────────────────────
 const Spinner = ({ size = 18, color = '#fff' }) => (
     <span style={{
@@ -344,14 +341,9 @@ const inputBase = {
     fontFamily: 'var(--font)',
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FIX: Uncontrolled-style Input to prevent cursor jump in PWA
-// Uses defaultValue + ref pattern with onChange for state sync
-// ─────────────────────────────────────────────────────────────────────────────
 const Input = memo(({ label, value, onChange, style = {}, wrapStyle = {}, type = 'text', placeholder, disabled, onKeyDown }) => {
     const inputRef = useRef(null);
 
-    // Sync external value changes (e.g. when form resets) without clobbering cursor
     useEffect(() => {
         if (inputRef.current && document.activeElement !== inputRef.current) {
             inputRef.current.value = value ?? '';
@@ -386,9 +378,6 @@ const Input = memo(({ label, value, onChange, style = {}, wrapStyle = {}, type =
     );
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FIX: Uncontrolled-style Textarea to prevent cursor jump
-// ─────────────────────────────────────────────────────────────────────────────
 const Textarea = memo(({ label, value, onChange, wrapStyle = {} }) => {
     const ref = useRef(null);
 
@@ -480,7 +469,7 @@ const Toggle = ({ checked, onChange, label }) => (
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODAL
+// MODAL (Updated with higher z-index)
 // ─────────────────────────────────────────────────────────────────────────────
 const Modal = ({ open, onClose, title, children, footer }) => {
     useEffect(() => {
@@ -496,8 +485,9 @@ const Modal = ({ open, onClose, title, children, footer }) => {
                 className="modal-sheet"
                 onClick={e => e.stopPropagation()}
                 style={{
-                    marginBottom: window.innerWidth <= 768 ? 'calc(env(safe-area-inset-bottom, 0px) + 80px)' : 0,
-                    maxHeight: window.innerWidth <= 768 ? '83dvh' : '75dvh'
+                    marginBottom: window.innerWidth <= 768 ? '0' : 0,
+                    maxHeight: window.innerWidth <= 768 ? '83dvh' : '75dvh',
+                    marginTop: window.innerWidth <= 768 ? '60px' : '0',
                 }}
             >
                 <div style={{ padding: '10px 0 0', flexShrink: 0 }}>
@@ -531,7 +521,7 @@ const Toast = ({ msg, type = 'success' }) => {
     const colors = { success: { bg: '#DCFCE7', color: '#16A34A' }, error: { bg: '#FEE2E2', color: '#DC2626' } };
     return (
         <div style={{
-            position: 'fixed', top: 16, left: 0, right: 0, zIndex: 2000,
+            position: 'fixed', top: 16, left: 0, right: 0, zIndex: 10001,
             display: 'flex', justifyContent: 'center', padding: '0 16px',
             animation: 'fadeUp .25s ease', pointerEvents: 'none'
         }}>
@@ -549,7 +539,7 @@ const Toast = ({ msg, type = 'success' }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FORM HELPERS
+// FORM HELPERS (same as before)
 // ─────────────────────────────────────────────────────────────────────────────
 const FormGrid = ({ children }) => <div className="form-grid">{children}</div>;
 const FormItem = ({ half, full, children }) => (
@@ -564,9 +554,6 @@ const SectionDivider = ({ label }) => (
     </div>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DETAIL ROW
-// ─────────────────────────────────────────────────────────────────────────────
 const DetailRow = ({ iconName, iconColor = '#2563EB', iconBg = '#EFF6FF', label, rightText, onClick, danger, last }) => (
     <button onClick={onClick} style={{
         display: 'flex', alignItems: 'center', gap: 12,
@@ -583,9 +570,6 @@ const DetailRow = ({ iconName, iconColor = '#2563EB', iconBg = '#EFF6FF', label,
     </button>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STAT CARD
-// ─────────────────────────────────────────────────────────────────────────────
 const StatCard = ({ iconName, count, label, iconColor, iconBg }) => (
     <div style={{ flex: '1 1 0', minWidth: 60, background: '#F8FAFF', borderRadius: 14, padding: '12px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, border: '1px solid #E8EFFE' }}>
         <div style={{ width: 38, height: 38, borderRadius: '50%', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -596,9 +580,6 @@ const StatCard = ({ iconName, count, label, iconColor, iconBg }) => (
     </div>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// LISTING SECTION
-// ─────────────────────────────────────────────────────────────────────────────
 const MiniStat = ({ iconName, color, count, label }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <Icon name={iconName} size={15} color={color} />
@@ -639,9 +620,6 @@ const ListingSection = ({ iconName, iconColor, iconBg, title, subtitle, badgeCou
     </div>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EMPTY STATE
-// ─────────────────────────────────────────────────────────────────────────────
 const Empty = ({ label }) => (
     <div style={{ textAlign: 'center', padding: '28px 12px', color: '#9CA3AF', fontSize: 14, fontWeight: 500 }}>
         <Icon name="inbox" size={38} color="#D1D5DB" style={{ display: 'block', margin: '0 auto 10px' }} />
@@ -649,9 +627,6 @@ const Empty = ({ label }) => (
     </div>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ALERT BOX
-// ─────────────────────────────────────────────────────────────────────────────
 const AlertBox = ({ type = 'danger', icon = 'warning', children }) => {
     const map = {
         danger: { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA' },
@@ -666,9 +641,6 @@ const AlertBox = ({ type = 'danger', icon = 'warning', children }) => {
     );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// IMAGE UPLOAD — PWA-safe with instant preview
-// ─────────────────────────────────────────────────────────────────────────────
 const ImageUpload = ({ preview, isNew, onPick, label = 'Upload Image' }) => (
     <div>
         {preview && (
@@ -699,9 +671,6 @@ const ImageUpload = ({ preview, isNew, onPick, label = 'Upload Image' }) => (
     </div>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// LOCATION SECTION
-// ─────────────────────────────────────────────────────────────────────────────
 const LocationSection = ({ lat, lng, city, area, state, cities, areas, locating,
     verified, verifying, onGetLocation, onVerify,
     onCityChange, onAreaChange, onStateChange, showState = true }) => (
@@ -747,19 +716,13 @@ const LocationSection = ({ lat, lng, city, area, state, cities, areas, locating,
     </>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ABOUT NEARZO MODAL CONTENT
-// ─────────────────────────────────────────────────────────────────────────────
 const AboutNearZOContent = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-        {/* Hero */}
         <div style={{ background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)', borderRadius: 16, padding: '20px', textAlign: 'center', color: '#fff' }}>
             <div style={{ fontSize: 32, marginBottom: 6 }}>📍</div>
             <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>NearZO</div>
             <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.5 }}>Your local discovery platform — connecting communities, one neighborhood at a time.</div>
         </div>
-
-        {/* What we do */}
         <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>What We Do</div>
             {[
@@ -779,8 +742,6 @@ const AboutNearZOContent = () => (
                 </div>
             ))}
         </div>
-
-        {/* Mission */}
         <div style={{ background: '#F9FAFB', borderRadius: 12, padding: '14px', border: '1px solid #E5E7EB' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon name="favorite" size={14} color="#DC2626" /> Our Mission
@@ -789,51 +750,27 @@ const AboutNearZOContent = () => (
                 NearZO is built to bridge the gap between local businesses and the people around them. We believe every shop owner, landlord, and job provider in small towns and cities deserves a digital presence — and every resident deserves easy access to what's available nearby.
             </div>
         </div>
-
-        {/* Version */}
         <div style={{ textAlign: 'center', fontSize: 11, color: '#9CA3AF' }}>
             Version 1.0.0 · Made with ❤️ in India
         </div>
     </div>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SUPPORT MODAL CONTENT
-// ─────────────────────────────────────────────────────────────────────────────
 const SupportContent = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Header */}
         <div style={{ background: 'linear-gradient(135deg, #0EA5E9 0%, #2563EB 100%)', borderRadius: 16, padding: '18px', textAlign: 'center', color: '#fff' }}>
             <div style={{ fontSize: 28, marginBottom: 4 }}>🤝</div>
             <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>We're here to help!</div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>Reach out to us through any of these channels</div>
         </div>
-
-        {/* Contact */}
         <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Contact Us</div>
             {[
-                {
-                    icon: 'call', color: '#16A34A', bg: '#DCFCE7', label: 'Phone / WhatsApp',
-                    value: '+91 98765 43210',
-                    sub: 'Mon–Sat, 9 AM – 6 PM',
-                    href: 'tel:+919876543210'
-                },
-                {
-                    icon: 'email', color: '#2563EB', bg: '#EFF6FF', label: 'Email Support',
-                    value: 'support@nearzo.in',
-                    sub: 'We reply within 24 hours',
-                    href: 'mailto:support@nearzo.in'
-                },
-                {
-                    icon: 'language', color: '#7C3AED', bg: '#EDE9FE', label: 'Website',
-                    value: 'www.nearzo.in',
-                    sub: 'Visit our website',
-                    href: 'https://nearzo.in'
-                },
+                { icon: 'call', color: '#16A34A', bg: '#DCFCE7', label: 'Phone / WhatsApp', value: '+91 98765 43210', sub: 'Mon–Sat, 9 AM – 6 PM', href: 'tel:+919876543210' },
+                { icon: 'email', color: '#2563EB', bg: '#EFF6FF', label: 'Email Support', value: 'support@nearzo.in', sub: 'We reply within 24 hours', href: 'mailto:support@nearzo.in' },
+                { icon: 'language', color: '#7C3AED', bg: '#EDE9FE', label: 'Website', value: 'www.nearzo.in', sub: 'Visit our website', href: 'https://nearzo.in' },
             ].map(item => (
-                <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid #F3F4F6', textDecoration: 'none' }}>
+                <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid #F3F4F6', textDecoration: 'none' }}>
                     <div style={{ width: 40, height: 40, borderRadius: 12, background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon name={item.icon} size={19} color={item.color} />
                     </div>
@@ -846,8 +783,6 @@ const SupportContent = () => (
                 </a>
             ))}
         </div>
-
-        {/* Social Media */}
         <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Follow Us</div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -856,8 +791,7 @@ const SupportContent = () => (
                     { icon: 'chat', label: 'WhatsApp Channel', handle: 'NearZO Official', color: '#25D366', bg: '#F0FDF4', href: 'https://whatsapp.com/channel/nearzo' },
                     { icon: 'play_circle', label: 'YouTube', handle: 'NearZO', color: '#FF0000', bg: '#FFF0F0', href: 'https://youtube.com/@nearzo' },
                 ].map(s => (
-                    <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
-                        style={{ flex: '1 1 calc(50% - 5px)', minWidth: 120, padding: '10px 12px', background: s.bg, borderRadius: 12, border: `1px solid ${s.color}22`, textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" style={{ flex: '1 1 calc(50% - 5px)', minWidth: 120, padding: '10px 12px', background: s.bg, borderRadius: 12, border: `1px solid ${s.color}22`, textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <Icon name={s.icon} size={20} color={s.color} />
                         <div style={{ fontSize: 12, fontWeight: 700, color: '#111827' }}>{s.label}</div>
                         <div style={{ fontSize: 11, color: '#6B7280' }}>{s.handle}</div>
@@ -865,8 +799,6 @@ const SupportContent = () => (
                 ))}
             </div>
         </div>
-
-        {/* FAQ hint */}
         <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12, padding: '12px 14px', fontSize: 13, color: '#92400E', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <Icon name="tips_and_updates" size={15} color="#D97706" style={{ flexShrink: 0, marginTop: 1 }} />
             <span>For issues with listings, location verification, or account access — describe your problem and send a WhatsApp message. We typically resolve issues within a few hours.</span>
@@ -912,11 +844,9 @@ export default function Profile() {
     const [passwordData, setPasswordData] = useState({ current_password: '', new_password: '', confirm_password: '' });
     const [deletePassword, setDeletePassword] = useState('');
 
-    // Track object URLs for cleanup
     const [shopObjUrl, setShopObjUrl] = useState('');
     const [houseObjUrl, setHouseObjUrl] = useState('');
 
-    // Loading states for update operations
     const [updatingShop, setUpdatingShop] = useState(false);
     const [updatingHouse, setUpdatingHouse] = useState(false);
     const [creatingShop, setCreatingShop] = useState(false);
@@ -934,7 +864,6 @@ export default function Profile() {
     const [jobForm, setJobForm] = useState(emptyJob);
     const [formData, setFormData] = useState(emptyProfile);
 
-    // ─── FIX: Get the API URL once — works in PWA too
     const API_URL = import.meta.env.VITE_API_URL || window.__NEARZO_API_URL__ || '';
 
     const showToast = useCallback((msg, type = 'success') => {
@@ -954,7 +883,6 @@ export default function Profile() {
 
     const formatPrice = p => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(p);
 
-    // Computed stats
     const shopLive = shops.length, shopVerified = shops.filter(s => s.is_verified).length, shopUnverified = shops.filter(s => !s.is_verified).length;
     const houseLive = houses.length, houseVerified = houses.filter(h => h.is_verified).length, houseUnverified = houses.filter(h => !h.is_verified).length;
     const jobLive = jobs.filter(j => j.is_open).length, jobVerified = jobs.filter(j => j.is_verified).length, jobUnverified = jobs.filter(j => !j.is_verified).length;
@@ -1029,25 +957,16 @@ export default function Profile() {
         }, (err) => { setLocating(false); showToast(err.message || 'Location access denied', 'error'); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     };
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // FIX: PWA-safe image handlers
-    // Uses async openImagePicker — works reliably in iOS/Android PWA standalone mode
-    // ─────────────────────────────────────────────────────────────────────────
     const handlePickShopImage = useCallback(async () => {
         try {
             const result = await openImagePicker((file, url) => {
-                // Revoke previous object URL
                 setShopObjUrl(prev => {
                     if (prev) URL.revokeObjectURL(prev);
                     return url;
                 });
-                // Update form state immediately
                 setShopForm(p => ({ ...p, shop_image: file, shop_image_preview: url }));
                 showToast('Image selected ✓');
             });
-            if (!result) {
-                // User cancelled, no toast needed
-            }
         } catch (err) {
             showToast('Failed to pick image. Please try again.', 'error');
         }
@@ -1124,9 +1043,6 @@ export default function Profile() {
         } catch (err) { showToast(err.message || 'Failed to delete account', 'error'); }
     };
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // FIX: Shop create/update — proper FormData + error handling
-    // ─────────────────────────────────────────────────────────────────────────
     const handleCreateShop = async () => {
         if (!shopForm.business_name?.trim() || !shopForm.category || !shopForm.city || !shopForm.state) {
             showToast('Please fill all required fields', 'error'); return;
@@ -1183,7 +1099,6 @@ export default function Profile() {
             fd.append('keywords', JSON.stringify(shopForm.keywords || []));
             fd.append('latitude', String(shopForm.latitude || ''));
             fd.append('longitude', String(shopForm.longitude || ''));
-            // FIX: Only append new image if user selected one (instanceof File check)
             if (shopForm.shop_image instanceof File) {
                 fd.append('shop_image', shopForm.shop_image);
             }
@@ -1262,9 +1177,6 @@ export default function Profile() {
 
     const openDeleteShopConfirm = (shop) => { setDeleteConfirm(shop); setModal('deleteShopConfirm'); };
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // FIX: House create/update — proper error handling
-    // ─────────────────────────────────────────────────────────────────────────
     const handleCreateHouse = async () => {
         if (!houseForm.rooms || !houseForm.rent_per_month) {
             showToast('Rooms and rent amount are required', 'error'); return;
@@ -1314,7 +1226,6 @@ export default function Profile() {
             const fd = new FormData();
             ['rooms', 'halls', 'kitchens', 'floor', 'rent_per_month', 'advance_amount', 'latitude', 'longitude', 'area', 'city', 'state', 'description'].forEach(k => fd.append(k, houseForm[k] || ''));
             fd.append('is_available', String(houseForm.is_available));
-            // FIX: Only append if new image selected
             if (houseForm.house_image instanceof File) {
                 fd.append('house_image', houseForm.house_image);
             }
@@ -1347,120 +1258,110 @@ export default function Profile() {
         } finally { setUpdatingHouse(false); }
     };
 
-
-// Update the handleCreateJob function to include contact_phone:
-const handleCreateJob = async () => {
-    if (!jobForm.company_name?.trim() || !jobForm.job_title?.trim() || !jobForm.salary) {
-        showToast('Company name, job title, and salary are required', 'error'); 
-        return;
-    }
-    if (!jobForm.contact_phone?.trim()) {
-        showToast('Contact phone number is required', 'error');
-        return;
-    }
-    setCreatingJob(true);
-    try {
-        const r = await createJob({ 
-            ...jobForm, 
-            salary: +jobForm.salary, 
-            shop_id: jobForm.shop_id || null, 
-            contact_phone: jobForm.contact_phone  // Add this
-        });
-        if (r.success) {
-            showToast('Job posted successfully! 💼');
-            closeModal(); 
-            loadProfile(); 
-            loadTotalViews(); 
-            setJobForm(emptyJob);
-        } else { 
-            showToast(r.message || 'Failed to post job', 'error'); 
+    const handleCreateJob = async () => {
+        if (!jobForm.company_name?.trim() || !jobForm.job_title?.trim() || !jobForm.salary) {
+            showToast('Company name, job title, and salary are required', 'error'); 
+            return;
         }
-    } catch (err) { 
-        showToast(err.message || 'Failed to post job', 'error'); 
-    } finally { 
-        setCreatingJob(false); 
-    }
-};
+        if (!jobForm.contact_phone?.trim()) {
+            showToast('Contact phone number is required', 'error');
+            return;
+        }
+        setCreatingJob(true);
+        try {
+            const r = await createJob({ 
+                ...jobForm, 
+                salary: +jobForm.salary, 
+                shop_id: jobForm.shop_id || null, 
+                contact_phone: jobForm.contact_phone
+            });
+            if (r.success) {
+                showToast('Job posted successfully! 💼');
+                closeModal(); 
+                loadProfile(); 
+                loadTotalViews(); 
+                setJobForm(emptyJob);
+            } else { 
+                showToast(r.message || 'Failed to post job', 'error'); 
+            }
+        } catch (err) { 
+            showToast(err.message || 'Failed to post job', 'error'); 
+        } finally { 
+            setCreatingJob(false); 
+        }
+    };
 
-// In Profile.jsx - Fix handleUpdateJob
-
-const handleUpdateJob = async () => {
-    // Validate required fields
-    if (!jobForm.company_name?.trim()) {
-        showToast('Company name is required', 'error');
-        return;
-    }
-    if (!jobForm.job_title?.trim()) {
-        showToast('Job title is required', 'error');
-        return;
-    }
-    if (!jobForm.salary) {
-        showToast('Salary is required', 'error');
-        return;
-    }
-    if (!jobForm.city?.trim()) {
-        showToast('City is required', 'error');
-        return;
-    }
-    if (!jobForm.state?.trim()) {
-        showToast('State is required', 'error');
-        return;
-    }
-    
-    setUpdatingJob(true);
-    try {
-        const updateData = {
-            shop_id: jobForm.shop_id || null,
-            company_name: jobForm.company_name,
-            job_title: jobForm.job_title,
-            salary: parseFloat(jobForm.salary),
-            salary_type: jobForm.salary_type,
-            qualification: jobForm.qualification || null,
-            job_type: jobForm.job_type,
-            area: jobForm.area || null,
-            city: jobForm.city,
-            state: jobForm.state,
-            is_open: jobForm.is_open,
-            contact_phone: jobForm.contact_phone || null
-        };
+    const handleUpdateJob = async () => {
+        if (!jobForm.company_name?.trim()) {
+            showToast('Company name is required', 'error');
+            return;
+        }
+        if (!jobForm.job_title?.trim()) {
+            showToast('Job title is required', 'error');
+            return;
+        }
+        if (!jobForm.salary) {
+            showToast('Salary is required', 'error');
+            return;
+        }
+        if (!jobForm.city?.trim()) {
+            showToast('City is required', 'error');
+            return;
+        }
+        if (!jobForm.state?.trim()) {
+            showToast('State is required', 'error');
+            return;
+        }
         
-        console.log('Updating job with data:', updateData);
-        
-        await updateJob(editingJob.id, updateData);
-        
-        showToast('Job updated successfully! ✓');
-        closeModal();
-        loadProfile();
-        loadTotalViews();
-    } catch (err) {
-        console.error('Update job error:', err);
-        showToast(err.message || 'Failed to update job', 'error');
-    } finally {
-        setUpdatingJob(false);
-    }
-};
+        setUpdatingJob(true);
+        try {
+            const updateData = {
+                shop_id: jobForm.shop_id || null,
+                company_name: jobForm.company_name,
+                job_title: jobForm.job_title,
+                salary: parseFloat(jobForm.salary),
+                salary_type: jobForm.salary_type,
+                qualification: jobForm.qualification || null,
+                job_type: jobForm.job_type,
+                area: jobForm.area || null,
+                city: jobForm.city,
+                state: jobForm.state,
+                is_open: jobForm.is_open,
+                contact_phone: jobForm.contact_phone || null
+            };
+            
+            await updateJob(editingJob.id, updateData);
+            
+            showToast('Job updated successfully! ✓');
+            closeModal();
+            loadProfile();
+            loadTotalViews();
+        } catch (err) {
+            console.error('Update job error:', err);
+            showToast(err.message || 'Failed to update job', 'error');
+        } finally {
+            setUpdatingJob(false);
+        }
+    };
 
-// Update openEditJob to include contact_phone:
-// In Profile.jsx - Fix openEditJob function
-
-const openEditJob = (j) => {
-    setEditingJob(j);
-    setJobForm({
-        shop_id: j.shop_id || '', 
-        company_name: j.company_name || '', 
-        job_title: j.job_title || '',
-        salary: j.salary || '', 
-        salary_type: j.salary_type || 'month', 
-        qualification: j.qualification || '',
-        job_type: j.job_type || 'full_time', 
-        area: j.area || '', 
-        city: j.city || '', 
-        state: j.state || '', 
-        is_open: j.is_open === true || j.is_open === false ? j.is_open : true,
-        contact_phone: j.contact_phone || ''
-    });
-    setModal('editJob');
-};
+    const openEditJob = (j) => {
+        setEditingJob(j);
+        setJobForm({
+            shop_id: j.shop_id || '', 
+            company_name: j.company_name || '', 
+            job_title: j.job_title || '',
+            salary: j.salary || '', 
+            salary_type: j.salary_type || 'month', 
+            qualification: j.qualification || '',
+            job_type: j.job_type || 'full_time', 
+            area: j.area || '', 
+            city: j.city || '', 
+            state: j.state || '', 
+            is_open: j.is_open === true || j.is_open === false ? j.is_open : true,
+            contact_phone: j.contact_phone || ''
+        });
+        setModal('editJob');
+    };
 
     const openEditHouse = (h) => {
         setEditingHouse(h);
@@ -1475,7 +1376,6 @@ const openEditJob = (j) => {
         setModal('editHouse');
     };
 
-  
     const handleShopSelect = (id) => {
         const s = userShopsForJob.find(x => x.id === Number(id));
         setJobForm(p => ({ ...p, shop_id: id, company_name: s ? s.business_name : '', area: s?.area || '', city: s?.city || '', state: s?.state || '' }));
@@ -1490,7 +1390,6 @@ const openEditJob = (j) => {
 
     const handleRemoveKeyword = (kw) => setShopForm(p => ({ ...p, keywords: p.keywords.filter(k => k !== kw) }));
 
-    // ─── Shared shop form fields
     const ShopFormFields = () => (
         <FormGrid>
             <FormItem full>
@@ -1977,11 +1876,10 @@ const openEditJob = (j) => {
                             options={[{ value: 'full_time', label: 'Full Time' }, { value: 'part_time', label: 'Part Time' }]} />
                     </FormItem>
                     <FormItem half>
-    <Input label="Contact Phone *" value={jobForm.contact_phone} 
-        onChange={e => setJobForm(p => ({ ...p, contact_phone: e.target.value }))} 
-        placeholder="Phone number for candidates to call" />
-</FormItem>
-
+                        <Input label="Contact Phone *" value={jobForm.contact_phone} 
+                            onChange={e => setJobForm(p => ({ ...p, contact_phone: e.target.value }))} 
+                            placeholder="Phone number for candidates to call" />
+                    </FormItem>
                     <FormItem full><Textarea label="Qualification Required" value={jobForm.qualification} onChange={e => setJobForm(p => ({ ...p, qualification: e.target.value }))} /></FormItem>
                     <FormItem full><Toggle checked={jobForm.is_open} onChange={v => setJobForm(p => ({ ...p, is_open: v }))} label="Job Position is Open" /></FormItem>
                     <SectionDivider label="Location" />
@@ -2023,9 +1921,9 @@ const openEditJob = (j) => {
                             options={[{ value: 'full_time', label: 'Full Time' }, { value: 'part_time', label: 'Part Time' }]} />
                     </FormItem>
                     <FormItem half>
-    <Input label="Contact Phone" value={jobForm.contact_phone} 
-        onChange={e => setJobForm(p => ({ ...p, contact_phone: e.target.value }))} />
-</FormItem>
+                        <Input label="Contact Phone" value={jobForm.contact_phone} 
+                            onChange={e => setJobForm(p => ({ ...p, contact_phone: e.target.value }))} />
+                    </FormItem>
                     <FormItem full><Textarea label="Qualification" value={jobForm.qualification} onChange={e => setJobForm(p => ({ ...p, qualification: e.target.value }))} /></FormItem>
                     <FormItem full><Toggle checked={jobForm.is_open} onChange={v => setJobForm(p => ({ ...p, is_open: v }))} label="Job Position is Open" /></FormItem>
                     <SectionDivider label="Location" />
