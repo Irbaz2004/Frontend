@@ -1,4 +1,4 @@
-// app/user/Map.jsx — v3: no carousel, map/list toggle, MUI icons, darker colors, smaller pins
+// app/user/Map.jsx — v4: fixed positioning to escape AppLayout padding, full responsive
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getAllNearby } from '../../services/map';
 import 'leaflet/dist/leaflet.css';
@@ -30,7 +30,6 @@ import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import ApartmentIcon   from '@mui/icons-material/Apartment';
 import SchoolIcon      from '@mui/icons-material/School';
 import InfoIcon        from '@mui/icons-material/Info';
-import ShareIcon       from '@mui/icons-material/Share';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { CircularProgress } from '@mui/material';
@@ -42,6 +41,15 @@ L.Icon.Default.mergeOptions({
   shadowUrl:     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+// ─── Layout constants — must match AppLayout.jsx exactly ─────────────────────
+// AppLayout top bar height (sticky, user/business roles)
+const TOP_BAR_H = 64;
+// AppLayout bottom nav: pt=10 + pill=44 + pb=max(14,safe-area) ≈ 68px visible + 14 gap = 82px
+// Add a few px buffer so cards never touch the pill
+const BOTTOM_NAV_H = 86;
+// Desktop sidebar width (AppLayout admin sidebar is separate; Map only uses user role)
+const SIDEBAR_W = 340;
+
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const C = {
   bg:          '#F0F4FF',
@@ -50,19 +58,19 @@ const C = {
   border:      '#E0E7FF',
   borderLight: '#EEF2FF',
 
-  // Shop — original brand blue
+  // Blue — original brand color
   shop:        '#325fec',
   shopLight:   '#EEF4FF',
   shopMid:     '#BFCFFF',
   shopDark:    '#1A45C2',
 
-  // House — dark green
-  house:       '#057A55',
-  houseLight:  '#DEF7EC',
-  houseMid:    '#31C48D',
-  houseDark:   '#03543F',
+  // Purple — house
+  house:       '#6C2BD9',
+  houseLight:  '#EDEBFE',
+  houseMid:    '#A78BFA',
+  houseDark:   '#4C1D95',
 
-  // Job — dark amber/orange
+  // Amber — dark
   job:         '#B45309',
   jobLight:    '#FEF3C7',
   jobMid:      '#FBBF24',
@@ -88,19 +96,14 @@ const C = {
   shadowLg:    'rgba(10,22,40,0.20)',
 };
 
-// Match AppLayout.jsx floating pill nav footprint
-const BOTTOM_NAV_H = 98;
-
 const TYPE = {
   shop:  { color: C.shop,  bg: C.shopLight,  mid: C.shopMid,  dark: C.shopDark,  label: 'Shop',  Icon: StorefrontIcon },
   house: { color: C.house, bg: C.houseLight, mid: C.houseMid, dark: C.houseDark, label: 'House', Icon: HomeIcon },
   job:   { color: C.job,   bg: C.jobLight,   mid: C.jobMid,   dark: C.jobDark,   label: 'Job',   Icon: WorkIcon },
 };
 
-// ─── SVG Map Pins — compact 32×42, clear MUI-style icons ────────────────────
-// Smaller pin body so the icon is fully visible and crisp
+// ─── SVG Map Pins ─────────────────────────────────────────────────────────────
 const PIN_SVG = {
-  // Shop: storefront — awning + two uprights
   shop: (c) => `<svg width="32" height="42" viewBox="0 0 32 42" xmlns="http://www.w3.org/2000/svg">
     <path d="M16 1C8.27 1 2 7.27 2 15c0 11.25 14 26 14 26S30 26.25 30 15C30 7.27 23.73 1 16 1z"
       fill="${c}" stroke="white" stroke-width="1.8"/>
@@ -110,8 +113,6 @@ const PIN_SVG = {
       stroke-linecap="round" stroke-linejoin="round"/>
     <line x1="16" y1="14" x2="16" y2="21" stroke="${c}" stroke-width="1.2" opacity="0.5"/>
   </svg>`,
-
-  // House: simple roof + door
   house: (c) => `<svg width="32" height="42" viewBox="0 0 32 42" xmlns="http://www.w3.org/2000/svg">
     <path d="M16 1C8.27 1 2 7.27 2 15c0 11.25 14 26 14 26S30 26.25 30 15C30 7.27 23.73 1 16 1z"
       fill="${c}" stroke="white" stroke-width="1.8"/>
@@ -119,8 +120,6 @@ const PIN_SVG = {
     <polygon points="16,8 9,14 9,22 13,22 13,17 19,17 19,22 23,22 23,14" fill="${c}"/>
     <rect x="13.5" y="17" width="5" height="5" fill="${c}" opacity="0.55"/>
   </svg>`,
-
-  // Job: briefcase outline + handle
   job: (c) => `<svg width="32" height="42" viewBox="0 0 32 42" xmlns="http://www.w3.org/2000/svg">
     <path d="M16 1C8.27 1 2 7.27 2 15c0 11.25 14 26 14 26S30 26.25 30 15C30 7.27 23.73 1 16 1z"
       fill="${c}" stroke="white" stroke-width="1.8"/>
@@ -130,12 +129,10 @@ const PIN_SVG = {
       stroke="${c}" stroke-width="1.6" fill="none" stroke-linecap="round"/>
     <line x1="10" y1="18" x2="22" y2="18" stroke="white" stroke-width="1.3" opacity="0.7"/>
   </svg>`,
-
-  // User dot — compact pulsing circle
   user: `<svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="14" cy="14" r="12" fill="#1A56DB" stroke="white" stroke-width="3"/>
+    <circle cx="14" cy="14" r="12" fill="#325fec" stroke="white" stroke-width="3"/>
     <circle cx="14" cy="14" r="5" fill="white"/>
-    <circle cx="14" cy="14" r="2.5" fill="#1A56DB"/>
+    <circle cx="14" cy="14" r="2.5" fill="#325fec"/>
   </svg>`,
 };
 
@@ -146,48 +143,82 @@ const makeIcon = (type) => L.divIcon({
   iconAnchor:  type === 'user' ? [14, 14] : [16, 42],
   popupAnchor: type === 'user' ? [0, -14] : [0, -44],
 });
-const ICONS = {
-  shop:  makeIcon('shop'),
-  house: makeIcon('house'),
-  job:   makeIcon('job'),
-  user:  makeIcon('user'),
-};
+const ICONS = { shop: makeIcon('shop'), house: makeIcon('house'), job: makeIcon('job'), user: makeIcon('user') };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmtINR  = (n) => new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:0 }).format(n||0);
 const fmtDist = (d) => d != null ? (d < 1 ? `${Math.round(d*1000)} m` : `${d.toFixed(1)} km`) : '—';
 const getName = (item) => item.title || item.business_name || item.job_title || 'Untitled';
 const getSub  = (item) => item.subtitle || item.category || item.company_name || '';
 const esc     = (s) => s?.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) || '';
 
-// ─── CSS ─────────────────────────────────────────────────────────────────────
+// ─── CSS ──────────────────────────────────────────────────────────────────────
 const injectCSS = () => {
-  if (document.getElementById('map-v3-css')) return;
-  const s = document.createElement('style');
-  s.id = 'map-v3-css';
-  s.textContent = `
+  if (document.getElementById('map-v4-css')) return;
+  const el = document.createElement('style');
+  el.id = 'map-v4-css';
+  el.textContent = `
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
-    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
 
-    .mv3-root {
-      font-family: 'DM Sans', sans-serif !important;
+    /*
+     * .mv4-root uses position:fixed to escape AppLayout's pb padding.
+     * Mobile : top=TOP_BAR_H, bottom=BOTTOM_NAV_H  (topbar + bottom pill nav)
+     * Desktop: top=0,         bottom=0, left=SIDEBAR_W (sidebar takes left side)
+     *          — on desktop AppLayout does NOT render the bottom pill nav.
+     */
+    .mv4-root {
+      position: fixed;
+      top: ${TOP_BAR_H}px;
+      bottom: ${BOTTOM_NAV_H}px;
+      left: 0;
+      right: 0;
+      font-family: 'DM Sans', sans-serif;
       background: ${C.bg};
       color: ${C.text};
-      /* Mobile: subtract floating bottom nav height */
-      height: calc(100dvh - ${BOTTOM_NAV_H}px);
       overflow: hidden;
-      position: relative;
+      z-index: 10; /* above page content but below AppLayout topbar (z:1100) */
     }
 
-    /* ── Desktop: sidebar visible, no bottom nav offset ── */
-    @media (min-width: 600px) {
-      .mv3-root {
-        height: 100dvh; /* desktop has no floating bottom nav */
+    /* Desktop: AppLayout shows sidebar nav instead of bottom pill nav.
+       Map fills the right portion next to the sidebar. */
+    @media (min-width: 900px) {
+      .mv4-root {
+        top: 0;
+        bottom: 0;
       }
+      /* Map's own left sidebar */
+      .mv4-sidebar {
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: ${SIDEBAR_W}px;
+        display: flex !important;
+        flex-direction: column;
+        background: ${C.surface};
+        border-right: 1.5px solid ${C.border};
+        box-shadow: 4px 0 20px ${C.shadowMd};
+        z-index: 20;
+        overflow: hidden;
+      }
+      .mv4-map-zone {
+        position: absolute;
+        left: ${SIDEBAR_W}px; top: 0; right: 0; bottom: 0;
+      }
+      .mv4-topbar          { display: none !important; }
+      .mv4-list-overlay,
+      .mv4-list-modal      { display: none !important; }
+      .mv4-fabs            { bottom: 16px !important; }
+      .mv4-statusbar       { bottom: 16px !important; }
+      .mv4-legend          { bottom: 16px !important; }
     }
 
-    /* ── Leaflet overrides ── */
-    .leaflet-container { font-family: 'DM Sans', sans-serif !important; background: #E8EDF8 !important; }
+    /* Mobile */
+    @media (max-width: 899px) {
+      .mv4-sidebar  { display: none !important; }
+      .mv4-map-zone { position: absolute; inset: 0; }
+    }
+
+    /* ── Leaflet ── */
+    .leaflet-container { font-family: 'DM Sans', sans-serif !important; background: #E8EEF8 !important; }
     .leaflet-popup-content-wrapper {
       background: ${C.surface} !important;
       border: 1.5px solid ${C.border} !important;
@@ -216,19 +247,19 @@ const injectCSS = () => {
       margin: 4px !important; width: 36px !important; height: 36px !important;
       line-height: 34px !important; font-size: 17px !important; font-weight: 700 !important;
     }
-    .leaflet-bar a:hover { background: ${C.accentLight} !important; }
+    .leaflet-bar a:hover  { background: ${C.accentLight} !important; }
     .leaflet-routing-container { display: none !important; }
 
     /* ── Animations ── */
-    @keyframes slideUp   { from { transform:translateY(28px); opacity:0; } to { transform:translateY(0); opacity:1; } }
-    @keyframes slideDown { from { transform:translateY(-16px); opacity:0; } to { transform:translateY(0); opacity:1; } }
-    @keyframes fadeIn    { from { opacity:0; } to { opacity:1; } }
-    @keyframes pulse     { 0%,100% { opacity:1; } 50% { opacity:.3; } }
-    @keyframes shimmer   { 0% { background-position:-200% 0; } 100% { background-position:200% 0; } }
+    @keyframes slideUp   { from { transform:translateY(28px); opacity:0 } to { transform:translateY(0); opacity:1 } }
+    @keyframes slideDown { from { transform:translateY(-16px);opacity:0 } to { transform:translateY(0); opacity:1 } }
+    @keyframes fadeIn    { from { opacity:0 } to { opacity:1 } }
+    @keyframes pulse     { 0%,100%{opacity:1} 50%{opacity:.3} }
+    @keyframes shimmer   { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
 
-    .su { animation: slideUp  .36s cubic-bezier(.16,1,.3,1) both; }
+    .su { animation: slideUp   .36s cubic-bezier(.16,1,.3,1) both; }
     .sd { animation: slideDown .26s cubic-bezier(.16,1,.3,1) both; }
-    .fi { animation: fadeIn .2s ease both; }
+    .fi { animation: fadeIn    .2s ease both; }
 
     ::-webkit-scrollbar { width: 3px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -242,231 +273,231 @@ const injectCSS = () => {
     }
 
     /* ── Buttons ── */
-    .btn { display:inline-flex; align-items:center; justify-content:center; gap:5px;
-      border:none; cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:600;
-      transition:all .15s ease; outline:none; white-space:nowrap; }
-    .btn-primary { background:${C.accent}; color:#fff; border-radius:12px; padding:10px 16px; font-size:13px; }
-    .btn-primary:hover { background:${C.accentDark}; transform:translateY(-1px); box-shadow:0 6px 18px ${C.shadow}; }
-    .btn-primary:active { transform:scale(.97); }
-    .btn-ghost { background:${C.surface}; color:${C.text}; border:1.5px solid ${C.border};
-      border-radius:12px; padding:10px 16px; font-size:13px; }
-    .btn-ghost:hover { border-color:${C.accent}; color:${C.accent}; background:${C.accentLight}; }
-    .btn-icon { width:40px; height:40px; border-radius:11px; border:1.5px solid ${C.border};
-      background:${C.surface}; color:${C.textSub}; display:flex; align-items:center; justify-content:center;
-      cursor:pointer; transition:all .15s; box-shadow:0 2px 8px ${C.shadowMd}; flex-shrink:0; }
-    .btn-icon:hover { border-color:${C.accent}; color:${C.accent}; background:${C.accentLight}; }
-    .btn-icon:active { transform:scale(.93); }
-    .btn-icon.active { background:${C.accent}; color:#fff; border-color:${C.accent}; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600;
+      transition: all .15s ease; outline: none; white-space: nowrap;
+    }
+    .btn-primary {
+      background: ${C.accent}; color: #fff; border-radius: 12px;
+      padding: 10px 16px; font-size: 13px;
+    }
+    .btn-primary:hover  { background: ${C.accentDark}; transform: translateY(-1px); box-shadow: 0 6px 18px ${C.shadow}; }
+    .btn-primary:active { transform: scale(.97); }
+    .btn-ghost {
+      background: ${C.surface}; color: ${C.text}; border: 1.5px solid ${C.border};
+      border-radius: 12px; padding: 10px 16px; font-size: 13px;
+    }
+    .btn-ghost:hover { border-color: ${C.accent}; color: ${C.accent}; background: ${C.accentLight}; }
 
-    /* ── Search input ── */
-    .mv3-search { width:100%; background:${C.surface}; border:1.5px solid ${C.border};
-      border-radius:13px; padding:10px 13px 10px 40px; color:${C.text};
-      font-family:'DM Sans',sans-serif; font-size:13.5px; outline:none; font-weight:500;
-      transition:border-color .18s, box-shadow .18s; box-shadow:0 2px 8px ${C.shadowMd}; }
-    .mv3-search:focus { border-color:${C.accent}; box-shadow:0 0 0 3px ${C.accentMid}44; }
-    .mv3-search::placeholder { color:${C.textMuted}; font-weight:400; }
+    .btn-icon {
+      width: 40px; height: 40px; border-radius: 11px; border: 1.5px solid ${C.border};
+      background: ${C.surface}; color: ${C.textSub};
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all .15s; box-shadow: 0 2px 8px ${C.shadowMd}; flex-shrink: 0;
+    }
+    .btn-icon:hover  { border-color: ${C.accent}; color: ${C.accent}; background: ${C.accentLight}; }
+    .btn-icon:active { transform: scale(.93); }
+    .btn-icon.active { background: ${C.accent}; color: #fff; border-color: ${C.accent}; }
+
+    /* ── Search ── */
+    .mv4-search {
+      width: 100%; background: ${C.surface}; border: 1.5px solid ${C.border};
+      border-radius: 13px; padding: 10px 13px 10px 40px; color: ${C.text};
+      font-family: 'DM Sans', sans-serif; font-size: 13.5px; outline: none; font-weight: 500;
+      transition: border-color .18s, box-shadow .18s; box-shadow: 0 2px 8px ${C.shadowMd};
+    }
+    .mv4-search:focus       { border-color: ${C.accent}; box-shadow: 0 0 0 3px ${C.accentMid}44; }
+    .mv4-search::placeholder { color: ${C.textMuted}; font-weight: 400; }
 
     /* ── List card ── */
-    .mv3-card { background:${C.surface}; border:1.5px solid ${C.borderLight}; border-radius:18px;
-      padding:13px; cursor:pointer; transition:all .18s ease;
-      display:flex; gap:11px; align-items:flex-start; }
-    .mv3-card:hover { transform:translateY(-2px); box-shadow:0 10px 28px rgba(10,22,40,0.09); }
-    .mv3-card:active { transform:scale(.98); }
+    .mv4-card {
+      background: ${C.surface}; border: 1.5px solid ${C.borderLight};
+      border-radius: 18px; padding: 13px; cursor: pointer;
+      transition: all .18s ease; display: flex; gap: 11px; align-items: flex-start;
+    }
+    .mv4-card:hover  { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(10,22,40,.09); }
+    .mv4-card:active { transform: scale(.98); }
 
     /* ── Badge ── */
-    .badge { font-family:'DM Sans',sans-serif; font-size:10.5px; font-weight:700;
-      letter-spacing:.04em; padding:3px 9px; border-radius:100px; text-transform:uppercase; }
+    .badge {
+      font-family: 'DM Sans', sans-serif; font-size: 10.5px; font-weight: 700;
+      letter-spacing: .04em; padding: 3px 9px; border-radius: 100px; text-transform: uppercase;
+    }
 
-    /* ── Range slider ── */
-    .mv3-slider { -webkit-appearance:none; width:100%; height:4px; border-radius:2px;
-      background:${C.border}; outline:none; cursor:pointer; }
-    .mv3-slider::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px;
-      border-radius:50%; background:${C.accent}; cursor:pointer;
-      border:2.5px solid white; box-shadow:0 0 0 3px ${C.accentMid}66; }
+    /* ── Slider ── */
+    .mv4-slider {
+      -webkit-appearance: none; width: 100%; height: 4px;
+      border-radius: 2px; background: ${C.border}; outline: none; cursor: pointer;
+    }
+    .mv4-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+      background: ${C.accent}; cursor: pointer;
+      border: 2.5px solid white; box-shadow: 0 0 0 3px ${C.accentMid}66;
+    }
 
     /* ── Toggle ── */
-    .tog { position:relative; display:inline-block; width:46px; height:26px; flex-shrink:0; }
-    .tog input { opacity:0; width:0; height:0; }
-    .tog-track { position:absolute; inset:0; border-radius:13px; background:${C.border};
-      cursor:pointer; transition:background .2s; }
-    .tog-track::before { content:''; position:absolute; width:20px; height:20px;
-      left:3px; top:3px; border-radius:50%; background:#fff;
-      transition:all .2s; box-shadow:0 1px 4px rgba(0,0,0,.18); }
-    .tog input:checked + .tog-track { background:${C.accent}; }
-    .tog input:checked + .tog-track::before { transform:translateX(20px); }
+    .tog { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; }
+    .tog input { opacity: 0; width: 0; height: 0; }
+    .tog-track {
+      position: absolute; inset: 0; border-radius: 13px;
+      background: ${C.border}; cursor: pointer; transition: background .2s;
+    }
+    .tog-track::before {
+      content: ''; position: absolute; width: 20px; height: 20px;
+      left: 3px; top: 3px; border-radius: 50%; background: #fff;
+      transition: all .2s; box-shadow: 0 1px 4px rgba(0,0,0,.18);
+    }
+    .tog input:checked + .tog-track { background: ${C.accent}; }
+    .tog input:checked + .tog-track::before { transform: translateX(20px); }
 
-    /* ── View pill toggle ── */
-    .view-pill { display:flex; background:${C.surfaceAlt}; border:1.5px solid ${C.border};
-      border-radius:12px; padding:3px; gap:2px; }
-    .view-btn { flex:1; padding:7px 14px; border:none; background:transparent; color:${C.textSub};
-      font-family:'DM Sans',sans-serif; font-size:12.5px; font-weight:500; cursor:pointer;
-      border-radius:9px; transition:all .15s; display:flex; align-items:center;
-      justify-content:center; gap:5px; }
-    .view-btn.on { background:${C.surface}; color:${C.accent}; font-weight:700;
-      box-shadow:0 2px 8px ${C.shadowMd}; }
+    /* ── View pill ── */
+    .view-pill {
+      display: flex; background: ${C.surfaceAlt};
+      border: 1.5px solid ${C.border}; border-radius: 12px; padding: 3px; gap: 2px;
+    }
+    .view-btn {
+      flex: 1; padding: 7px 14px; border: none; background: transparent; color: ${C.textSub};
+      font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 500;
+      cursor: pointer; border-radius: 9px; transition: all .15s;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .view-btn.on { background: ${C.surface}; color: ${C.accent}; font-weight: 700; box-shadow: 0 2px 8px ${C.shadowMd}; }
 
-    /* ── Filter chip ── */
-    .fchip { padding:6px 13px; border-radius:100px; font-size:12.5px; font-weight:600;
-      cursor:pointer; border:1.5px solid ${C.border}; background:${C.surface};
-      color:${C.textSub}; transition:all .15s; font-family:'DM Sans',sans-serif;
-      white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
-    .fchip:hover { background:${C.accentLight}; border-color:${C.accentMid}; color:${C.accent}; }
-    .fchip-shop.on  { background:${C.shopLight};  border-color:${C.shopMid};  color:${C.shopDark};  }
-    .fchip-house.on { background:${C.houseLight}; border-color:${C.houseMid}; color:${C.houseDark}; }
-    .fchip-job.on   { background:${C.jobLight};   border-color:${C.jobMid};   color:${C.jobDark};   }
-    .fchip-all.on   { background:${C.accent}; border-color:${C.accent}; color:#fff; }
+    /* ── Filter chips ── */
+    .fchip {
+      padding: 6px 13px; border-radius: 100px; font-size: 12.5px; font-weight: 600;
+      cursor: pointer; border: 1.5px solid ${C.border}; background: ${C.surface}; color: ${C.textSub};
+      transition: all .15s; font-family: 'DM Sans', sans-serif;
+      white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+    }
+    .fchip:hover        { background: ${C.accentLight}; border-color: ${C.accentMid}; color: ${C.accent}; }
+    .fchip-shop.on  { background: ${C.shopLight};  border-color: ${C.shopMid};  color: ${C.shopDark};  }
+    .fchip-house.on { background: ${C.houseLight}; border-color: ${C.houseMid}; color: ${C.houseDark}; }
+    .fchip-job.on   { background: ${C.jobLight};   border-color: ${C.jobMid};   color: ${C.jobDark};   }
+    .fchip-all.on   { background: ${C.accent}; border-color: ${C.accent}; color: #fff; }
 
     /* ── Handle bar ── */
-    .handle { width:40px; height:4px; border-radius:2px; background:${C.border}; margin:12px auto 0; }
+    .handle { width: 40px; height: 4px; border-radius: 2px; background: ${C.border}; margin: 12px auto 0; }
 
     /* ── Popup ── */
-    .mv3-popup { padding:14px 16px 16px; min-width:205px; max-width:260px; }
-    .mv3-popup-title { font-weight:800; font-size:14.5px; color:${C.text}; margin-bottom:2px; letter-spacing:-.2px; }
-    .mv3-popup-sub   { font-size:11.5px; color:${C.textSub}; margin-bottom:7px; }
-
-    /* ── List bottom sheet (mobile) ── */
-    .mv3-list-overlay {
-      position: fixed; inset: 0; z-index: 200;
-      background: rgba(10,22,40,0.46);
-      backdrop-filter: blur(4px);
-      animation: fadeIn .2s ease;
-    }
-    .mv3-list-modal {
-      position: fixed;
-      bottom: ${BOTTOM_NAV_H}px;
-      left: 0; right: 0;
-      z-index: 210;
-      background: ${C.surface};
-      border-radius: 24px 24px 0 0;
-      height: calc(100dvh - 64px - ${BOTTOM_NAV_H}px);
-      display: flex; flex-direction: column;
-      box-shadow: 0 -14px 50px ${C.shadowLg};
-      border: 1.5px solid ${C.border}; border-bottom: none;
-      animation: slideUp .36s cubic-bezier(.16,1,.3,1) both;
-      overflow: hidden;
-    }
-
-    /* ── Detail panel (full height between topbar & bottom nav) ── */
-    .mv3-detail-backdrop {
-      position: fixed; inset: 0; bottom: ${BOTTOM_NAV_H}px;
-      z-index: 300; background: rgba(10,22,40,0.48);
-      backdrop-filter: blur(5px); animation: fadeIn .2s ease;
-    }
-    .mv3-detail-panel {
-      position: fixed;
-      top: 64px; /* below AppLayout topbar on mobile */
-      bottom: ${BOTTOM_NAV_H}px;
-      left: 0; right: 0; z-index: 310;
-      background: ${C.surface};
-      display: flex; flex-direction: column;
-      overflow: hidden;
-      animation: slideUp .38s cubic-bezier(.16,1,.3,1) both;
-    }
-    /* Desktop overrides applied in the desktop media query below */
-
-    /* ── Action buttons in detail ── */
-    .action-row { display:flex; gap:9px; }
-    .action-btn {
-      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-      gap:5px; padding:11px 6px; border-radius:14px; cursor:pointer;
-      border:1.5px solid ${C.border}; background:${C.surfaceAlt}; color:${C.textSub};
-      transition:all .15s; font-family:'DM Sans',sans-serif;
-      font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
-    }
-    .action-btn:hover { transform:translateY(-1px); }
-    .action-btn:active { transform:scale(.96); }
-    .action-btn.primary { background:${C.accent}; color:#fff; border-color:${C.accent}; }
-    .action-btn.primary:hover { background:${C.accentDark}; box-shadow:0 8px 22px ${C.shadow}; }
-
-    /* ── Info row in detail ── */
-    .info-row { display:flex; justify-content:space-between; align-items:center;
-      padding:10px 0; border-bottom:1px solid ${C.borderLight}; gap:8px; }
-    .info-row:last-child { border-bottom: none; }
-
-    /* ── Stat grid ── */
-    .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:14px; }
-    .stat-card { background:${C.surfaceAlt}; border:1.5px solid ${C.borderLight};
-      border-radius:14px; padding:12px 11px; }
-
-    /* ── Radius pills ── */
-    .rad-pill { padding:6px 13px; border-radius:100px; font-size:12px; font-weight:700;
-      border:1.5px solid ${C.border}; background:${C.surface}; color:${C.textSub};
-      cursor:pointer; transition:all .14s; font-family:'DM Sans',sans-serif; }
-    .rad-pill.on { background:${C.accent}; color:#fff; border-color:${C.accent}; }
+    .mv4-popup { padding: 14px 16px 16px; min-width: 205px; max-width: 260px; }
+    .mv4-popup-title { font-weight: 800; font-size: 14.5px; color: ${C.text}; margin-bottom: 2px; letter-spacing: -.2px; }
+    .mv4-popup-sub   { font-size: 11.5px; color: ${C.textSub}; margin-bottom: 7px; }
 
     /* ── Status bar ── */
-    .mv3-statusbar {
-      position: absolute;
-      bottom: 16px;
+    .mv4-statusbar {
+      position: absolute; bottom: 16px;
       left: 50%; transform: translateX(-50%);
-      z-index: 100;
-      display: flex; align-items: center; gap:8px;
+      z-index: 100; display: flex; align-items: center; gap: 8px;
       background: ${C.surface}; border: 1.5px solid ${C.border};
       border-radius: 100px; padding: 8px 16px;
       box-shadow: 0 4px 14px ${C.shadowMd}; white-space: nowrap;
     }
 
-    /* ── Desktop sidebar layout ── */
-    @media (min-width: 600px) {
-      .mv3-sidebar {
-        position: absolute; left: 0; top: 0; bottom: 0; width: 340px;
-        z-index: 200; background: ${C.surface};
-        border-right: 1.5px solid ${C.border};
-        display: flex !important; flex-direction: column;
-        box-shadow: 4px 0 20px ${C.shadowMd};
-      }
-      .mv3-map-zone { position: absolute; left: 340px; right: 0; top: 0; bottom: 0; }
-      .mv3-topbar   { display: none !important; }
-      .mv3-list-overlay, .mv3-list-modal { display: none !important; }
-      .mv3-fabs { left: 356px !important; bottom: 16px !important; }
-      .mv3-statusbar {
-        left: calc(340px + 50%) !important;
-        transform: translateX(-50%) !important;
-        bottom: 16px !important;
-      }
-      .mv3-detail-panel {
-        left: 340px !important;
-        top: 0 !important;
-        bottom: 0 !important;
-      }
-      .mv3-detail-backdrop {
-        left: 340px !important;
-        bottom: 0 !important;
-        top: 0 !important;
-      }
-      .mv3-legend { left: 356px !important; bottom: 16px !important; }
+    /* ── List bottom sheet (mobile only) ── */
+    .mv4-list-overlay {
+      position: fixed; inset: 0;
+      z-index: 500;
+      background: rgba(10,22,40,.46); backdrop-filter: blur(4px);
+      animation: fadeIn .2s ease;
+    }
+    .mv4-list-modal {
+      position: fixed;
+      top: ${TOP_BAR_H}px; bottom: 0;
+      left: 0; right: 0;
+      z-index: 510;
+      background: ${C.surface};
+      border-radius: 0;
+      display: flex; flex-direction: column;
+      box-shadow: 0 -14px 50px ${C.shadowLg};
+      animation: slideUp .36s cubic-bezier(.16,1,.3,1) both;
+      overflow: hidden;
     }
 
-    /* ── Mobile: hide sidebar, full-width map ── */
-    @media (max-width: 599px) {
-      .mv3-sidebar  { display: none !important; }
-      .mv3-map-zone { position: absolute; inset: 0; }
+    /* ── Detail panel ── */
+    .mv4-detail-backdrop {
+      position: fixed;
+      top: ${TOP_BAR_H}px; bottom: 0;
+      left: 0; right: 0;
+      z-index: 600;
+      background: rgba(10,22,40,.48); backdrop-filter: blur(5px);
+      animation: fadeIn .2s ease;
     }
+    .mv4-detail-panel {
+      position: fixed;
+      top: ${TOP_BAR_H}px; bottom: 0;
+      left: 0; right: 0;
+      z-index: 610;
+      background: ${C.surface};
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      animation: slideUp .38s cubic-bezier(.16,1,.3,1) both;
+    }
+    @media (min-width: 900px) {
+      .mv4-detail-panel    { left: ${SIDEBAR_W}px !important; top: 0 !important; }
+      .mv4-detail-backdrop { left: ${SIDEBAR_W}px !important; top: 0 !important; }
+      .mv4-list-modal      { left: ${SIDEBAR_W}px !important; top: 0 !important; }
+    }
+
+    /* ── Action buttons ── */
+    .action-row { display: flex; gap: 9px; }
+    .action-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 5px; padding: 11px 6px; border-radius: 14px; cursor: pointer;
+      border: 1.5px solid ${C.border}; background: ${C.surfaceAlt}; color: ${C.textSub};
+      transition: all .15s; font-family: 'DM Sans', sans-serif;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .action-btn:hover  { transform: translateY(-1px); }
+    .action-btn:active { transform: scale(.96); }
+    .action-btn.primary { background: ${C.accent}; color: #fff; border-color: ${C.accent}; }
+    .action-btn.primary:hover { background: ${C.accentDark}; box-shadow: 0 8px 22px ${C.shadow}; }
+
+    /* ── Info/stat rows ── */
+    .info-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid ${C.borderLight}; gap: 8px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 14px; }
+    .stat-card {
+      background: ${C.surfaceAlt}; border: 1.5px solid ${C.borderLight};
+      border-radius: 14px; padding: 12px 11px;
+    }
+
+    /* ── Radius pills ── */
+    .rad-pill {
+      padding: 6px 13px; border-radius: 100px; font-size: 12px; font-weight: 700;
+      border: 1.5px solid ${C.border}; background: ${C.surface}; color: ${C.textSub};
+      cursor: pointer; transition: all .14s; font-family: 'DM Sans', sans-serif;
+    }
+    .rad-pill.on { background: ${C.accent}; color: #fff; border-color: ${C.accent}; }
   `;
-  document.head.appendChild(s);
+  document.head.appendChild(el);
 };
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function Map() {
-  const [phase, setPhase]             = useState('locating');
-  const [userLocation, setUserLocation] = useState(null);
-  const [shops, setShops]             = useState([]);
-  const [houses, setHouses]           = useState([]);
-  const [jobs, setJobs]               = useState([]);
-  const [loading, setLoading]         = useState(false);
+  const [phase, setPhase]                   = useState('locating');
+  const [userLocation, setUserLocation]     = useState(null);
+  const [shops, setShops]                   = useState([]);
+  const [houses, setHouses]                 = useState([]);
+  const [jobs, setJobs]                     = useState([]);
+  const [loading, setLoading]               = useState(false);
   const [loadingVisible, setLoadingVisible] = useState(false);
-  const [error, setError]             = useState('');
+  const [error, setError]                   = useState('');
 
-  const [viewMode, setViewMode]       = useState('map');   // 'map' | 'list'
-  const [filterOpen, setFilterOpen]   = useState(false);
-  const [detailItem, setDetailItem]   = useState(null);
-  const [listModalOpen, setListModalOpen] = useState(false);
+  const [viewMode, setViewMode]             = useState('map');
+  const [filterOpen, setFilterOpen]         = useState(false);
+  const [detailItem, setDetailItem]         = useState(null);
+  const [listModalOpen, setListModalOpen]   = useState(false);
 
-  const [radius, setRadius]           = useState(0.2);
-  const [search, setSearch]           = useState('');
+  const [radius, setRadius]                 = useState(0.2);
+  const [search, setSearch]                 = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
-  const [typeFilter, setTypeFilter]   = useState({ shops:true, houses:true, jobs:true });
+  const [typeFilter, setTypeFilter]         = useState({ shops: true, houses: true, jobs: true });
 
   const mapRef        = useRef(null);
   const mapContRef    = useRef(null);
@@ -501,7 +532,7 @@ export default function Map() {
     );
   }, []);
 
-  // Init map
+  // Init Leaflet map
   useEffect(() => {
     if (phase !== 'ready' || !mapContRef.current || mapRef.current) return;
     mapRef.current = L.map(mapContRef.current, {
@@ -514,7 +545,7 @@ export default function Map() {
     return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
   }, [phase]);
 
-  // Auto-fetch
+  // Auto-fetch on deps change
   useEffect(() => {
     if (!userLocation) return;
     fetchData();
@@ -523,32 +554,27 @@ export default function Map() {
     return () => clearInterval(intervalRef.current);
   }, [userLocation, radius, typeFilter, debouncedSearch]);
 
-  // Re-render markers when data changes
+  // Re-render markers
   useEffect(() => {
     if (!mapRef.current || !userLocation) return;
     renderMarkers();
   }, [shops, houses, jobs, userLocation, radius]);
 
-  // Custom events from popup buttons
+  // Popup custom events
   useEffect(() => {
     const h = (e) => setDetailItem(e.detail);
-    window.addEventListener('mv3:detail', h);
-    return () => window.removeEventListener('mv3:detail', h);
+    window.addEventListener('mv4:detail', h);
+    return () => window.removeEventListener('mv4:detail', h);
   }, []);
   useEffect(() => {
     const h = (e) => showRoute(e.detail);
-    window.addEventListener('mv3:route', h);
-    return () => window.removeEventListener('mv3:route', h);
+    window.addEventListener('mv4:route', h);
+    return () => window.removeEventListener('mv4:route', h);
   }, [userLocation]);
 
   // Sync list modal ↔ viewMode
-  useEffect(() => {
-    if (!listModalOpen && viewMode === 'list') setViewMode('map');
-  }, [listModalOpen]);
-  useEffect(() => {
-    if (viewMode === 'list') setListModalOpen(true);
-    else setListModalOpen(false);
-  }, [viewMode]);
+  useEffect(() => { if (!listModalOpen && viewMode === 'list') setViewMode('map'); }, [listModalOpen]);
+  useEffect(() => { if (viewMode === 'list') setListModalOpen(true); else setListModalOpen(false); }, [viewMode]);
 
   const fetchData = async () => {
     if (!userLocation) return;
@@ -627,69 +653,56 @@ export default function Map() {
     const { latitude: lat, longitude: lng } = userLocation;
     mapRef.current.flyTo([lat, lng], mapRef.current.getZoom(), { duration: 0.6 });
 
-    // User marker
     userMarkerRef.current = L.marker([lat, lng], { icon: ICONS.user, zIndexOffset: 1000 })
-      .bindPopup(`<div class="mv3-popup" style="text-align:center;padding:14px">
+      .bindPopup(`<div class="mv4-popup" style="text-align:center;padding:14px">
         <div style="width:36px;height:36px;border-radius:50%;background:${C.accentLight};
           display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="${C.accent}">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
           </svg>
         </div>
-        <div class="mv3-popup-title">You are here</div>
-        <div class="mv3-popup-sub" style="margin-bottom:0">Your current location</div>
+        <div class="mv4-popup-title">You are here</div>
+        <div class="mv4-popup-sub" style="margin-bottom:0">Your current location</div>
       </div>`)
       .addTo(mapRef.current);
 
-    // Radius circle
     userCircleRef.current = L.circle([lat, lng], {
       radius: radius * 1000,
       color: C.accent, fillColor: C.accent,
       fillOpacity: 0.05, weight: 1.5, dashArray: '6 8',
     }).addTo(mapRef.current);
 
-    // Item markers
+    const iconSVG = {
+      shop: (c) => `<svg viewBox="0 0 24 24" width="20" height="20" fill="${c}"><path d="M20 4H4v2l16 .01V4zM4 10v10h16V10H4zm10 7h-4v-2h4v2zM2 8l1-4h18l1 4v2h-2v8h-4v-8H8v8H4v-8H2V8z"/></svg>`,
+      house: (c) => `<svg viewBox="0 0 24 24" width="20" height="20" fill="${c}"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`,
+      job:   (c) => `<svg viewBox="0 0 24 24" width="20" height="20" fill="${c}"><path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 0h-4V4h4v2z"/></svg>`,
+    };
+
     const addMarkers = (list, type) => list.forEach(item => {
       if (!item.latitude || !item.longitude) return;
       const m = TYPE[type];
-      const itemJson = JSON.stringify({...item, _type: type}).replace(/"/g, '&quot;');
-
+      const itemJson = JSON.stringify({ ...item, _type: type }).replace(/"/g, '&quot;');
       const priceHTML = type === 'house'
-        ? `<div style="color:${m.color};font-weight:800;font-size:14px;margin:5px 0 9px;letter-spacing:-.3px">
-            ${fmtINR(item.rent_per_month)}<span style="font-weight:400;font-size:11px;color:${C.textSub}">/mo</span>
-           </div>`
+        ? `<div style="color:${m.color};font-weight:800;font-size:14px;margin:5px 0 9px">
+            ${fmtINR(item.rent_per_month)}<span style="font-weight:400;font-size:11px;color:${C.textSub}">/mo</span></div>`
         : type === 'job'
-        ? `<div style="color:${m.color};font-weight:800;font-size:14px;margin:5px 0 9px;letter-spacing:-.3px">
-            ${fmtINR(item.salary)}<span style="font-weight:400;font-size:11px;color:${C.textSub}">/${item.salary_type==='month'?'mo':'day'}</span>
-           </div>`
+        ? `<div style="color:${m.color};font-weight:800;font-size:14px;margin:5px 0 9px">
+            ${fmtINR(item.salary)}<span style="font-weight:400;font-size:11px;color:${C.textSub}">/${item.salary_type === 'month' ? 'mo' : 'day'}</span></div>`
         : '';
-
-      // MUI-style icon SVGs inline in popup
-      const iconSVG = {
-        shop:  `<svg viewBox="0 0 24 24" width="20" height="20" fill="${m.color}">
-                  <path d="M20 4H4v2l16 .01V4zM4 10v10h16V10H4zm10 7h-4v-2h4v2zM2 8l1-4h18l1 4v2h-2v8h-4v-8H8v8H4v-8H2V8z"/>
-                </svg>`,
-        house: `<svg viewBox="0 0 24 24" width="20" height="20" fill="${m.color}">
-                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-                </svg>`,
-        job:   `<svg viewBox="0 0 24 24" width="20" height="20" fill="${m.color}">
-                  <path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 0h-4V4h4v2z"/>
-                </svg>`,
-      };
 
       const popup = `
         <div>
           <div style="height:4px;background:${m.color}"></div>
-          <div class="mv3-popup" style="padding-top:12px">
+          <div class="mv4-popup" style="padding-top:12px">
             <div style="display:flex;gap:9px;align-items:flex-start;margin-bottom:5px">
               <div style="width:38px;height:38px;border-radius:12px;background:${m.bg};
                 display:flex;align-items:center;justify-content:center;flex-shrink:0;
                 border:1.5px solid ${m.color}22">
-                ${iconSVG[type]}
+                ${iconSVG[type](m.color)}
               </div>
               <div style="flex:1;min-width:0;padding-top:2px">
-                <div class="mv3-popup-title">${esc(getName(item))}</div>
-                <div class="mv3-popup-sub">${esc(getSub(item))}</div>
+                <div class="mv4-popup-title">${esc(getName(item))}</div>
+                <div class="mv4-popup-sub">${esc(getSub(item))}</div>
                 <span class="badge" style="background:${m.bg};color:${m.dark}">${m.label}</span>
               </div>
             </div>
@@ -705,13 +718,13 @@ export default function Map() {
               <button style="flex:1;padding:9px;font-size:12.5px;font-weight:700;
                 font-family:DM Sans,sans-serif;border:none;border-radius:11px;
                 background:${m.color};color:#fff;cursor:pointer"
-                onclick="window.dispatchEvent(new CustomEvent('mv3:route',{detail:${itemJson}}))">
+                onclick="window.dispatchEvent(new CustomEvent('mv4:route',{detail:${itemJson}}))">
                 Route
               </button>
               <button style="flex:1;padding:9px;font-size:12.5px;font-weight:700;
                 font-family:DM Sans,sans-serif;border:1.5px solid ${C.border};
                 border-radius:11px;background:white;color:${C.text};cursor:pointer"
-                onclick="window.dispatchEvent(new CustomEvent('mv3:detail',{detail:${itemJson}}))">
+                onclick="window.dispatchEvent(new CustomEvent('mv4:detail',{detail:${itemJson}}))">
                 Details
               </button>
             </div>
@@ -730,7 +743,6 @@ export default function Map() {
     if (typeFilter.jobs)   addMarkers(jobs,   'job');
   }, [shops, houses, jobs, userLocation, radius, typeFilter]);
 
-  // Computed lists
   const allItems = [
     ...shops.map(s  => ({ ...s, _type: 'shop'  })),
     ...houses.map(h => ({ ...h, _type: 'house' })),
@@ -744,10 +756,10 @@ export default function Map() {
   if (phase === 'locating') return <LoadingScreen />;
 
   return (
-    <div className="mv3-root">
+    <div className="mv4-root">
 
       {/* ── DESKTOP SIDEBAR ── */}
-      <aside className="mv3-sidebar">
+      <aside className="mv4-sidebar">
         <SidebarContent
           allItems={allItems} filteredItems={filteredItems}
           loading={loading} radius={radius} setRadius={setRadius}
@@ -761,18 +773,17 @@ export default function Map() {
       </aside>
 
       {/* ── MAP ZONE ── */}
-      <div className="mv3-map-zone">
+      <div className="mv4-map-zone">
         <div ref={mapContRef} style={{ position: 'absolute', inset: 0, zIndex: 0 }} />
 
-        {/* MOBILE TOPBAR */}
-        <div className="mv3-topbar sd" style={{
+        {/* ── MOBILE TOPBAR ── */}
+        <div className="mv4-topbar sd" style={{
           position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100,
           padding: '10px 12px',
           display: 'flex', alignItems: 'center', gap: 8,
           background: 'linear-gradient(to bottom, rgba(240,244,255,0.97) 72%, transparent)',
           backdropFilter: 'blur(2px)',
         }}>
-          {/* Logo pill */}
           <div style={{
             background: C.accent, borderRadius: 12, padding: '9px 13px',
             display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
@@ -781,8 +792,6 @@ export default function Map() {
             <LocationOnIcon sx={{ fontSize: 15, color: '#fff' }} />
             <span style={{ fontWeight: 800, fontSize: 14, color: '#fff', letterSpacing: '-.2px' }}>Nearby</span>
           </div>
-
-          {/* Search */}
           <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
             <span style={{
               position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
@@ -790,21 +799,20 @@ export default function Map() {
             }}>
               <SearchIcon sx={{ fontSize: 15 }} />
             </span>
-            <input className="mv3-search" placeholder="Search shops, houses, jobs…"
+            <input className="mv4-search" placeholder="Search shops, houses, jobs…"
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-
-          {/* Filter */}
           <button className={`btn-icon ${filterOpen ? 'active' : ''}`}
             onClick={() => setFilterOpen(v => !v)}>
             <FilterListIcon sx={{ fontSize: 17 }} />
           </button>
         </div>
 
-        {/* CATEGORY + VIEW TOGGLE ROW */}
-        <div className="mv3-topbar" style={{
+        {/* ── CATEGORY + VIEW TOGGLE ── */}
+        <div className="mv4-topbar" style={{
           position: 'absolute', top: 62, left: 12, right: 12, zIndex: 99,
-          display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', scrollbarWidth: 'none',
+          display: 'flex', alignItems: 'center', gap: 8,
+          overflowX: 'auto', scrollbarWidth: 'none',
         }}>
           {[
             { id: 'All',   cls: 'fchip-all' },
@@ -812,11 +820,11 @@ export default function Map() {
             { id: 'House', cls: 'fchip-house', icon: <HomeIcon sx={{ fontSize: 13 }} /> },
             { id: 'Job',   cls: 'fchip-job',   icon: <WorkIcon sx={{ fontSize: 13 }} /> },
           ].map(c => (
-            <button key={c.id} className={`fchip ${c.cls} ${activeCategory === c.id ? 'on' : ''}`}
+            <button key={c.id}
+              className={`fchip ${c.cls} ${activeCategory === c.id ? 'on' : ''}`}
               onClick={() => setActiveCategory(c.id)}
               style={{ boxShadow: `0 2px 8px ${C.shadowMd}` }}>
-              {c.icon}
-              {c.id}
+              {c.icon}{c.id}
               {c.id !== 'All' && (
                 <span style={{ fontSize: 10, opacity: .75 }}>
                   ({allItems.filter(i => i._type === c.id.toLowerCase()).length})
@@ -824,8 +832,6 @@ export default function Map() {
               )}
             </button>
           ))}
-
-          {/* Map / List toggle */}
           <div className="view-pill" style={{ marginLeft: 'auto', flexShrink: 0, boxShadow: `0 2px 8px ${C.shadowMd}` }}>
             <button className={`view-btn ${viewMode === 'map' ? 'on' : ''}`} onClick={() => setViewMode('map')}>
               <MapIcon sx={{ fontSize: 13 }} /> Map
@@ -837,17 +843,15 @@ export default function Map() {
                 <span style={{
                   background: C.accent, color: '#fff', borderRadius: 100,
                   fontSize: 9, fontWeight: 800, padding: '1px 5px', lineHeight: '14px', marginLeft: 2,
-                }}>
-                  {allItems.length}
-                </span>
+                }}>{allItems.length}</span>
               )}
             </button>
           </div>
         </div>
 
-        {/* FILTER PANEL */}
+        {/* ── FILTER PANEL ── */}
         {filterOpen && (
-          <div className="mv3-topbar fi" style={{
+          <div className="fi" style={{
             position: 'absolute', top: 60, right: 12, zIndex: 200,
             background: C.surface, border: `1.5px solid ${C.border}`,
             borderRadius: 20, padding: 18, width: 260,
@@ -861,8 +865,8 @@ export default function Map() {
           </div>
         )}
 
-        {/* MAP FABs */}
-        <div className="mv3-fabs" style={{
+        {/* ── MAP FABs ── */}
+        <div className="mv4-fabs" style={{
           position: 'absolute', right: 12, bottom: 16, zIndex: 100,
           display: 'flex', flexDirection: 'column', gap: 8,
         }}>
@@ -880,9 +884,9 @@ export default function Map() {
           </button>
         </div>
 
-        {/* STATUS BAR */}
+        {/* ── STATUS BAR ── */}
         {viewMode === 'map' && !detailItem && (
-          <div className="mv3-statusbar fi">
+          <div className="mv4-statusbar fi">
             {loadingVisible ? (
               <>
                 <CircularProgress size={11} sx={{ color: C.accent }} />
@@ -901,9 +905,9 @@ export default function Map() {
           </div>
         )}
 
-        {/* TYPE LEGEND */}
+        {/* ── TYPE LEGEND ── */}
         {viewMode === 'map' && !detailItem && (
-          <div className="mv3-legend" style={{
+          <div className="mv4-legend" style={{
             position: 'absolute', bottom: 16, left: 12, zIndex: 100,
             display: 'flex', flexDirection: 'column', gap: 5,
           }}>
@@ -927,10 +931,9 @@ export default function Map() {
       {/* ── LIST BOTTOM SHEET (mobile) ── */}
       {listModalOpen && (
         <>
-          <div className="mv3-list-overlay" onClick={() => setViewMode('map')} />
-          <div className="mv3-list-modal">
+          <div className="mv4-list-overlay" onClick={() => setViewMode('map')} />
+          <div className="mv4-list-modal">
             <div className="handle" />
-            {/* Header */}
             <div style={{ padding: '10px 16px 13px', borderBottom: `1.5px solid ${C.borderLight}`, flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 }}>
                 <div>
@@ -946,7 +949,6 @@ export default function Map() {
                   <CloseIcon sx={{ fontSize: 17 }} />
                 </button>
               </div>
-              {/* Search */}
               <div style={{ position: 'relative', marginBottom: 11 }}>
                 <span style={{
                   position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
@@ -954,10 +956,9 @@ export default function Map() {
                 }}>
                   <SearchIcon sx={{ fontSize: 15 }} />
                 </span>
-                <input className="mv3-search" placeholder="Search results…" value={search}
-                  onChange={e => setSearch(e.target.value)} />
+                <input className="mv4-search" placeholder="Search results…"
+                  value={search} onChange={e => setSearch(e.target.value)} />
               </div>
-              {/* Category chips */}
               <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 2 }}>
                 {[
                   { id: 'All',   cls: 'fchip-all',   count: allItems.length },
@@ -972,7 +973,6 @@ export default function Map() {
                 ))}
               </div>
             </div>
-            {/* Items */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0 14px' }}>
               {loading && filteredItems.length === 0 ? <SkeletonList />
                 : filteredItems.length === 0 ? <EmptyState />
@@ -992,11 +992,11 @@ export default function Map() {
         />
       )}
 
-      {/* ERROR TOAST */}
+      {/* ── ERROR TOAST ── */}
       {error && (
         <div className="sd" style={{
           position: 'fixed', top: 14, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 600, background: C.redLight, border: `1.5px solid #FCA5A5`,
+          zIndex: 900, background: C.redLight, border: `1.5px solid #FCA5A5`,
           borderRadius: 14, padding: '10px 15px',
           display: 'flex', gap: 9, alignItems: 'center',
           boxShadow: `0 8px 28px ${C.shadowLg}`, minWidth: 220,
@@ -1013,7 +1013,7 @@ export default function Map() {
   );
 }
 
-// ─── SIDEBAR (desktop) ────────────────────────────────────────────────────────
+// ─── DESKTOP SIDEBAR ──────────────────────────────────────────────────────────
 function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, search, setSearch,
   typeFilter, setTypeFilter, activeCategory, setActiveCategory, viewMode, setViewMode,
   onSelect, onRoute, openGoogleMaps, fetchData, clearRoute }) {
@@ -1054,14 +1054,13 @@ function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, s
           }}>
             <SearchIcon sx={{ fontSize: 15 }} />
           </span>
-          <input className="mv3-search" placeholder="Search shops, houses, jobs…"
+          <input className="mv4-search" placeholder="Search shops, houses, jobs…"
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
 
       {/* Filters */}
       <div style={{ padding: '12px 16px 11px', borderBottom: `1.5px solid ${C.borderLight}` }}>
-        {/* Category chips */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 13, flexWrap: 'wrap' }}>
           <button className={`fchip fchip-all ${activeCategory === 'All' ? 'on' : ''}`}
             onClick={() => setActiveCategory('All')}>All</button>
@@ -1072,7 +1071,7 @@ function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, s
           ].map(c => (
             <button key={c.id} className={`fchip ${c.cls} ${activeCategory === c.id ? 'on' : ''}`}
               onClick={() => setActiveCategory(c.id)}>
-              <c.Icon sx={{ fontSize: 13 }} /> {c.id}s
+              <c.Icon sx={{ fontSize: 13 }} />{c.id}s
             </button>
           ))}
         </div>
@@ -1081,22 +1080,18 @@ function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, s
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
             <span style={{ color: C.textSub, fontSize: 12.5, fontWeight: 500 }}>Search Radius</span>
-            <span style={{
-              background: C.accentLight, color: C.accent, borderRadius: 100,
-              padding: '2px 9px', fontSize: 11.5, fontWeight: 700,
-            }}>
+            <span style={{ background: C.accentLight, color: C.accent, borderRadius: 100, padding: '2px 9px', fontSize: 11.5, fontWeight: 700 }}>
               {radius < 1 ? `${Math.round(radius * 1000)}m` : `${radius}km`}
             </span>
           </div>
           <div style={{ display: 'flex', gap: 6, marginBottom: 9 }}>
             {[0.2, 0.4, 1, 2].map(r => (
-              <button key={r} className={`rad-pill ${radius === r ? 'on' : ''}`}
-                onClick={() => setRadius(r)}>
+              <button key={r} className={`rad-pill ${radius === r ? 'on' : ''}`} onClick={() => setRadius(r)}>
                 {r < 1 ? `${r * 1000}m` : `${r}km`}
               </button>
             ))}
           </div>
-          <input type="range" className="mv3-slider" min={0.1} max={10} step={0.1}
+          <input type="range" className="mv4-slider" min={0.1} max={10} step={0.1}
             value={radius} onChange={e => setRadius(Number(e.target.value))} />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
             <span style={{ color: C.textMuted, fontSize: 10.5 }}>100m</span>
@@ -1160,7 +1155,6 @@ function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, s
         </div>
       </div>
 
-      {/* List */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '5px 0' }}>
         {loading ? <SkeletonList />
           : filteredItems.length === 0 ? <EmptyState />
@@ -1174,9 +1168,7 @@ function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, s
 function FilterPanel({ radius, setRadius, typeFilter, setTypeFilter, onApply }) {
   return (
     <>
-      <div style={{ fontWeight: 800, fontSize: 15.5, color: C.text, marginBottom: 14, letterSpacing: '-.2px' }}>
-        Filters
-      </div>
+      <div style={{ fontWeight: 800, fontSize: 15.5, color: C.text, marginBottom: 14, letterSpacing: '-.2px' }}>Filters</div>
       <div style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
           <span style={{ color: C.textSub, fontSize: 12.5, fontWeight: 500 }}>Radius</span>
@@ -1191,7 +1183,7 @@ function FilterPanel({ radius, setRadius, typeFilter, setTypeFilter, onApply }) 
             </button>
           ))}
         </div>
-        <input type="range" className="mv3-slider" min={0.1} max={10} step={0.1}
+        <input type="range" className="mv4-slider" min={0.1} max={10} step={0.1}
           value={radius} onChange={e => setRadius(Number(e.target.value))} />
       </div>
       <div style={{ marginBottom: 14 }}>
@@ -1207,10 +1199,8 @@ function FilterPanel({ radius, setRadius, typeFilter, setTypeFilter, onApply }) 
             padding: '8px 0', borderBottom: `1px solid ${C.borderLight}`,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: 8, background: t.bg,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.color,
-              }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: t.bg,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.color }}>
                 <t.Icon sx={{ fontSize: 15 }} />
               </div>
               <span style={{ color: C.text, fontSize: 13.5 }}>{t.label}</span>
@@ -1245,10 +1235,8 @@ function ListView({ items, onSelect, onRoute }) {
           : item._type === 'job'
           ? fmtINR(item.salary) + (item.salary_type === 'month' ? '/mo' : '/day')
           : null;
-
         return (
-          <div key={`${item._type}-${item.id || i}`} className="mv3-card" onClick={() => onSelect(item)}>
-            {/* Type icon box */}
+          <div key={`${item._type}-${item.id || i}`} className="mv4-card" onClick={() => onSelect(item)}>
             <div style={{
               width: 46, height: 46, borderRadius: 14, flexShrink: 0,
               background: m.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1256,41 +1244,28 @@ function ListView({ items, onSelect, onRoute }) {
             }}>
               <IconC sx={{ fontSize: 22, color: m.color }} />
             </div>
-
-            {/* Info */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 2,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>{name}</div>
-              {sub && (
-                <div style={{
-                  color: C.textSub, fontSize: 12.5, marginBottom: 5,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>{sub}</div>
-              )}
+              <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 2,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+              {sub && <div style={{ color: C.textSub, fontSize: 12.5, marginBottom: 5,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
                 <span className="badge" style={{ background: m.bg, color: m.dark }}>{m.label}</span>
                 <span style={{ color: m.color, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <LocationOnIcon sx={{ fontSize: 10 }} />
-                  {fmtDist(item.distance)}
+                  <LocationOnIcon sx={{ fontSize: 10 }} />{fmtDist(item.distance)}
                 </span>
                 {price && <span style={{ color: m.dark, fontWeight: 700, fontSize: 12 }}>{price}</span>}
               </div>
             </div>
-
-            {/* Actions */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
-              <button className="btn" style={{
-                width: 32, height: 32, borderRadius: 10, background: m.bg,
-                color: m.color, border: `1.5px solid ${m.mid}`, padding: 0,
-              }} onClick={e => { e.stopPropagation(); onRoute(item); }} title="Route">
+              <button className="btn" style={{ width: 32, height: 32, borderRadius: 10,
+                background: m.bg, color: m.color, border: `1.5px solid ${m.mid}`, padding: 0 }}
+                onClick={e => { e.stopPropagation(); onRoute(item); }}>
                 <NavigationIcon sx={{ fontSize: 14 }} />
               </button>
-              <button className="btn" style={{
-                width: 32, height: 32, borderRadius: 10, background: C.surfaceAlt,
-                color: C.textSub, border: `1.5px solid ${C.border}`, padding: 0,
-              }} onClick={e => { e.stopPropagation(); onSelect(item); }} title="Details">
+              <button className="btn" style={{ width: 32, height: 32, borderRadius: 10,
+                background: C.surfaceAlt, color: C.textSub, border: `1.5px solid ${C.border}`, padding: 0 }}
+                onClick={e => { e.stopPropagation(); onSelect(item); }}>
                 <VisibilityIcon sx={{ fontSize: 13 }} />
               </button>
             </div>
@@ -1311,86 +1286,70 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
 
   return (
     <>
-      <div className="mv3-detail-backdrop" onClick={onClose} />
-      <div className="mv3-detail-panel">
-        {/* Color accent bar */}
-        <div style={{ height: 4, background: m.color, flexShrink: 0 }} />
+      <div className="mv4-detail-backdrop" onClick={onClose} />
+      <div className="mv4-detail-panel">
 
-        {/* Panel header */}
-        <div style={{
-          padding: '12px 16px 14px',
-          borderBottom: `1.5px solid ${C.borderLight}`,
-          flexShrink: 0, background: C.surface,
-        }}>
+        {/* ── Header — white, blue accent only ── */}
+        <div style={{ padding: '12px 16px 14px', borderBottom: `1.5px solid ${C.borderLight}`, flexShrink: 0, background: C.surface }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <button className="btn-icon" style={{ flexShrink: 0, marginTop: 2 }} onClick={onClose}>
               <ChevronLeftIcon sx={{ fontSize: 22 }} />
             </button>
-
-            {/* Icon */}
+            {/* Icon box — always blue */}
             <div style={{
-              width: 54, height: 54, borderRadius: 16, background: m.bg,
-              border: `2px solid ${m.color}28`,
+              width: 54, height: 54, borderRadius: 16, background: C.accentLight,
+              border: `2px solid ${C.accentMid}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              <IconC sx={{ fontSize: 28, color: m.color }} />
+              <IconC sx={{ fontSize: 28, color: C.accent }} />
             </div>
-
-            {/* Title */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <span className="badge" style={{ background: m.bg, color: m.dark }}>{m.label}</span>
+                {/* Badge — always blue */}
+                <span className="badge" style={{ background: C.accentLight, color: C.accentDark }}>{m.label}</span>
                 {item._type === 'shop' && item.opening_time && (
                   <span style={{
                     display: 'flex', alignItems: 'center', gap: 3,
-                    background: C.greenLight, color: C.houseDark,
+                    background: '#D1FAE5', color: '#065F46',
                     padding: '3px 8px', borderRadius: 100, fontSize: 11, fontWeight: 700,
                   }}>
                     <CheckCircleIcon sx={{ fontSize: 11 }} /> Open
                   </span>
                 )}
               </div>
-              <div style={{
-                fontWeight: 800, fontSize: 18, color: C.text, lineHeight: 1.2,
-                marginBottom: 3, letterSpacing: '-.35px',
-              }}>{name}</div>
+              <div style={{ fontWeight: 800, fontSize: 18, color: C.text, lineHeight: 1.2,
+                marginBottom: 3, letterSpacing: '-.35px' }}>{name}</div>
               {sub && <div style={{ fontSize: 13, color: C.textSub }}>{sub}</div>}
               {item.distance != null && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 5 }}>
-                  <LocationOnIcon sx={{ fontSize: 13, color: m.color }} />
-                  <span style={{ fontSize: 13, fontWeight: 700, color: m.color }}>
-                    {fmtDist(item.distance)} away
-                  </span>
+                  <LocationOnIcon sx={{ fontSize: 13, color: C.accent }} />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: C.accent }}>{fmtDist(item.distance)} away</span>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Scrollable body */}
-        <div style={{ flex: 1, overflowY: 'auto', background: C.bg }}>
+        {/* ── Scrollable body — white background throughout ── */}
+        <div style={{ flex: 1, overflowY: 'auto', background: C.surface }}>
 
-          {/* Price hero */}
+          {/* Price hero — white card, blue text */}
           {item._type === 'house' && (
-            <div style={{
-              margin: '14px 14px 0', background: m.bg,
-              border: `1.5px solid ${m.color}20`, borderRadius: 18,
-              padding: 18, textAlign: 'center',
-            }}>
+            <div style={{ margin: '14px 14px 0', background: C.accentLight,
+              border: `1.5px solid ${C.accentMid}`,
+              borderRadius: 18, padding: 18, textAlign: 'center' }}>
               <div style={{ color: C.textSub, fontSize: 12, marginBottom: 4 }}>Monthly Rent</div>
-              <div style={{ fontWeight: 800, fontSize: 30, color: m.color, letterSpacing: '-.6px' }}>
+              <div style={{ fontWeight: 800, fontSize: 30, color: C.accent, letterSpacing: '-.6px' }}>
                 {fmtINR(item.rent_per_month)}
               </div>
             </div>
           )}
           {item._type === 'job' && (
-            <div style={{
-              margin: '14px 14px 0', background: m.bg,
-              border: `1.5px solid ${m.color}20`, borderRadius: 18,
-              padding: 18, textAlign: 'center',
-            }}>
+            <div style={{ margin: '14px 14px 0', background: C.accentLight,
+              border: `1.5px solid ${C.accentMid}`,
+              borderRadius: 18, padding: 18, textAlign: 'center' }}>
               <div style={{ color: C.textSub, fontSize: 12, marginBottom: 4 }}>Salary</div>
-              <div style={{ fontWeight: 800, fontSize: 30, color: m.color, letterSpacing: '-.6px' }}>
+              <div style={{ fontWeight: 800, fontSize: 30, color: C.accent, letterSpacing: '-.6px' }}>
                 {fmtINR(item.salary)}
                 <span style={{ fontSize: 14, fontWeight: 400, color: C.textSub }}>
                   /{item.salary_type === 'month' ? 'month' : 'day'}
@@ -1399,60 +1358,45 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
             </div>
           )}
 
-          {/* Action buttons */}
+          {/* Action buttons — Route is blue, others neutral */}
           <div style={{ padding: '14px 14px 10px' }}>
             <div className="action-row">
-              <button className="action-btn primary" style={{ background: m.color, borderColor: m.color }}
+              <button className="action-btn primary"
                 onClick={() => onRoute(item)}>
-                <NavigationIcon sx={{ fontSize: 20 }} />
-                Route
+                <NavigationIcon sx={{ fontSize: 20 }} /> Route
               </button>
               <button className="action-btn" onClick={() => openGoogleMaps(item)}>
-                <GoogleIcon sx={{ fontSize: 20, color: C.accent }} />
-                Maps
+                <GoogleIcon sx={{ fontSize: 20, color: C.accent }} /> Maps
               </button>
               {phone && (
                 <button className="action-btn" onClick={() => window.location.href = `tel:${phone}`}>
-                  <PhoneIcon sx={{ fontSize: 20, color: C.green }} />
-                  Call
+                  <PhoneIcon sx={{ fontSize: 20, color: C.accent }} /> Call
                 </button>
               )}
-              <button className="action-btn"
-                onClick={() => navigator.share?.({ title: name, text: sub || name })}>
-                <ShareIcon sx={{ fontSize: 20, color: C.purple }} />
-                Share
-              </button>
             </div>
           </div>
 
           {/* Type-specific content */}
           <div style={{ padding: '0 14px 14px' }}>
-            {item._type === 'shop'  && <ShopBody  item={item} m={m} />}
-            {item._type === 'house' && <HouseBody item={item} m={m} />}
-            {item._type === 'job'   && <JobBody   item={item} m={m} />}
+            {item._type === 'shop'  && <ShopBody  item={item} />}
+            {item._type === 'house' && <HouseBody item={item} />}
+            {item._type === 'job'   && <JobBody   item={item} />}
 
-            {/* Contact */}
+            {/* Contact card */}
             {(phone || item.owner_name || item.employer_name) && (
-              <div style={{
-                background: C.surface, border: `1.5px solid ${C.borderLight}`,
-                borderRadius: 18, padding: 16, marginTop: 10,
-              }}>
-                <div style={{
-                  fontWeight: 700, fontSize: 12, color: C.textMuted,
-                  textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10,
-                }}>Contact</div>
+              <div style={{ background: C.surface, border: `1.5px solid ${C.borderLight}`,
+                borderRadius: 18, padding: 16, marginTop: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 12, color: C.textMuted,
+                  textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Contact</div>
                 {(item.owner_name || item.employer_name) && (
                   <div style={{ fontWeight: 700, fontSize: 15, color: C.text, marginBottom: 4 }}>
                     {item.owner_name || item.employer_name}
                   </div>
                 )}
                 {phone && (
-                  <a href={`tel:${phone}`} style={{
-                    color: m.color, fontSize: 14.5, textDecoration: 'none',
-                    fontWeight: 600, display: 'flex', alignItems: 'center', gap: 7,
-                  }}>
-                    <PhoneIcon sx={{ fontSize: 17 }} />
-                    {phone}
+                  <a href={`tel:${phone}`} style={{ color: C.accent, fontSize: 14.5, textDecoration: 'none',
+                    fontWeight: 600, display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <PhoneIcon sx={{ fontSize: 17 }} />{phone}
                   </a>
                 )}
               </div>
@@ -1465,46 +1409,45 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
 }
 
 // ─── DETAIL BODY SECTIONS ──────────────────────────────────────────────────────
-function InfoRow({ label, value, icon, color }) {
+function InfoRow({ label, value, icon }) {
   return (
     <div className="info-row">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ color: color || C.accent, display: 'flex' }}>{icon}</span>
+        <span style={{ color: C.accent, display: 'flex' }}>{icon}</span>
         <span style={{ color: C.textSub, fontSize: 13 }}>{label}</span>
       </div>
-      <span style={{ color: color || C.accent, fontWeight: 700, fontSize: 13.5 }}>{value || '—'}</span>
+      <span style={{ color: C.accent, fontWeight: 700, fontSize: 13.5 }}>{value || '—'}</span>
     </div>
   );
 }
 
-function ShopBody({ item, m }) {
+function ShopBody({ item }) {
   return (
-    <div style={{
-      background: C.surface, border: `1.5px solid ${C.borderLight}`,
-      borderRadius: 18, padding: 16, marginBottom: 10,
-    }}>
+    <div style={{ background: C.surface, border: `1.5px solid ${C.borderLight}`,
+      borderRadius: 18, padding: 16, marginBottom: 10 }}>
       {item.description && (
         <div style={{ marginBottom: 14 }}>
-          <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '.07em',
-            textTransform: 'uppercase', marginBottom: 6 }}>About</div>
+          <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>About</div>
           <div style={{ color: C.textSub, fontSize: 13.5, lineHeight: 1.7 }}>{item.description}</div>
         </div>
       )}
       {item.opening_time && item.closing_time && (
         <InfoRow label="Hours"
           value={`${item.opening_time.slice(0, 5)} – ${item.closing_time.slice(0, 5)}`}
-          icon={<AccessTimeIcon sx={{ fontSize: 16 }} />} color={m.color} />
+          icon={<AccessTimeIcon sx={{ fontSize: 16 }} />} />
       )}
       {item.keywords?.length > 0 && (
         <div style={{ marginTop: 12 }}>
-          <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '.07em',
-            textTransform: 'uppercase', marginBottom: 7 }}>Tags</div>
+          <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 7 }}>Tags</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {item.keywords.map((k, i) => (
-              <span key={i} style={{
-                padding: '4px 11px', borderRadius: 100, fontSize: 12.5,
-                background: m.bg, color: m.dark, fontWeight: 600, border: `1.5px solid ${m.mid}`,
-              }}>#{k}</span>
+              <span key={i} style={{ padding: '4px 11px', borderRadius: 100, fontSize: 12.5,
+                background: C.accentLight, color: C.accentDark, fontWeight: 600,
+                border: `1.5px solid ${C.accentMid}` }}>
+                #{k}
+              </span>
             ))}
           </div>
         </div>
@@ -1513,12 +1456,10 @@ function ShopBody({ item, m }) {
   );
 }
 
-function HouseBody({ item, m }) {
+function HouseBody({ item }) {
   return (
-    <div style={{
-      background: C.surface, border: `1.5px solid ${C.borderLight}`,
-      borderRadius: 18, padding: 16, marginBottom: 10,
-    }}>
+    <div style={{ background: C.surface, border: `1.5px solid ${C.borderLight}`,
+      borderRadius: 18, padding: 16, marginBottom: 10 }}>
       <div className="stat-grid">
         {[
           { label: 'Bedrooms', value: `${item.rooms} BHK`, Icon: BedIcon },
@@ -1528,11 +1469,11 @@ function HouseBody({ item, m }) {
         ].map(r => (
           <div key={r.label} className="stat-card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5,
-              color: C.textMuted, fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-              <r.Icon sx={{ fontSize: 13, color: m.color }} />
-              {r.label}
+              color: C.textMuted, fontSize: 10.5, fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: '.05em' }}>
+              <r.Icon sx={{ fontSize: 13, color: C.accent }} />{r.label}
             </div>
-            <div style={{ color: m.color, fontWeight: 800, fontSize: 16 }}>{r.value || '—'}</div>
+            <div style={{ color: C.accent, fontWeight: 800, fontSize: 16 }}>{r.value || '—'}</div>
           </div>
         ))}
       </div>
@@ -1543,29 +1484,24 @@ function HouseBody({ item, m }) {
   );
 }
 
-function JobBody({ item, m }) {
+function JobBody({ item }) {
   return (
-    <div style={{
-      background: C.surface, border: `1.5px solid ${C.borderLight}`,
-      borderRadius: 18, padding: 16, marginBottom: 10,
-    }}>
+    <div style={{ background: C.surface, border: `1.5px solid ${C.borderLight}`,
+      borderRadius: 18, padding: 16, marginBottom: 10 }}>
       <div style={{ display: 'flex', gap: 7, marginBottom: 14, flexWrap: 'wrap' }}>
-        <span style={{
-          padding: '6px 14px', borderRadius: 100, fontSize: 13,
-          background: m.bg, color: m.dark, fontWeight: 700, border: `1.5px solid ${m.mid}`,
-          display: 'flex', alignItems: 'center', gap: 5,
-        }}>
+        <span style={{ padding: '6px 14px', borderRadius: 100, fontSize: 13,
+          background: C.accentLight, color: C.accentDark, fontWeight: 700,
+          border: `1.5px solid ${C.accentMid}`,
+          display: 'flex', alignItems: 'center', gap: 5 }}>
           <WorkIcon sx={{ fontSize: 14 }} />
           {item.job_type === 'full_time' ? 'Full Time' : 'Part Time'}
         </span>
         {item.qualification && (
-          <span style={{
-            padding: '6px 14px', borderRadius: 100, fontSize: 13, background: C.purpleLight,
-            color: C.purple, fontWeight: 700, border: `1.5px solid ${C.purple}22`,
-            display: 'flex', alignItems: 'center', gap: 5,
-          }}>
-            <SchoolIcon sx={{ fontSize: 14 }} />
-            {item.qualification}
+          <span style={{ padding: '6px 14px', borderRadius: 100, fontSize: 13,
+            background: C.accentLight, color: C.accentDark, fontWeight: 700,
+            border: `1.5px solid ${C.accentMid}`,
+            display: 'flex', alignItems: 'center', gap: 5 }}>
+            <SchoolIcon sx={{ fontSize: 14 }} />{item.qualification}
           </span>
         )}
       </div>
@@ -1581,11 +1517,8 @@ function SkeletonList() {
   return (
     <div style={{ padding: '4px 13px', display: 'flex', flexDirection: 'column', gap: 8 }}>
       {[...Array(5)].map((_, i) => (
-        <div key={i} style={{
-          display: 'flex', gap: 11, alignItems: 'center',
-          background: C.surface, border: `1.5px solid ${C.borderLight}`,
-          borderRadius: 18, padding: 13,
-        }}>
+        <div key={i} style={{ display: 'flex', gap: 11, alignItems: 'center',
+          background: C.surface, border: `1.5px solid ${C.borderLight}`, borderRadius: 18, padding: 13 }}>
           <div className="skeleton" style={{ width: 46, height: 46, borderRadius: 14, flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
             <div className="skeleton" style={{ height: 13, width: '55%', marginBottom: 8 }} />
@@ -1603,20 +1536,14 @@ function SkeletonList() {
 
 function EmptyState() {
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', padding: '60px 20px', textAlign: 'center', gap: 13,
-    }}>
-      <div style={{
-        width: 64, height: 64, borderRadius: 20, background: C.accentLight,
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', padding: '60px 20px', textAlign: 'center', gap: 13 }}>
+      <div style={{ width: 64, height: 64, borderRadius: 20, background: C.accentLight,
         border: `2px solid ${C.accentMid}`, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', color: C.accent,
-      }}>
+        justifyContent: 'center', color: C.accent }}>
         <SearchIcon sx={{ fontSize: 28 }} />
       </div>
-      <div style={{ fontWeight: 800, fontSize: 17, color: C.text, letterSpacing: '-.3px' }}>
-        Nothing nearby
-      </div>
+      <div style={{ fontWeight: 800, fontSize: 17, color: C.text, letterSpacing: '-.3px' }}>Nothing nearby</div>
       <div style={{ color: C.textSub, fontSize: 13.5, maxWidth: 230, lineHeight: 1.65 }}>
         Try increasing the search radius or clearing your filters
       </div>
@@ -1627,11 +1554,9 @@ function EmptyState() {
 // ─── LOADING SCREEN ───────────────────────────────────────────────────────────
 function LoadingScreen() {
   return (
-    <div style={{
-      height: '100dvh', display: 'flex', flexDirection: 'column',
+    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      gap: 20, background: C.bg, fontFamily: 'DM Sans, sans-serif',
-    }}>
+      gap: 20, background: C.bg, fontFamily: 'DM Sans, sans-serif' }}>
       <img src={loadingGif} alt="Loading…"
         style={{ width: 240, height: 'auto', objectFit: 'contain', marginBottom: 60 }} />
     </div>
