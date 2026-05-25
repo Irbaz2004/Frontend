@@ -26,6 +26,7 @@ import {
     MenuItem,
     Badge,
     CircularProgress,
+    Snackbar,
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -41,6 +42,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import CloseIcon from '@mui/icons-material/Close';
 import StoreIcon from '@mui/icons-material/Store';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import DownloadIcon from '@mui/icons-material/Download';
 import { LocationOnOutlined, HouseOutlined, StoreOutlined, GridViewOutlined } from '@mui/icons-material';
 import { PlaceOutlined } from '@mui/icons-material';
 import logo from '../assets/nearzologo.png';
@@ -49,13 +51,6 @@ import { getNotifications, getUnreadCount, markNotificationRead, markAllNotifica
 import { useAuth } from './context/AuthContext';
 
 // ─── HAPTIC UTILITY ──────────────────────────────────────────────────────────
-// Pattern types matching Swiggy/Zomato feel:
-//   tap      → 8ms  (lightest, nav icon tap)
-//   select   → 12ms (selecting a nav item)
-//   action   → [10, 30, 10] (button press with slight double-pulse)
-//   warning  → [20, 60, 20] (logout / destructive)
-//   success  → [8, 20, 8, 20, 8] (confirm / mark all read)
-
 const HAPTIC_PATTERNS = {
     tap: [4],
     select: 12,
@@ -65,7 +60,7 @@ const HAPTIC_PATTERNS = {
 };
 
 const haptic = (type = 'tap') => {
-    if (!navigator.vibrate) return; // silently skip on unsupported devices
+    if (!navigator.vibrate) return;
     navigator.vibrate(HAPTIC_PATTERNS[type] ?? HAPTIC_PATTERNS.tap);
 };
 // ─────────────────────────────────────────────────────────────────────────────
@@ -123,6 +118,41 @@ function AppLayout() {
     const [unreadCount, setUnreadCount] = useState(0);
     const [notificationsLoading, setNotificationsLoading] = useState(false);
     const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
+
+    // ─── PWA INSTALL ────────────────────────────────────────────────────────────
+    const [deferredPrompt, setDeferredPrompt] = useState(null);
+    const [installSnackbarOpen, setInstallSnackbarOpen] = useState(false);
+
+    useEffect(() => {
+        const handler = (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+
+        window.addEventListener('appinstalled', () => {
+            setDeferredPrompt(null);
+        });
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handler);
+        };
+    }, []);
+
+    const handleInstallClick = async () => {
+        haptic('action');
+        if (!deferredPrompt) {
+            // If prompt not available (already installed or not supported), show info snackbar
+            setInstallSnackbarOpen(true);
+            return;
+        }
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
+    // ───────────────────────────────────────────────────────────────────────────
 
     const open = Boolean(anchorEl);
     const notificationsOpen = Boolean(notificationsAnchorEl);
@@ -468,7 +498,6 @@ function AppLayout() {
                         animation-delay: 0.06s;
                     }
 
-                    /* Scale feedback on active press for the pill itself */
                     .nearzo-bottom-nav-item:active .nearzo-active-pill {
                         transform: scale(0.93) !important;
                         transition: transform 0.08s ease !important;
@@ -511,7 +540,6 @@ function AppLayout() {
                                     key={item.label}
                                     className="nearzo-bottom-nav-item"
                                     onClick={() => {
-                                        // Already active → lighter tap, switching → select pulse
                                         haptic(active ? 'tap' : 'select');
                                         navigate(item.path);
                                     }}
@@ -617,6 +645,61 @@ function AppLayout() {
                 />
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+
+                    {/* ── Download Now / Install PWA button ── */}
+                    {/* <Button
+                        size="small"
+                        startIcon={<DownloadIcon sx={{ fontSize: '0.95rem !important' }} />}
+                        onClick={handleInstallClick}
+                        sx={{
+                            textTransform: 'none',
+                            fontFamily: '"Inter", sans-serif',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            color: '#325fec',
+                            bgcolor: '#f0f4ff',
+                            border: '1px solid #d6e0ff',
+                            borderRadius: '10px',
+                            px: 1.5,
+                            py: 0.6,
+                            mr: 0.5,
+                            whiteSpace: 'nowrap',
+                            boxShadow: 'none',
+                            '&:hover': {
+                                bgcolor: '#e3eaff',
+                                boxShadow: 'none',
+                            },
+                            '&:active': {
+                                transform: 'scale(0.93)',
+                            },
+                            transition: 'all 0.15s ease',
+                            // Hide on very small screens, show from sm up
+                            display: { xs: 'none', sm: 'flex' },
+                        }}
+                    >
+                        Download Now
+                    </Button> */}
+
+                    {/* Download icon-only on xs */}
+                    <IconButton
+                        size="small"
+                        onClick={handleInstallClick}
+                        sx={{
+                            width: 38, height: 38,
+                            borderRadius: '12px',
+                            color: '#325fec',
+                            bgcolor: '#f0f4ff',
+                            border: '1px solid #d6e0ff',
+                            '&:hover': { bgcolor: '#e3eaff' },
+                            '&:active': { transform: 'scale(0.88)' },
+                            transition: 'all 0.15s ease',
+                            display: { xs: 'flex', sm: 'none' },
+                            mr: 0.5,
+                        }}
+                    >
+                        <DownloadIcon sx={{ fontSize: '1.1rem' }} />
+                    </IconButton>
+
                     {/* Notification bell */}
                     <IconButton
                         size="small"
@@ -628,7 +711,6 @@ function AppLayout() {
                             bgcolor: '#f7f7f7',
                             '&:hover': { bgcolor: '#f0f4ff', color: '#325fec' },
                             transition: 'all 0.15s ease',
-                            // Visual press feedback
                             '&:active': { transform: 'scale(0.88)' },
                         }}
                     >
@@ -843,7 +925,6 @@ function AppLayout() {
                                     boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
                                     borderColor: '#c7d2fe',
                                 },
-                                // Press scale feedback
                                 '&:active': {
                                     transform: 'scale(0.97)',
                                     boxShadow: 'none',
@@ -1026,7 +1107,7 @@ function AppLayout() {
                 <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f8f9fa' }}>
                     {renderSidebar()}
 
-                    <Box component="main" sx={{ flexGrow: 1, bgcolor: '#f8f9fa', minWidth: 0 }}>
+                    <Box component="main" sx={{ flexGrow: 1, bgcolor: '#ffffff', minWidth: 0, minHeight: '100vh' }}>
                         <Box
                             sx={{
                                 height: TOP_BAR_HEIGHT,
@@ -1141,12 +1222,13 @@ function AppLayout() {
                     display: 'flex',
                     flexDirection: 'column',
                     minHeight: '100vh',
-                    bgcolor: '#f8f9fa',
+                    bgcolor: '#ffffff',
                     pb: `${BOTTOM_NAV_HEIGHT + 32}px`,
                 }}
             >
                 {renderTopBar()}
-                <Box sx={{ flex: 1 }}>
+                {/* ── Main content: full height + white background ── */}
+                <Box sx={{ flex: 1, minHeight: '100vh', bgcolor: '#ffffff' }}>
                     <Outlet />
                 </Box>
             </Box>
@@ -1154,6 +1236,24 @@ function AppLayout() {
             {renderBottomNav()}
             {renderNotificationDialog()}
             {renderLogoutDialog()}
+
+            {/* ── PWA install not-supported snackbar ── */}
+            <Snackbar
+                open={installSnackbarOpen}
+                autoHideDuration={3500}
+                onClose={() => setInstallSnackbarOpen(false)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                message="App is already installed or not supported on this browser"
+                ContentProps={{
+                    sx: {
+                        fontFamily: '"Inter", sans-serif',
+                        fontSize: '0.82rem',
+                        borderRadius: '12px',
+                        bgcolor: '#1a1a1a',
+                        mb: `${BOTTOM_NAV_HEIGHT + 16}px`,
+                    }
+                }}
+            />
         </>
     );
 }
