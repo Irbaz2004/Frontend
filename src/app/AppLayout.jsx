@@ -681,7 +681,7 @@ function AppLayout() {
                     </Button> */}
 
                     {/* Download icon-only on xs */}
-                    <IconButton
+                    {/* <IconButton
                         size="small"
                         onClick={handleInstallClick}
                         sx={{
@@ -698,7 +698,7 @@ function AppLayout() {
                         }}
                     >
                         <DownloadIcon sx={{ fontSize: '1.1rem' }} />
-                    </IconButton>
+                    </IconButton> */}
 
                     {/* Notification bell */}
                     <IconButton
