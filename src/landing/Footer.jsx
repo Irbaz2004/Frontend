@@ -1,287 +1,376 @@
-import React, { useEffect, useRef } from 'react';
-import { Box, Container, Typography, Stack, IconButton, Link, Divider, Grid } from '@mui/material';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    Box, Container, Typography, Stack, IconButton,
+    Link, Divider, Grid, Snackbar, Alert
+} from '@mui/material';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import GetAppIcon from '@mui/icons-material/GetApp';
+import AppleIcon from '@mui/icons-material/Apple';
 import gsap from 'gsap';
 import nearzologo from '../assets/nearzologo.png';
+import usePWAInstall from '../hooks/usePWAInstall';
 
 const Footer = () => {
-  const radarRef = useRef(null);
-  const cornerRadarRef = useRef(null);
+    const radarRef = useRef(null);
+    const cornerRadarRef = useRef(null);
+    const { deferredPrompt, isInstalled, isIOS } = usePWAInstall();
+    const [showIOSGuide, setShowIOSGuide] = useState(false);
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
-  useEffect(() => {
-    // Radar sweep animation
-    if (radarRef.current) {
-      gsap.to(radarRef.current, {
-        rotation: 360,
-        duration: 4,
-        repeat: -1,
-        ease: "none",
-        transformOrigin: "center center"
-      });
-    }
+    useEffect(() => {
+        if (radarRef.current) {
+            gsap.to(radarRef.current, {
+                rotation: 360, duration: 4, repeat: -1,
+                ease: "none", transformOrigin: "center center"
+            });
+        }
+        if (cornerRadarRef.current) {
+            gsap.to(cornerRadarRef.current, {
+                rotation: -360, duration: 5, repeat: -1,
+                ease: "none", transformOrigin: "center center"
+            });
+        }
+    }, []);
 
-    if (cornerRadarRef.current) {
-      gsap.to(cornerRadarRef.current, {
-        rotation: -360,
-        duration: 5,
-        repeat: -1,
-        ease: "none",
-        transformOrigin: "center center"
-      });
-    }
-  }, []);
+    const handleInstall = async () => {
+        if (isInstalled) {
+            setSnackbar({ open: true, message: 'NearZO is already installed!', severity: 'info' });
+            return;
+        }
+        if (isIOS) {
+            setShowIOSGuide(true);
+            return;
+        }
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            setSnackbar({
+                open: true,
+                message: outcome === 'accepted' ? '🎉 NearZO installed!' : 'Installation cancelled.',
+                severity: outcome === 'accepted' ? 'success' : 'warning'
+            });
+        } else {
+            setSnackbar({
+                open: true,
+                message: 'Open in Chrome → tap ⋮ menu → "Add to Home Screen"',
+                severity: 'info'
+            });
+        }
+    };
 
-  const socialLinks = [
-    { icon: FacebookIcon, label: 'Facebook' },
-    { icon: InstagramIcon, label: 'Instagram' },
-    { icon: LinkedInIcon, label: 'LinkedIn' },
-    { icon: TwitterIcon, label: 'Twitter' }
-  ];
+    // Expose globally so other components can trigger install too
+    useEffect(() => {
+        window.__triggerPWAInstall = handleInstall;
+        return () => { delete window.__triggerPWAInstall; };
+    }, [deferredPrompt, isInstalled, isIOS]);
 
-  return (
-    <Box
-      component="footer"
-      sx={{
-        bgcolor: '#ffffff',
-        pt: { xs: 6, md: 10 },
-        pb: 4,
-        borderTop: '1px solid rgba(50, 95, 236, 0.08)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}
-    >
-   
+    const socialLinks = [
+        { icon: FacebookIcon, label: 'Facebook' },
+        { icon: InstagramIcon, label: 'Instagram' },
+        { icon: LinkedInIcon, label: 'LinkedIn' },
+        { icon: TwitterIcon, label: 'Twitter' }
+    ];
 
-      {/* Concentric Circles with Radar in Top-Right Corner */}
-      <Box sx={{
-        position: 'absolute',
-        top: '-80px',
-        right: '-80px',
-        width: '280px',
-        height: '280px',
-        borderRadius: '50%',
-        zIndex: 0,
-      }}>
-  
-        
-      
+    const getDownloadLabel = () => {
+        if (isInstalled) return 'Already Installed ✓';
+        if (isIOS) return 'Add to Home Screen';
+        if (deferredPrompt) return 'Install App';
+        return 'Download Now';
+    };
 
-     
+    return (
+        <>
+            <Box
+                component="footer"
+                sx={{
+                    bgcolor: '#ffffff',
+                    pt: { xs: 6, md: 10 },
+                    pb: 4,
+                    borderTop: '1px solid rgba(50, 95, 236, 0.08)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                }}
+            >
+                <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+                    <Grid container spacing={{ xs: 4, md: 8 }} sx={{ mb: 6 }}>
+                        {/* Logo & About */}
+                        <Grid item xs={12} md={6}>
+                            <Stack spacing={{ xs: 2, md: 3 }}>
+                                <img src={nearzologo} style={{ height: '35px', width: '130px' }} alt="NearZO Logo" />
+                                <Typography sx={{
+                                    color: '#5a6e8a',
+                                    maxWidth: 400,
+                                    fontSize: { xs: '0.85rem', sm: '1rem' },
+                                    lineHeight: 1.6,
+                                    fontFamily: '"Inter", sans-serif',
+                                }}>
+                                    A hyper-local platform connecting job seekers, shops, and services.
+                                    Building stronger communities through instant local discovery.
+                                </Typography>
+                                <Stack direction="row" spacing={1.5}>
+                                    {socialLinks.map((social, i) => (
+                                        <IconButton
+                                            key={i}
+                                            aria-label={social.label}
+                                            sx={{
+                                                bgcolor: 'rgba(50, 95, 236, 0.05)',
+                                                color: '#666',
+                                                p: { xs: 1, sm: 1.5 },
+                                                transition: 'all 0.3s ease',
+                                                '&:hover': {
+                                                    bgcolor: '#325fec',
+                                                    color: 'white',
+                                                    transform: 'translateY(-3px)',
+                                                    boxShadow: '0 5px 15px rgba(50, 95, 236, 0.3)'
+                                                }
+                                            }}
+                                        >
+                                            <social.icon sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />
+                                        </IconButton>
+                                    ))}
+                                </Stack>
+                            </Stack>
+                        </Grid>
 
-      </Box>
+                        {/* Quick Links */}
+                        <Grid item xs={6} md={3}>
+                            <Typography variant="h6" fontWeight={800} sx={{
+                                mb: 2,
+                                fontFamily: '"Inter", sans-serif',
+                                fontSize: { xs: '0.9rem', sm: '1.1rem' },
+                                color: '#020402'
+                            }}>
+                                Quick Links
+                            </Typography>
+                            <Stack spacing={1.5}>
+                                {['About Us', 'How It Works', 'Contact Support', 'FAQ'].map((link) => (
+                                    <Link key={link} href="#" underline="none" sx={{
+                                        color: '#5a6e8a',
+                                        fontSize: { xs: '0.75rem', sm: '0.9rem' },
+                                        fontFamily: '"Inter", sans-serif',
+                                        transition: 'all 0.2s ease',
+                                        '&:hover': {
+                                            color: '#325fec',
+                                            transform: 'translateX(5px)',
+                                            display: 'inline-block'
+                                        }
+                                    }}>
+                                        {link}
+                                    </Link>
+                                ))}
+                            </Stack>
+                        </Grid>
 
- 
+                        {/* Legal Links */}
+                        <Grid item xs={6} md={3}>
+                            <Typography variant="h6" fontWeight={800} sx={{
+                                mb: 2,
+                                fontFamily: '"Inter", sans-serif',
+                                fontSize: { xs: '0.9rem', sm: '1.1rem' },
+                                color: '#020402'
+                            }}>
+                                Legal
+                            </Typography>
+                            <Stack spacing={1.5}>
+                                {['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'GDPR Compliance'].map((link) => (
+                                    <Link key={link} href="#" underline="none" sx={{
+                                        color: '#5a6e8a',
+                                        fontSize: { xs: '0.75rem', sm: '0.9rem' },
+                                        fontFamily: '"Inter", sans-serif',
+                                        transition: 'all 0.2s ease',
+                                        '&:hover': {
+                                            color: '#325fec',
+                                            transform: 'translateX(5px)',
+                                            display: 'inline-block'
+                                        }
+                                    }}>
+                                        {link}
+                                    </Link>
+                                ))}
+                            </Stack>
+                        </Grid>
+                    </Grid>
 
-      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-        <Grid container spacing={{ xs: 4, md: 8 }} sx={{ mb: 6 }}>
-          {/* Logo & About */}
-          <Grid item xs={12} md={6}>
-            <Stack spacing={{ xs: 2, md: 3 }}>
-            <img src={nearzologo} style={{height:'35px',width:'130px'}} alt="NearZO Logo" />
-              <Typography sx={{
-                color: '#5a6e8a',
-                maxWidth: 400,
-                fontSize: { xs: '0.85rem', sm: '1rem' },
-                lineHeight: 1.6,
-                fontFamily: '"Inter", sans-serif',
-              }}>
-                A hyper-local platform connecting job seekers, shops, and services.
-                Building stronger communities through instant local discovery.
-              </Typography>
-              <Stack direction="row" spacing={1.5}>
-                {socialLinks.map((social, i) => (
-                  <IconButton
-                    key={i}
-                    aria-label={social.label}
-                    sx={{
-                      bgcolor: 'rgba(50, 95, 236, 0.05)',
-                      color: '#666',
-                      p: { xs: 1, sm: 1.5 },
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        bgcolor: '#325fec',
-                        color: 'white',
-                        transform: 'translateY(-3px)',
-                        boxShadow: '0 5px 15px rgba(50, 95, 236, 0.3)'
-                      }
-                    }}
-                  >
-                    <social.icon sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />
-                  </IconButton>
-                ))}
-              </Stack>
-            </Stack>
-          </Grid>
+                    <Divider sx={{ mb: 4, opacity: 0.5, borderColor: 'rgba(50, 95, 236, 0.1)' }} />
 
-          {/* Quick Links */}
-          <Grid item xs={6} md={3}>
-            <Typography variant="h6" fontWeight={800} sx={{
-              mb: 2,
-              fontFamily: '"Inter", sans-serif',
-              fontSize: { xs: '0.9rem', sm: '1.1rem' },
-              color: '#020402'
-            }}>
-              Quick Links
-            </Typography>
-            <Stack spacing={1.5}>
-              {['About Us', 'How It Works', 'Contact Support', 'FAQ'].map((link) => (
-                <Link key={link} href="#" underline="none" sx={{
-                  color: '#5a6e8a',
-                  fontSize: { xs: '0.75rem', sm: '0.9rem' },
-                  fontFamily: '"Inter", sans-serif',
-                  transition: 'all 0.2s ease',
-                  '&:hover': { 
-                    color: '#325fec',
-                    transform: 'translateX(5px)',
-                    display: 'inline-block'
-                  }
-                }}>
-                  {link}
-                </Link>
-              ))}
-            </Stack>
-          </Grid>
+                    <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        justifyContent="space-between"
+                        alignItems="center"
+                        spacing={2}
+                        textAlign="center"
+                    >
+                        <Typography sx={{
+                            color: '#5a6e8a',
+                            fontSize: { xs: '0.7rem', sm: '0.85rem' },
+                            fontFamily: '"Inter", sans-serif',
+                        }}>
+                            © {new Date().getFullYear()} <b style={{ color: '#325fec' }}>NearZO</b>. All rights reserved.
+                        </Typography>
+                        <Typography variant="caption" sx={{
+                            color: '#aaa',
+                            fontStyle: 'italic',
+                            fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                            fontFamily: '"Inter", sans-serif',
+                            '& b': { color: '#325fec', fontWeight: 800 }
+                        }}>
+                            A product by <b>Ruzix</b>
+                        </Typography>
+                    </Stack>
 
-          {/* Legal Links */}
-          <Grid item xs={6} md={3}>
-            <Typography variant="h6" fontWeight={800} sx={{
-              mb: 2,
-              fontFamily: '"Inter", sans-serif',
-              fontSize: { xs: '0.9rem', sm: '1.1rem' },
-              color: '#020402'
-            }}>
-              Legal
-            </Typography>
-            <Stack spacing={1.5}>
-              {['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'GDPR Compliance'].map((link) => (
-                <Link key={link} href="#" underline="none" sx={{
-                  color: '#5a6e8a',
-                  fontSize: { xs: '0.75rem', sm: '0.9rem' },
-                  fontFamily: '"Inter", sans-serif',
-                  transition: 'all 0.2s ease',
-                  '&:hover': { 
-                    color: '#325fec',
-                    transform: 'translateX(5px)',
-                    display: 'inline-block'
-                  }
-                }}>
-                  {link}
-                </Link>
-              ))}
-            </Stack>
-          </Grid>
-        </Grid>
+                    {/* App Download — Mobile Only */}
+                    <Box sx={{ display: { xs: 'block', md: 'none' }, mt: 4, textAlign: 'center' }}>
+                        <Typography variant="body2" sx={{
+                            color: '#5a6e8a', mb: 2,
+                            fontSize: { xs: '0.7rem', sm: '0.85rem' },
+                            fontFamily: '"Inter", sans-serif',
+                        }}>
+                            Experience NearZO on your mobile.
+                        </Typography>
+                        <Box
+                            onClick={handleInstall}
+                            sx={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 1.5,
+                                px: { xs: 2, sm: 3 },
+                                py: { xs: 1, sm: 1.5 },
+                                bgcolor: isInstalled ? 'rgba(50,95,236,0.08)' : '#ffffff',
+                                color: '#325fec',
+                                borderRadius: '100px',
+                                cursor: isInstalled ? 'default' : 'pointer',
+                                transition: '0.3s',
+                                border: '1px solid rgba(50, 95, 236, 0.2)',
+                                '&:hover': isInstalled ? {} : {
+                                    bgcolor: '#325fec',
+                                    transform: 'translateY(-3px)',
+                                    color: 'white',
+                                    boxShadow: '0 10px 20px rgba(50, 95, 236, 0.25)'
+                                }
+                            }}
+                        >
+                            {isIOS
+                                ? <AppleIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />
+                                : <GetAppIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />
+                            }
+                            <Typography sx={{
+                                fontWeight: 700,
+                                fontSize: { xs: '0.75rem', sm: '0.9rem' },
+                                whiteSpace: 'nowrap',
+                                color: 'inherit',
+                                fontFamily: '"Inter", sans-serif',
+                            }}>
+                                {getDownloadLabel()}
+                            </Typography>
+                        </Box>
+                    </Box>
+                </Container>
 
-        <Divider sx={{ mb: 4, opacity: 0.5, borderColor: 'rgba(50, 95, 236, 0.1)' }} />
+                {/* iOS Guide Modal */}
+                {showIOSGuide && (
+                    <Box
+                        onClick={() => setShowIOSGuide(false)}
+                        sx={{
+                            position: 'fixed', inset: 0,
+                            bgcolor: 'rgba(0,0,0,0.6)',
+                            zIndex: 9999,
+                            display: 'flex',
+                            alignItems: 'flex-end',
+                            justifyContent: 'center',
+                            pb: 4,
+                        }}
+                    >
+                        <Box
+                            onClick={(e) => e.stopPropagation()}
+                            sx={{
+                                bgcolor: '#fff',
+                                borderRadius: '24px',
+                                p: 4,
+                                maxWidth: '380px',
+                                width: '90%',
+                                textAlign: 'center',
+                                boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                            }}
+                        >
+                            <Typography variant="h6" fontWeight={700} mb={1} color="#325fec">
+                                Add NearZO to Home Screen
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" mb={3}>
+                                iOS doesn't support automatic install. Follow these steps:
+                            </Typography>
+                            {[
+                                { step: '1', text: 'Tap the Share button (↑) at the bottom of Safari' },
+                                { step: '2', text: 'Scroll down and tap "Add to Home Screen"' },
+                                { step: '3', text: 'Tap "Add" in the top right corner' },
+                            ].map(({ step, text }) => (
+                                <Box key={step} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, textAlign: 'left' }}>
+                                    <Box sx={{
+                                        minWidth: 32, height: 32,
+                                        bgcolor: '#325fec',
+                                        borderRadius: '50%',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        color: '#fff', fontWeight: 700, fontSize: '0.85rem',
+                                    }}>
+                                        {step}
+                                    </Box>
+                                    <Typography variant="body2" color="text.primary">{text}</Typography>
+                                </Box>
+                            ))}
+                            <Box
+                                onClick={() => setShowIOSGuide(false)}
+                                sx={{
+                                    mt: 2,
+                                    px: 4, py: 1.5,
+                                    bgcolor: '#325fec',
+                                    color: '#fff',
+                                    borderRadius: '50px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    fontFamily: '"Inter", sans-serif',
+                                    fontSize: '0.95rem',
+                                    display: 'inline-block',
+                                    '&:hover': { bgcolor: '#1a4ad4' }
+                                }}
+                            >
+                                Got it!
+                            </Box>
+                        </Box>
+                    </Box>
+                )}
 
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          justifyContent="space-between"
-          alignItems="center"
-          spacing={2}
-          textAlign="center"
-        >
-          <Typography sx={{ 
-            color: '#5a6e8a', 
-            fontSize: { xs: '0.7rem', sm: '0.85rem' },
-            fontFamily: '"Inter", sans-serif',
-          }}>
-            © {new Date().getFullYear()} <b style={{ color: '#325fec' }}>NearZO</b>. All rights reserved.
-          </Typography>
-          <Typography variant="caption" sx={{ 
-            color: '#aaa', 
-            fontStyle: 'italic', 
-            fontSize: { xs: '0.65rem', sm: '0.75rem' },
-            fontFamily: '"Inter", sans-serif',
-            '& b': {
-              color: '#325fec',
-              fontWeight: 800
-            }
-          }}>
-            A product by <b>Ruzix</b>
-          </Typography>
-        </Stack>
+                <style>{`
+                    @keyframes rotateFooter {
+                        from { transform: translate(-50%, -50%) rotate(0deg); }
+                        to   { transform: translate(-50%, -50%) rotate(360deg); }
+                    }
+                    @keyframes radarPulseFooter {
+                        0%   { box-shadow: 0 0 0 0 rgba(50, 95, 236, 0.3); }
+                        70%  { box-shadow: 0 0 0 40px rgba(50, 95, 236, 0); }
+                        100% { box-shadow: 0 0 0 0 rgba(50, 95, 236, 0); }
+                    }
+                `}</style>
+            </Box>
 
-        {/* App Download Section */}
-        <Box sx={{
-          display: { xs: 'block', md: 'none' },
-          mt: 4,
-          textAlign: 'center'
-        }}>
-          <Typography variant="body2" sx={{
-            color: '#5a6e8a',
-            mb: 2,
-            fontSize: { xs: '0.7rem', sm: '0.85rem' },
-            fontFamily: '"Inter", sans-serif',
-          }}>
-            Experience NearZO on your mobile.
-          </Typography>
-          <Box
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 1.5,
-              px: { xs: 2, sm: 3 },
-              py: { xs: 1, sm: 1.5 },
-              bgcolor: '#ffffff',
-              color: '#325fec',
-              borderRadius: '100px',
-              cursor: 'pointer',
-              transition: '0.3s',
-              border: '1px solid rgba(50, 95, 236, 0.2)',
-              '&:hover': {
-                bgcolor: '#325fec',
-                transform: 'translateY(-3px)',
-                color: 'white',
-                boxShadow: '0 10px 20px rgba(50, 95, 236, 0.25)'
-              }
-            }}
-            onClick={() => window.__triggerPWAInstall && window.__triggerPWAInstall()}
-          >
-            <GetAppIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />
-            <Typography sx={{
-              fontWeight: 700,
-              fontSize: { xs: '0.75rem', sm: '0.9rem' },
-              whiteSpace: 'nowrap',
-              color: 'inherit',
-              fontFamily: '"Inter", sans-serif',
-            }}>
-              Download Now
-            </Typography>
-          </Box>
-        </Box>
-      </Container>
-
-      <style>
-        {`
-          @keyframes rotateFooter {
-            from {
-              transform: translate(-50%, -50%) rotate(0deg);
-            }
-            to {
-              transform: translate(-50%, -50%) rotate(360deg);
-            }
-          }
-          
-          @keyframes radarPulseFooter {
-            0% {
-              box-shadow: 0 0 0 0 rgba(50, 95, 236, 0.3);
-            }
-            70% {
-              box-shadow: 0 0 0 40px rgba(50, 95, 236, 0);
-            }
-            100% {
-              box-shadow: 0 0 0 0 rgba(50, 95, 236, 0);
-            }
-          }
-        `}
-      </style>
-    </Box>
-  );
+            {/* Snackbar */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={() => setSnackbar(p => ({ ...p, open: false }))}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert
+                    severity={snackbar.severity}
+                    onClose={() => setSnackbar(p => ({ ...p, open: false }))}
+                    sx={{ borderRadius: '12px', fontFamily: '"Inter", sans-serif' }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
+        </>
+    );
 };
 
 export default Footer;
