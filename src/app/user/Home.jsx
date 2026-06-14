@@ -37,6 +37,10 @@ import 'slick-carousel/slick/slick-theme.css';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import HomeWorkIcon from '@mui/icons-material/HomeWork';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
+import shopImagePlaceholder from '../../assets/shop.png';
+import houseImagePlaceholder from '../../assets/house.png';
+import jobImagePlaceholder from '../../assets/job.png';
+import mapImagePlaceholder from '../../assets/map.png';
 
 const formatPrice = (price) =>
     new Intl.NumberFormat('en-IN', {
@@ -81,18 +85,21 @@ const FeatureHighlightsStrip = () => {
 
     return (
         <Box sx={{
-            bgcolor: '#325fec',
-            px: { xs: 2, sm: 3 },
-            py: '11px',
+            mx: { xs: 2, sm: 3, md: 4 },
+            mt: 1,
+            borderRadius: '14px',
+            overflow: 'hidden',
+            background: 'linear-gradient(135deg, #1a45c8 0%, #325fec 55%, #4f78f5 100%)',
+            boxShadow: '0 6px 24px rgba(50,95,236,0.35)',
+            px: { xs: 2, sm: 2.5 },
+            py: '13px',
             display: 'flex', alignItems: 'center', gap: '10px',
-            overflow: 'hidden', position: 'relative',
-            mt:1
+            position: 'relative',
         }}>
-            <Box sx={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%)',
-                pointerEvents: 'none',
-            }} />
+            {/* Decorative circles — same as BoostBanner */}
+            <Box sx={{ position: 'absolute', right: -20, top: -20, width: 110, height: 110, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', pointerEvents: 'none' }} />
+            <Box sx={{ position: 'absolute', right: 30, bottom: -28, width: 70, height: 70, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+            <Box sx={{ position: 'absolute', left: -15, bottom: -15, width: 60, height: 60, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
 
             {FEATURE_HIGHLIGHTS.map((f, i) => {
                 const Icon = f.icon;
@@ -100,7 +107,7 @@ const FeatureHighlightsStrip = () => {
                     <Box key={i} sx={{
                         display: i === active ? 'flex' : 'none',
                         alignItems: 'center', gap: '10px',
-                        flex: 1, minWidth: 0,
+                        flex: 1, minWidth: 0, position: 'relative', zIndex: 1,
                         animation: 'featureSlideIn 0.38s cubic-bezier(0.22,1,0.36,1)',
                     }}>
                         <Box sx={{
@@ -134,7 +141,7 @@ const FeatureHighlightsStrip = () => {
             })}
 
             {/* Dot indicators */}
-            <Box sx={{ display: 'flex', gap: '4px', flexShrink: 0, ml: 'auto' }}>
+            <Box sx={{ display: 'flex', gap: '4px', flexShrink: 0, ml: 'auto', position: 'relative', zIndex: 1 }}>
                 {FEATURE_HIGHLIGHTS.map((_, i) => (
                     <Box key={i} onClick={() => setActive(i)} sx={{
                         width: i === active ? 16 : 5, height: 5, borderRadius: '3px',
@@ -448,75 +455,132 @@ const JobCard = ({ job, onClick, index = 0 }) => (
     </Box>
 );
 
-// ── Feature Grid ──────────────────────────────────────────────────────────────
-const FeatureGrid = ({ onNavigate }) => {
-    const items = [
-        {
-            label: 'Shop Finder', sub: 'Discover local stores', color: '#325fec',
-            bg: 'linear-gradient(135deg, #EBF3FF 0%, #D6E8FF 100%)',
-            icon: StorefrontIcon, route: '/app/shops',
-        },
-        {
-            label: 'Rent a Home', sub: 'PGs & flats near you', color: T.green,
-            bg: 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)',
-            icon: HomeWorkIcon, route: '/app/houses',
-        },
-        {
-            label: 'Get Hired', sub: 'Browse local openings', color: '#E65100',
-            bg: 'linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%)',
-            icon: WorkOutlineIcon, route: '/app/jobs',
-        },
-        {
-            label: 'Map View', sub: 'Explore listings on map', color: '#7B1FA2',
-            bg: 'linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%)',
-            icon: MapIcon, route: '/map',
-        },
-    ];
-    return (
-        <Box sx={{
-            px: { xs: 2, sm: 3, md: 4 },
-            py: 1.5,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: { xs: 1.2, sm: 1.5 },
-        }}>
-            {items.map((item) => {
-                const Icon = item.icon;
-                return (
-                    <Box
-                        key={item.label}
-                        onClick={() => item.route && onNavigate(item.route)}
-                        sx={{
-                            borderRadius: '12px',
-                            p: { xs: '13px 11px', sm: '16px 14px' },
-                            background: item.bg, cursor: 'pointer',
-                            border: `1.5px solid ${item.color}22`,
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                            transition: 'transform 0.15s, box-shadow 0.15s',
-                            '&:active': { transform: 'scale(0.96)' },
-                            '&:hover': { boxShadow: '0 4px 14px rgba(0,0,0,0.1)' },
-                        }}
-                    >
-                        <Icon sx={{ fontSize: { xs: '1.35rem', sm: '1.5rem' }, color: item.color, mb: 0.8 }} />
-                        <Typography sx={{
-                            fontFamily: '"Inter", sans-serif', fontWeight: 800,
-                            fontSize: { xs: '0.84rem', sm: '0.9rem' },
-                            color: T.text, lineHeight: 1.2, mb: 0.2,
+// ── Feature Grid (background image + frosted glass) ───────────────────────────
+const GRID_ITEMS = [
+    {
+        label: 'Shop Finder',
+        sub: 'Discover local stores',
+        icon: StorefrontIcon,
+        route: '/app/shops',
+        img: shopImagePlaceholder,
+        accent: '#325fec',
+    },
+    {
+        label: 'Rent a Home',
+        sub: 'PGs & flats near you',
+        icon: HomeWorkIcon,
+        route: '/app/houses',
+        img: houseImagePlaceholder,
+        accent: '#388E3C',
+    },
+    {
+        label: 'Get Hired',
+        sub: 'Browse local openings',
+        icon: WorkOutlineIcon,
+        route: '/app/jobs',
+        img: jobImagePlaceholder,
+        accent: '#E65100',
+    },
+    {
+        label: 'Map View',
+        sub: 'Explore listings on map',
+        icon: MapIcon,
+        route: '/map',
+        img: mapImagePlaceholder,
+        accent: '#7B1FA2',
+    },
+];
+
+const FeatureGrid = ({ onNavigate }) => (
+    <Box sx={{
+        px: { xs: 2, sm: 3, md: 4 },
+        py: 1.5,
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: { xs: 1.2, sm: 1.5 },
+    }}>
+        {GRID_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+                <Box
+                    key={item.label}
+                    onClick={() => item.route && onNavigate(item.route)}
+                    sx={{
+                        borderRadius: '14px',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        cursor: 'pointer',
+                        height: { xs: 110, sm: 130 },
+                        // background image
+                        backgroundImage: `url(${item.img})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        boxShadow: '0 3px 12px rgba(0,0,0,0.18)',
+                        transition: 'transform 0.15s, box-shadow 0.15s',
+                        '&:active': { transform: 'scale(0.96)' },
+                        '&:hover': { boxShadow: '0 6px 20px rgba(0,0,0,0.26)' },
+                    }}
+                >
+                    {/* Frosted glass overlay */}
+                    <Box sx={{
+                        position: 'absolute', inset: 0,
+                        backdropFilter: 'blur(3px) brightness(0.55)',
+                        WebkitBackdropFilter: 'blur(3px) brightness(0.55)',
+                        bgcolor: 'rgba(0,0,0,0.03)',
+                    }} />
+
+                    {/* Accent bottom bar */}
+                    <Box sx={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                        height: 3,
+                        background: `linear-gradient(90deg, ${item.accent}, transparent)`,
+                    }} />
+
+                    {/* Content */}
+                    <Box sx={{
+                        position: 'relative', zIndex: 1,
+                        p: { xs: '13px 11px', sm: '15px 14px' },
+                        height: '100%',
+                        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                    }}>
+                        {/* Icon pill */}
+                        <Box sx={{
+                            width: 34, height: 34, borderRadius: '10px',
+                            bgcolor: 'rgba(255,255,255,0.18)',
+                            backdropFilter: 'blur(6px)',
+                            WebkitBackdropFilter: 'blur(6px)',
+                            border: '1px solid rgba(255,255,255,0.32)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
-                            {item.label}
-                        </Typography>
-                        <Typography sx={{
-                            fontFamily: '"Inter", sans-serif', fontSize: { xs: '0.62rem', sm: '0.67rem' },
-                            color: T.textSub, lineHeight: 1.3,
-                        }}>
-                            {item.sub}
-                        </Typography>
+                            <Icon sx={{ fontSize: { xs: '1.05rem', sm: '1.15rem' }, color: '#fff' }} />
+                        </Box>
+
+                        {/* Labels */}
+                        <Box>
+                            <Typography sx={{
+                                fontFamily: '"Inter", sans-serif', fontWeight: 800,
+                                fontSize: { xs: '0.84rem', sm: '0.9rem' },
+                                color: '#fff', lineHeight: 1.2, mb: 0.2,
+                                textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                            }}>
+                                {item.label}
+                            </Typography>
+                            <Typography sx={{
+                                fontFamily: '"Inter", sans-serif',
+                                fontSize: { xs: '0.6rem', sm: '0.65rem' },
+                                color: 'rgba(255,255,255,0.82)',
+                                lineHeight: 1.3,
+                                textShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                            }}>
+                                {item.sub}
+                            </Typography>
+                        </Box>
                     </Box>
-                );
-            })}
-        </Box>
-    );
-};
+                </Box>
+            );
+        })}
+    </Box>
+);
 
 // ── Boost Banner (#325fec, no Learn More button) ──────────────────────────────
 const BoostBanner = ({ onLearnMore }) => (
@@ -874,7 +938,7 @@ export default function Home() {
                     onRefresh={() => setLocationDialogOpen(true)}
                 />
 
-                {/* 2 ── Ad Slider — tall on desktop, proportional on mobile */}
+                {/* 2 ── Ad Slider */}
                 {homeData.ads?.length > 0 && (
                     <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pb: 0 }}>
                         <Box sx={{
