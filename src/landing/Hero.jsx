@@ -1,14 +1,14 @@
+// Hero.jsx
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Container, Typography, Button, Grid, Stack, Snackbar, Alert } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { Box, Container, Typography, Button, Grid, Stack } from '@mui/material';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import HomeIcon from '@mui/icons-material/Home';
 import WorkIcon from '@mui/icons-material/Work';
 import LocalMallIcon from '@mui/icons-material/LocalMall';
-import AppleIcon from '@mui/icons-material/Apple';
-import GetAppIcon from '@mui/icons-material/GetApp';
+import LoginIcon from '@mui/icons-material/Login';
 import radar from '../assets/Radar.gif';
-import usePWAInstall from '../hooks/usePWAInstall';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -18,10 +18,8 @@ const Hero = () => {
     const mobilePhoneRef = useRef(null);
     const [tagsVisible, setTagsVisible] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-    const [showIOSGuide, setShowIOSGuide] = useState(false);
-    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
-    const { deferredPrompt, isInstalled, isIOS } = usePWAInstall();
+    const navigate = useNavigate();
 
     // Mobile detection
     useEffect(() => {
@@ -74,37 +72,9 @@ const Hero = () => {
         return () => ctx.revert();
     }, [isMobile]);
 
-    const handleInstall = async () => {
-        if (isInstalled) {
-            setSnackbar({ open: true, message: 'NearZO is already installed!', severity: 'info' });
-            return;
-        }
-        if (isIOS) {
-            setShowIOSGuide(true);
-            return;
-        }
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            setSnackbar({
-                open: true,
-                message: outcome === 'accepted' ? '🎉 NearZO installed successfully!' : 'Installation cancelled.',
-                severity: outcome === 'accepted' ? 'success' : 'warning'
-            });
-        } else {
-            setSnackbar({
-                open: true,
-                message: 'Open in Chrome → tap ⋮ → "Add to Home Screen"',
-                severity: 'info'
-            });
-        }
-    };
-
-    const getButtonLabel = () => {
-        if (isInstalled) return 'Already Installed ✓';
-        if (isIOS) return 'Add to Home Screen';
-        if (deferredPrompt) return 'Install App';
-        return 'Download App';
+    // Navigate to login page
+    const handleGetStarted = () => {
+        navigate('/app/login');
     };
 
     const FloatingTag = ({ icon, text, top, left, right, bottom, customSx }) => (
@@ -205,250 +175,167 @@ const Hero = () => {
     );
 
     return (
-        <>
-            <Box
-                ref={heroRef}
-                sx={{
-                    pt: { xs: 4, md: 12 },
-                    pb: { xs: 4, md: 12 },
-                    overflow: 'visible',
-                    position: 'relative',
-                    minHeight: { xs: 'auto', md: '100vh' },
-                    background: '#ffffff',
-                }}
-            >
-                {!isMobile && (
-                    <Box sx={{
-                        position: 'absolute', top: '50%', left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: '600px', height: '600px',
-                        opacity: 0.03, zIndex: 0, pointerEvents: 'none',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                        <img src="/logo.png" alt="NearZO Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                    </Box>
-                )}
+        <Box
+            ref={heroRef}
+            sx={{
+                pt: { xs: 4, md: 12 },
+                pb: { xs: 4, md: 12 },
+                overflow: 'visible',
+                position: 'relative',
+                minHeight: { xs: 'auto', md: '100vh' },
+                background: '#ffffff',
+            }}
+        >
+            {!isMobile && (
+                <Box sx={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '600px', height: '600px',
+                    opacity: 0.03, zIndex: 0, pointerEvents: 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <img src="/logo.png" alt="NearZO Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                </Box>
+            )}
 
-                <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, mt: { xs: 10, md: 0 } }}>
-                    <Grid container spacing={{ xs: 2, md: 4 }} alignItems="center">
-                        {/* Text Content */}
-                        <Grid item xs={12} md={6}>
-                            <Stack spacing={3}>
-                                <Box>
-                                    <Typography className="hero-text" variant="overline" sx={{
-                                        color: '#325fec', fontWeight: 900,
-                                        letterSpacing: { xs: '2px', md: '4px' },
-                                        mb: 1, display: 'block',
-                                        fontSize: { xs: '0.7rem', md: '0.9rem' },
-                                        fontFamily: '"Inter", sans-serif',
-                                    }}>
-                                        HYPER-LOCAL ECOSYSTEM
-                                    </Typography>
-                                    <Typography className="hero-text" variant="h1" sx={{
-                                        mb: 2,
-                                        fontSize: { xs: '2rem', sm: '2.5rem', md: '3.5rem' },
-                                        fontWeight: 'bold', lineHeight: 1.2,
-                                        position: 'relative', zIndex: 10,
-                                        color: '#020402', fontFamily: '"Inter", sans-serif',
-                                    }}>
-                                        Made Simple with,{' '}
-                                        <span style={{ color: '#325fec', fontFamily: '"Inter", sans-serif', fontWeight: 900, display: 'inline-block' }}>
-                                            NearZO
-                                        </span>
-                                    </Typography>
-                                    <Typography className="hero-text" variant="body1" sx={{
-                                        maxWidth: '550px',
-                                        fontSize: { xs: '0.9rem', md: '1.1rem' },
-                                        color: '#5a6e8a', lineHeight: 1.7,
-                                        position: 'relative', zIndex: 10,
-                                        pr: { xs: 2, md: 0 },
-                                        fontFamily: '"Inter", sans-serif',
-                                    }}>
-                                        NearZO is your all-in-one hyperlocal platform to find nearby jobs, hire local workers, and discover small shops around you.
-                                        Whether you're a job seeker, shop owner, or someone looking for daily needs like food, jobs, or house — NearZO connects you with real people in your neighborhood.
-                                    </Typography>
-                                </Box>
-
-                                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} className="hero-text">
-                                    {/* ── PWA Install Button ── */}
-                                    <Button
-                                        variant="contained"
-                                        size="large"
-                                        onClick={handleInstall}
-                                        disabled={isInstalled}
-                                        startIcon={isIOS ? <AppleIcon /> : <GetAppIcon />}
-                                        sx={{
-                                            px: { xs: 3, md: 5 },
-                                            py: { xs: 1.5, md: 2 },
-                                            borderRadius: '100px',
-                                            backgroundColor: '#325fec',
-                                            fontSize: { xs: '0.9rem', md: '1rem' },
-                                            fontFamily: '"Inter", sans-serif',
-                                            fontWeight: 700,
-                                            textTransform: 'none',
-                                            '&:hover': { backgroundColor: '#2548b0' },
-                                            '&:disabled': { backgroundColor: 'rgba(50,95,236,0.4)', color: '#fff' },
-                                        }}
-                                    >
-                                        {getButtonLabel()}
-                                    </Button>
-                                    <Button
-                                        variant="outlined"
-                                        size="large"
-                                        sx={{
-                                            px: { xs: 3, md: 5 },
-                                            py: { xs: 1.5, md: 2 },
-                                            borderRadius: '100px',
-                                            borderColor: '#325fec',
-                                            color: '#325fec',
-                                            borderWidth: '2px',
-                                            fontSize: { xs: '0.9rem', md: '1rem' },
-                                            backgroundColor: 'transparent',
-                                            fontFamily: '"Inter", sans-serif',
-                                            fontWeight: 600,
-                                            textTransform: 'none',
-                                            '&:hover': {
-                                                borderColor: '#2548b0',
-                                                backgroundColor: 'rgba(50, 95, 236, 0.05)',
-                                            }
-                                        }}
-                                    >
-                                        Explore Features
-                                    </Button>
-                                </Stack>
-                            </Stack>
-                        </Grid>
-
-                        {/* Phone - Right Side */}
-                        <Grid item xs={12} md={6} ml={{ xs: 23, md: 30 }}>
-                            {!isMobile ? (
-                                <Box ref={phoneContainerRef} sx={{
-                                    position: 'relative',
-                                    height: { xs: '400px', sm: '450px', md: '600px' },
-                                    width: '100%', mt: { xs: 4, md: 0 },
+            <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, mt: { xs: 10, md: 0 } }}>
+                <Grid container spacing={{ xs: 2, md: 4 }} alignItems="center">
+                    {/* Text Content */}
+                    <Grid item xs={12} md={6}>
+                        <Stack spacing={3}>
+                            <Box>
+                                <Typography className="hero-text" variant="overline" sx={{
+                                    color: '#325fec', fontWeight: 900,
+                                    letterSpacing: { xs: '2px', md: '4px' },
+                                    mb: 1, display: 'block',
+                                    fontSize: { xs: '0.7rem', md: '0.9rem' },
+                                    fontFamily: '"Inter", sans-serif',
                                 }}>
-                                    <FloatingTag icon={<HomeIcon />} text="Local Jobs" top="10%" left="15%" />
-                                    <FloatingTag icon={<LocalMallIcon />} text="Nearby Shops" top="45%" right="10%" left="auto" />
-                                    <FloatingTag icon={<WorkIcon />} text="Hire Locally" bottom="10%" left="20%" />
-                                    <PhoneFrame />
-                                </Box>
-                            ) : (
-                                <Box sx={{
-                                    position: 'relative', height: '550px',
-                                    width: '100%', mt: 2, mb: 2, overflow: 'visible',
+                                    HYPER-LOCAL ECOSYSTEM
+                                </Typography>
+                                <Typography className="hero-text" variant="h1" sx={{
+                                    mb: 2,
+                                    fontSize: { xs: '2rem', sm: '2.5rem', md: '3.5rem' },
+                                    fontWeight: 'bold', lineHeight: 1.2,
+                                    position: 'relative', zIndex: 10,
+                                    color: '#020402', fontFamily: '"Inter", sans-serif',
                                 }}>
-                                    <FloatingTag icon={<HomeIcon />} text="Local Jobs" top="10%" left="0%" customSx={{ zIndex: 9999, position: 'absolute' }} />
-                                    <FloatingTag icon={<LocalMallIcon />} text="Nearby Shops" top="35%" right="0%" left="auto" customSx={{ zIndex: 9999, position: 'absolute' }} />
-                                    <FloatingTag icon={<WorkIcon />} text="Hire Locally" bottom="10%" left="5%" customSx={{ zIndex: 9999, position: 'absolute' }} />
-                                    <PhoneFrame refProp={mobilePhoneRef} />
-                                </Box>
-                            )}
-                        </Grid>
-                    </Grid>
-                </Container>
-
-                {/* iOS Guide Modal */}
-                {showIOSGuide && (
-                    <Box
-                        onClick={() => setShowIOSGuide(false)}
-                        sx={{
-                            position: 'fixed', inset: 0,
-                            bgcolor: 'rgba(0,0,0,0.6)',
-                            zIndex: 9999,
-                            display: 'flex',
-                            alignItems: 'flex-end',
-                            justifyContent: 'center',
-                            pb: 4,
-                        }}
-                    >
-                        <Box
-                            onClick={(e) => e.stopPropagation()}
-                            sx={{
-                                bgcolor: '#fff', borderRadius: '24px',
-                                p: 4, maxWidth: '380px', width: '90%',
-                                textAlign: 'center',
-                                boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-                            }}
-                        >
-                            <Typography variant="h6" fontWeight={700} mb={1} color="#325fec">
-                                Add NearZO to Home Screen
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" mb={3}>
-                                iOS doesn't support automatic install. Follow these steps:
-                            </Typography>
-                            {[
-                                { step: '1', text: 'Tap the Share button (↑) at the bottom of Safari' },
-                                { step: '2', text: 'Scroll down and tap "Add to Home Screen"' },
-                                { step: '3', text: 'Tap "Add" in the top right corner' },
-                            ].map(({ step, text }) => (
-                                <Box key={step} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, textAlign: 'left' }}>
-                                    <Box sx={{
-                                        minWidth: 32, height: 32, bgcolor: '#325fec',
-                                        borderRadius: '50%', display: 'flex',
-                                        alignItems: 'center', justifyContent: 'center',
-                                        color: '#fff', fontWeight: 700, fontSize: '0.85rem',
-                                    }}>
-                                        {step}
-                                    </Box>
-                                    <Typography variant="body2" color="text.primary">{text}</Typography>
-                                </Box>
-                            ))}
-                            <Box
-                                onClick={() => setShowIOSGuide(false)}
-                                sx={{
-                                    mt: 2, px: 4, py: 1.5,
-                                    bgcolor: '#325fec', color: '#fff',
-                                    borderRadius: '50px', fontWeight: 700,
-                                    cursor: 'pointer', display: 'inline-block',
-                                    fontFamily: '"Inter", sans-serif', fontSize: '0.95rem',
-                                    '&:hover': { bgcolor: '#1a4ad4' }
-                                }}
-                            >
-                                Got it!
+                                    Made Simple with,{' '}
+                                    <span style={{ color: '#325fec', fontFamily: '"Inter", sans-serif', fontWeight: 900, display: 'inline-block' }}>
+                                        NearZO
+                                    </span>
+                                </Typography>
+                                <Typography className="hero-text" variant="body1" sx={{
+                                    maxWidth: '550px',
+                                    fontSize: { xs: '0.9rem', md: '1.1rem' },
+                                    color: '#5a6e8a', lineHeight: 1.7,
+                                    position: 'relative', zIndex: 10,
+                                    pr: { xs: 2, md: 0 },
+                                    fontFamily: '"Inter", sans-serif',
+                                }}>
+                                    NearZO is your all-in-one hyperlocal platform to find nearby jobs, hire local workers, and discover small shops around you.
+                                    Whether you're a job seeker, shop owner, or someone looking for daily needs like food, jobs, or house — NearZO connects you with real people in your neighborhood.
+                                </Typography>
                             </Box>
-                        </Box>
-                    </Box>
-                )}
 
-                <style>{`
-                    @media (max-width: 768px) {
-                        .floating-tag {
-                            min-width: 110px !important;
-                            padding: 8px 14px !important;
-                            z-index: 9999 !important;
-                            display: flex !important;
-                            visibility: visible !important;
-                            opacity: 1 !important;
-                            position: absolute !important;
-                            background: rgba(255, 255, 255, 0.98) !important;
-                            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
-                        }
-                    }
-                    @media (max-width: 480px) {
-                        .floating-tag { min-width: 100px !important; padding: 6px 12px !important; }
-                        .floating-tag .MuiTypography-root { font-size: 0.7rem !important; }
-                    }
-                    .MuiGrid-root { overflow: visible !important; }
-                    .MuiContainer-root { overflow: visible !important; }
-                `}</style>
-            </Box>
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} className="hero-text">
+                                {/* ── Get Started → /app/login ── */}
+                                <Button
+                                    variant="contained"
+                                    size="large"
+                                    onClick={handleGetStarted}
+                                    startIcon={<LoginIcon />}
+                                    sx={{
+                                        px: { xs: 3, md: 5 },
+                                        py: { xs: 1.5, md: 2 },
+                                        borderRadius: '100px',
+                                        backgroundColor: '#325fec',
+                                        fontSize: { xs: '0.9rem', md: '1rem' },
+                                        fontFamily: '"Inter", sans-serif',
+                                        fontWeight: 700,
+                                        textTransform: 'none',
+                                        '&:hover': { backgroundColor: '#2548b0' },
+                                    }}
+                                >
+                                    Get Started
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    size="large"
+                                    sx={{
+                                        px: { xs: 3, md: 5 },
+                                        py: { xs: 1.5, md: 2 },
+                                        borderRadius: '100px',
+                                        borderColor: '#325fec',
+                                        color: '#325fec',
+                                        borderWidth: '2px',
+                                        fontSize: { xs: '0.9rem', md: '1rem' },
+                                        backgroundColor: 'transparent',
+                                        fontFamily: '"Inter", sans-serif',
+                                        fontWeight: 600,
+                                        textTransform: 'none',
+                                        '&:hover': {
+                                            borderColor: '#2548b0',
+                                            backgroundColor: 'rgba(50, 95, 236, 0.05)',
+                                        }
+                                    }}
+                                >
+                                    Explore Features
+                                </Button>
+                            </Stack>
+                        </Stack>
+                    </Grid>
 
-            {/* Snackbar */}
-            <Snackbar
-                open={snackbar.open}
-                autoHideDuration={4000}
-                onClose={() => setSnackbar(p => ({ ...p, open: false }))}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-            >
-                <Alert
-                    severity={snackbar.severity}
-                    onClose={() => setSnackbar(p => ({ ...p, open: false }))}
-                    sx={{ borderRadius: '12px', fontFamily: '"Inter", sans-serif' }}
-                >
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
-        </>
+                    {/* Phone - Right Side */}
+                    <Grid item xs={12} md={6} ml={{ xs: 23, md: 30 }}>
+                        {!isMobile ? (
+                            <Box ref={phoneContainerRef} sx={{
+                                position: 'relative',
+                                height: { xs: '400px', sm: '450px', md: '600px' },
+                                width: '100%', mt: { xs: 4, md: 0 },
+                            }}>
+                                <FloatingTag icon={<HomeIcon />} text="Local Jobs" top="10%" left="15%" />
+                                <FloatingTag icon={<LocalMallIcon />} text="Nearby Shops" top="45%" right="10%" left="auto" />
+                                <FloatingTag icon={<WorkIcon />} text="Hire Locally" bottom="10%" left="20%" />
+                                <PhoneFrame />
+                            </Box>
+                        ) : (
+                            <Box sx={{
+                                position: 'relative', height: '550px',
+                                width: '100%', mt: 2, mb: 2, overflow: 'visible',
+                            }}>
+                                <FloatingTag icon={<HomeIcon />} text="Local Jobs" top="10%" left="0%" customSx={{ zIndex: 9999, position: 'absolute' }} />
+                                <FloatingTag icon={<LocalMallIcon />} text="Nearby Shops" top="35%" right="0%" left="auto" customSx={{ zIndex: 9999, position: 'absolute' }} />
+                                <FloatingTag icon={<WorkIcon />} text="Hire Locally" bottom="10%" left="5%" customSx={{ zIndex: 9999, position: 'absolute' }} />
+                                <PhoneFrame refProp={mobilePhoneRef} />
+                            </Box>
+                        )}
+                    </Grid>
+                </Grid>
+            </Container>
+
+            <style>{`
+                @media (max-width: 768px) {
+                    .floating-tag {
+                        min-width: 110px !important;
+                        padding: 8px 14px !important;
+                        z-index: 9999 !important;
+                        display: flex !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        position: absolute !important;
+                        background: rgba(255, 255, 255, 0.98) !important;
+                        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+                    }
+                }
+                @media (max-width: 480px) {
+                    .floating-tag { min-width: 100px !important; padding: 6px 12px !important; }
+                    .floating-tag .MuiTypography-root { font-size: 0.7rem !important; }
+                }
+                .MuiGrid-root { overflow: visible !important; }
+                .MuiContainer-root { overflow: visible !important; }
+            `}</style>
+        </Box>
     );
 };
 

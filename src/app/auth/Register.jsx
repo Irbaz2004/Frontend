@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import {
     Box, Container, Paper, Typography, TextField, Button,
     InputAdornment, IconButton, Alert, CircularProgress, Link,
-    MenuItem, FormControl, InputLabel, Select, FormHelperText,
     useMediaQuery, useTheme, Fade, Autocomplete
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
@@ -22,11 +21,11 @@ function Register() {
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isVerySmall = useMediaQuery('(max-width:350px)');
     const [isVisible, setIsVisible] = useState(false);
-    
+
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    
+
     // Location data
     const [cities, setCities] = useState([]);
     const [areas, setAreas] = useState([]);
@@ -51,16 +50,11 @@ function Register() {
     // When city changes, auto-populate state and load areas
     useEffect(() => {
         if (form.city) {
-            // Find selected city and auto-populate state
             const selectedCity = cities.find(c => c.name === form.city);
             if (selectedCity && selectedCity.state) {
                 setForm(prev => ({ ...prev, state: selectedCity.state }));
             }
-            
-            // Load areas for selected city
             loadAreas(form.city);
-            
-            // Reset area when city changes
             setForm(prev => ({ ...prev, area: '' }));
         }
     }, [form.city, cities]);
@@ -69,7 +63,6 @@ function Register() {
         setLoadingCities(true);
         try {
             const citiesData = await fetchCities();
-            console.log('Loaded cities:', citiesData);
             setCities(citiesData);
         } catch (err) {
             console.error('Error loading cities:', err);
@@ -83,7 +76,6 @@ function Register() {
         setLoadingAreas(true);
         try {
             const areasData = await fetchAreasByCity(cityName);
-            console.log('Loaded areas for', cityName, ':', areasData);
             setAreas(areasData);
         } catch (err) {
             console.error('Error loading areas:', err);
@@ -114,7 +106,7 @@ function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         const validationError = validateForm();
         if (validationError) {
             setError(validationError);
@@ -132,7 +124,7 @@ function Register() {
                 password: form.password,
             };
 
-            const result = await registerUser(registrationData);
+            await registerUser(registrationData);
             navigate('/app/user/home');
         } catch (err) {
             setError(err.message || 'Registration failed. Please try again.');
@@ -179,10 +171,9 @@ function Register() {
                                 <Typography variant="h5" sx={styles.title}>
                                     Create Account
                                 </Typography>
-                               
 
-                                {/* Full Name and Phone Number Row */}
-                                <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
+                                {/* Full Name + Phone Number — side by side on desktop, stacked on mobile */}
+                                <Box sx={styles.rowContainer}>
                                     <TextField
                                         fullWidth
                                         name="fullName"
@@ -221,70 +212,69 @@ function Register() {
                                     />
                                 </Box>
 
-                                {/* City Selection with Search */}
-                                                                <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
+                                {/* City + Area — side by side on desktop, stacked on mobile */}
+                                <Box sx={styles.rowContainer}>
+                                    <Autocomplete
+                                        fullWidth
+                                        options={cities}
+                                        getOptionLabel={(option) => option.name}
+                                        value={cities.find(c => c.name === form.city) || null}
+                                        onChange={(event, newValue) => {
+                                            setForm(prev => ({
+                                                ...prev,
+                                                city: newValue ? newValue.name : '',
+                                                area: ''
+                                            }));
+                                            setError('');
+                                        }}
+                                        loading={loadingCities}
+                                        disabled={loadingCities}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="City"
+                                                required
+                                                size={isVerySmall ? 'small' : 'medium'}
+                                                sx={styles.input}
+                                                InputProps={{
+                                                    ...params.InputProps,
+                                                    startAdornment: (
+                                                        <>
+                                                            <InputAdornment position="start">
+                                                                <LocationOnIcon sx={{ color: '#325fec', fontSize: isVerySmall ? '1rem' : '1.2rem' }} />
+                                                            </InputAdornment>
+                                                            {params.InputProps.startAdornment}
+                                                        </>
+                                                    ),
+                                                }}
+                                            />
+                                        )}
+                                    />
 
-                                <Autocomplete
-                                    fullWidth
-                                    options={cities}
-                                    getOptionLabel={(option) => option.name}
-                                    value={cities.find(c => c.name === form.city) || null}
-                                    onChange={(event, newValue) => {
-                                        setForm(prev => ({ 
-                                            ...prev, 
-                                            city: newValue ? newValue.name : '',
-                                            area: ''
-                                        }));
-                                        setError('');
-                                    }}
-                                    loading={loadingCities}
-                                    disabled={loadingCities}
-                                    renderInput={(params) => (
-                                        <TextField
-                                            {...params}
-                                            label="City"
-                                            required
-                                            size={isVerySmall ? 'small' : 'medium'}
-                                            sx={styles.input}
-                                            InputProps={{
-                                                ...params.InputProps,
-                                                startAdornment: (
-                                                    <>
-                                                        <InputAdornment position="start">
-                                                            <LocationOnIcon sx={{ color: '#325fec', fontSize: isVerySmall ? '1rem' : '1.2rem' }} />
-                                                        </InputAdornment>
-                                                        {params.InputProps.startAdornment}
-                                                    </>
-                                                ),
-                                            }}
-                                        />
-                                    )}
-                                />
+                                    <Autocomplete
+                                        fullWidth
+                                        options={areas}
+                                        getOptionLabel={(option) => `${option.area}${option.pincode ? ` (${option.pincode})` : ''}`}
+                                        value={areas.find(a => a.area === form.area) || null}
+                                        onChange={(event, newValue) => {
+                                            setForm(prev => ({ ...prev, area: newValue ? newValue.area : '' }));
+                                            setError('');
+                                        }}
+                                        loading={loadingAreas}
+                                        disabled={!form.city || loadingAreas}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="Area / Locality"
+                                                required
+                                                size={isVerySmall ? 'small' : 'medium'}
+                                                sx={styles.input}
+                                                helperText={!form.city ? "Please select a city first" : ""}
+                                            />
+                                        )}
+                                    />
+                                </Box>
 
-                                {/* Area Selection with Search */}
-                                <Autocomplete
-                                    fullWidth
-                                    options={areas}
-                                    getOptionLabel={(option) => `${option.area}${option.pincode ? ` (${option.pincode})` : ''}`}
-                                    value={areas.find(a => a.area === form.area) || null}
-                                    onChange={(event, newValue) => {
-                                        setForm(prev => ({ ...prev, area: newValue ? newValue.area : '' }));
-                                        setError('');
-                                    }}
-                                    loading={loadingAreas}
-                                    disabled={!form.city || loadingAreas}
-                                    renderInput={(params) => (
-                                        <TextField
-                                            {...params}
-                                            label="Area / Locality"
-                                            required
-                                            size={isVerySmall ? 'small' : 'medium'}
-                                            sx={styles.input}
-                                            helperText={!form.city ? "Please select a city first" : ""}
-                                        />
-                                    )}
-                                />
-</Box>
                                 {/* State - Auto-populated from city selection, disabled */}
                                 <TextField
                                     fullWidth
@@ -306,7 +296,7 @@ function Register() {
                                     }}
                                 />
 
-                                {/* Password Fields */}
+                                {/* Password + Confirm Password — side by side on desktop, stacked on mobile */}
                                 <Box sx={styles.rowContainer}>
                                     <TextField
                                         fullWidth
@@ -526,6 +516,7 @@ const styles = {
         fontSize: { xs: '0.75rem', sm: '0.875rem' },
         textAlign: 'center'
     },
+    // Two-field row on desktop, stacked single-column on mobile
     rowContainer: {
         display: 'flex',
         flexDirection: { xs: 'column', sm: 'row' },
@@ -571,7 +562,6 @@ const styles = {
             '&.Mui-focused': { color: '#325fec' },
         },
         '& .Mui-disabled': {
-            // bgcolor: '#f0f0f0',
             '& .MuiOutlinedInput-root': {
                 bgcolor: '#f0f0f0',
             }
@@ -590,21 +580,24 @@ const styles = {
         textDecoration: 'none',
         fontFamily: '"Inter", sans-serif',
         fontSize: { xs: '0.75rem', sm: '0.875rem' },
-        '&:hover': { 
+        '&:hover': {
             textDecoration: 'underline',
-            color: '#2548b0' 
+            color: '#2548b0'
         }
     }
 };
 
-// Add keyframes
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes float {
-        0%, 100% { transform: translate(0, 0); }
-        50% { transform: translate(20px, -20px); }
-    }
-`;
-document.head.appendChild(style);
+// Add keyframes once
+if (!document.getElementById('register-float-keyframes')) {
+    const style = document.createElement('style');
+    style.id = 'register-float-keyframes';
+    style.textContent = `
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(20px, -20px); }
+        }
+    `;
+    document.head.appendChild(style);
+}
 
 export default Register;
