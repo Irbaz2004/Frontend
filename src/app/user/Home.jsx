@@ -14,7 +14,6 @@ import {
     ChevronRight as ChevronRightIcon,
     Rocket as RocketIcon,
     TrendingUp as TrendingUpIcon,
-    ArrowForward as ArrowForwardIcon,
     AutoAwesome as SparkleIcon,
     MyLocation as MyLocationIcon,
     GpsFixed as GpsFixedIcon,
@@ -27,6 +26,7 @@ import {
     FlashOn as FlashIcon,
     CheckCircle as CheckIcon,
     Map as MapIcon,
+    North as NorthIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { getHomeData, getUserCity, updateUserCity } from '../../services/homeUser';
@@ -49,21 +49,30 @@ const formatPrice = (price) =>
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 const T = {
-    primary: '#325fec',
-    primaryDark: '#1a45c8',
-    primaryLight: '#EBF3FF',
-    orange: '#FF6B00',
-    orangeLight: '#FFF3E8',
-    green: '#388E3C',
-    greenLight: '#E8F5E9',
-    surface: '#F1F3F6',
+    primary: '#2952E8',
+    primaryDark: '#1A3BB8',
+    primaryLight: '#EEF2FF',
+    primaryGlow: 'rgba(41,82,232,0.12)',
+    orange: '#F05A00',
+    orangeLight: '#FFF0E6',
+    green: '#16A34A',
+    greenLight: '#DCFCE7',
+    purple: '#7C3AED',
+    purpleLight: '#EDE9FE',
+    surface: '#F7F8FC',
+    surfaceAlt: '#F0F2F8',
     card: '#FFFFFF',
-    text: '#212121',
-    textSub: '#666666',
-    textMuted: '#9E9E9E',
-    border: '#E0E0E0',
-    shadow: '0 2px 8px rgba(0,0,0,0.08)',
-    shadowMd: '0 4px 16px rgba(0,0,0,0.12)',
+    text: '#0F1729',
+    textSub: '#4B5568',
+    textMuted: '#94A3B8',
+    border: '#E8ECF4',
+    borderStrong: '#CBD5E1',
+    shadow: '0 1px 4px rgba(15,23,41,0.06), 0 4px 12px rgba(15,23,41,0.06)',
+    shadowMd: '0 4px 16px rgba(15,23,41,0.1), 0 1px 4px rgba(15,23,41,0.06)',
+    shadowLg: '0 8px 32px rgba(15,23,41,0.14)',
+    radius: '14px',
+    radiusSm: '10px',
+    radiusXs: '7px',
 };
 
 // ── Feature Highlights Strip ──────────────────────────────────────────────────
@@ -85,54 +94,41 @@ const FeatureHighlightsStrip = () => {
 
     return (
         <Box sx={{
-            mx: { xs: 2, sm: 3, md: 4 },
-            mt: 1,
-            borderRadius: '14px',
+            mx: { xs: 2, sm: 3, md: 4 }, mt: 2,
+            borderRadius: T.radius,
             overflow: 'hidden',
-            background: 'linear-gradient(135deg, #1a45c8 0%, #325fec 55%, #4f78f5 100%)',
-            boxShadow: '0 6px 24px rgba(50,95,236,0.35)',
-            px: { xs: 2, sm: 2.5 },
-            py: '13px',
+            background: 'linear-gradient(135deg, #1A3BB8 0%, #2952E8 60%, #5B7EFF 100%)',
+            boxShadow: '0 6px 28px rgba(41,82,232,0.28)',
+            px: { xs: 2, sm: 2.5 }, py: '14px',
             display: 'flex', alignItems: 'center', gap: '10px',
             position: 'relative',
         }}>
-            {/* Decorative circles — same as BoostBanner */}
-            <Box sx={{ position: 'absolute', right: -20, top: -20, width: 110, height: 110, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', pointerEvents: 'none' }} />
-            <Box sx={{ position: 'absolute', right: 30, bottom: -28, width: 70, height: 70, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
-            <Box sx={{ position: 'absolute', left: -15, bottom: -15, width: 60, height: 60, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+            <Box sx={{ position: 'absolute', right: -24, top: -24, width: 120, height: 120, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
+            <Box sx={{ position: 'absolute', right: 24, bottom: -32, width: 80, height: 80, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
 
             {FEATURE_HIGHLIGHTS.map((f, i) => {
                 const Icon = f.icon;
                 return (
                     <Box key={i} sx={{
                         display: i === active ? 'flex' : 'none',
-                        alignItems: 'center', gap: '10px',
+                        alignItems: 'center', gap: '12px',
                         flex: 1, minWidth: 0, position: 'relative', zIndex: 1,
-                        animation: 'featureSlideIn 0.38s cubic-bezier(0.22,1,0.36,1)',
+                        animation: 'featureSlideIn 0.4s cubic-bezier(0.22,1,0.36,1)',
                     }}>
                         <Box sx={{
-                            width: 32, height: 32, flexShrink: 0,
-                            borderRadius: '8px',
-                            bgcolor: 'rgba(255,255,255,0.16)',
-                            border: '1px solid rgba(255,255,255,0.26)',
+                            width: 36, height: 36, flexShrink: 0,
+                            borderRadius: '10px',
+                            bgcolor: 'rgba(255,255,255,0.15)',
+                            border: '1px solid rgba(255,255,255,0.25)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
-                            <Icon sx={{ fontSize: '1rem', color: '#fff' }} />
+                            <Icon sx={{ fontSize: '1.05rem', color: '#fff' }} />
                         </Box>
                         <Box sx={{ minWidth: 0 }}>
-                            <Typography sx={{
-                                fontFamily: '"Inter", sans-serif',
-                                fontWeight: 700, fontSize: { xs: '0.78rem', sm: '0.82rem' },
-                                color: '#fff', lineHeight: 1.2, whiteSpace: 'nowrap',
-                            }}>
+                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: { xs: '0.8rem', sm: '0.84rem' }, color: '#fff', lineHeight: 1.2 }}>
                                 {f.label}
                             </Typography>
-                            <Typography sx={{
-                                fontFamily: '"Inter", sans-serif',
-                                fontSize: { xs: '0.63rem', sm: '0.67rem' },
-                                color: 'rgba(255,255,255,0.72)',
-                                lineHeight: 1.2, whiteSpace: 'nowrap',
-                            }}>
+                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: { xs: '0.64rem', sm: '0.67rem' }, color: 'rgba(255,255,255,0.7)', lineHeight: 1.3 }}>
                                 {f.sub}
                             </Typography>
                         </Box>
@@ -140,13 +136,12 @@ const FeatureHighlightsStrip = () => {
                 );
             })}
 
-            {/* Dot indicators */}
             <Box sx={{ display: 'flex', gap: '4px', flexShrink: 0, ml: 'auto', position: 'relative', zIndex: 1 }}>
                 {FEATURE_HIGHLIGHTS.map((_, i) => (
                     <Box key={i} onClick={() => setActive(i)} sx={{
-                        width: i === active ? 16 : 5, height: 5, borderRadius: '3px',
-                        bgcolor: i === active ? '#fff' : 'rgba(255,255,255,0.32)',
-                        transition: 'width 0.3s ease, background 0.2s ease',
+                        width: i === active ? 18 : 5, height: 5, borderRadius: '4px',
+                        bgcolor: i === active ? '#fff' : 'rgba(255,255,255,0.28)',
+                        transition: 'width 0.3s ease',
                         cursor: 'pointer',
                     }} />
                 ))}
@@ -157,45 +152,47 @@ const FeatureHighlightsStrip = () => {
 
 // ── City Header ───────────────────────────────────────────────────────────────
 const CityHeader = ({ city, onCityClick, onRefresh }) => (
-    <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 2.5, sm: 3 }, pb: 1.5, bgcolor: '#fff' }}>
-        <Typography sx={{
-            fontFamily: '"Inter", sans-serif',
-            fontSize: '0.6rem', color: T.textMuted, fontWeight: 600,
-            mb: 0.3, letterSpacing: '0.09em', textTransform: 'uppercase',
-        }}>
-            Exploring
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box onClick={onCityClick} sx={{ display: 'flex', alignItems: 'center', gap: 0.6, cursor: 'pointer' }}>
-                <Box sx={{
-                    width: 28, height: 28, borderRadius: '8px',
-                    bgcolor: 'rgba(50,95,236,0.1)', border: '1px solid rgba(50,95,236,0.2)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                    <LocationIcon sx={{ fontSize: '0.9rem', color: '#325fec' }} />
-                </Box>
-                <Typography sx={{
-                    fontFamily: '"Inter", sans-serif',
-                    fontWeight: 800, fontSize: { xs: '1.05rem', sm: '1.15rem' },
-                    color: T.text, letterSpacing: '-0.02em', lineHeight: 1,
-                }}>
-                    {city || 'Loading…'}
-                </Typography>
-                <ArrowDownIcon sx={{ fontSize: '0.9rem', color: T.textMuted }} />
+    <Box sx={{
+        px: { xs: 2, sm: 3, md: 4 },
+        pt: { xs: 2.5, sm: 3 }, pb: 1.5,
+        bgcolor: '#fff',
+        borderBottom: `1px solid ${T.border}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    }}>
+        <Box onClick={onCityClick} sx={{ display: 'flex', alignItems: 'center', gap: 0.8, cursor: 'pointer' }}>
+            <Box sx={{
+                width: 32, height: 32, borderRadius: '9px',
+                background: 'linear-gradient(135deg, #2952E8, #5B7EFF)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(41,82,232,0.3)',
+            }}>
+                <LocationIcon sx={{ fontSize: '0.95rem', color: '#fff' }} />
             </Box>
-            <Button size="small" onClick={onRefresh}
-                startIcon={<GpsFixedIcon sx={{ fontSize: '0.8rem' }} />}
-                sx={{
-                    textTransform: 'none', fontFamily: '"Inter", sans-serif',
-                    fontWeight: 600, fontSize: '0.68rem', color: '#325fec',
-                    bgcolor: 'rgba(50,95,236,0.08)', borderRadius: '20px',
-                    px: 1.4, py: 0.45,
-                    '&:hover': { bgcolor: 'rgba(50,95,236,0.15)' },
-                }}
-            >
-                Refresh
-            </Button>
+            <Box>
+                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.58rem', color: T.textMuted, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1 }}>
+                    Exploring
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: { xs: '1.1rem', sm: '1.18rem' }, color: T.text, letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+                        {city || 'Loading…'}
+                    </Typography>
+                    <ArrowDownIcon sx={{ fontSize: '1rem', color: T.textMuted, mt: '1px' }} />
+                </Box>
+            </Box>
         </Box>
+        <Button size="small" onClick={onRefresh}
+            startIcon={<GpsFixedIcon sx={{ fontSize: '0.8rem !important' }} />}
+            sx={{
+                textTransform: 'none', fontFamily: '"Inter", sans-serif',
+                fontWeight: 700, fontSize: '0.7rem', color: T.primary,
+                bgcolor: T.primaryGlow, borderRadius: '20px',
+                px: 1.5, py: 0.5, border: `1px solid rgba(41,82,232,0.15)`,
+                '&:hover': { bgcolor: T.primaryLight },
+                '& .MuiButton-startIcon': { mr: 0.5 },
+            }}
+        >
+            Refresh
+        </Button>
     </Box>
 );
 
@@ -203,45 +200,40 @@ const CityHeader = ({ city, onCityClick, onRefresh }) => (
 const SectionHeader = ({ title, subtitle, badge, onSeeAll }) => (
     <Box sx={{
         display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-        px: { xs: 2, sm: 3, md: 4 }, pt: 2, pb: 1.2,
+        px: { xs: 2, sm: 3, md: 4 }, pt: 2.5, pb: 1.2,
     }}>
         <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                <Typography sx={{
-                    fontFamily: '"Inter", sans-serif',
-                    fontWeight: 800, fontSize: { xs: '1rem', sm: '1.05rem' },
-                    color: T.text, letterSpacing: '-0.02em', lineHeight: 1,
-                }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.2 }}>
+                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: { xs: '1.05rem', sm: '1.1rem' }, color: T.text, letterSpacing: '-0.025em', lineHeight: 1 }}>
                     {title}
                 </Typography>
                 {badge && (
-                    <Box sx={{ bgcolor: T.orange, borderRadius: '5px', px: 0.7, py: 0.1 }}>
-                        <Typography sx={{
-                            fontSize: '0.52rem', fontWeight: 800, color: '#fff',
-                            fontFamily: '"Inter", sans-serif', letterSpacing: '0.05em',
-                        }}>
+                    <Box sx={{
+                        bgcolor: badge === 'HOT' ? T.orange : T.primary,
+                        borderRadius: '5px', px: 0.7, py: '2px',
+                    }}>
+                        <Typography sx={{ fontSize: '0.5rem', fontWeight: 800, color: '#fff', fontFamily: '"Inter", sans-serif', letterSpacing: '0.08em' }}>
                             {badge}
                         </Typography>
                     </Box>
                 )}
             </Box>
             {subtitle && (
-                <Typography sx={{
-                    fontFamily: '"Inter", sans-serif', fontSize: '0.68rem',
-                    color: T.textMuted, mt: 0.25,
-                }}>
+                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.68rem', color: T.textMuted }}>
                     {subtitle}
                 </Typography>
             )}
         </Box>
         <Button onClick={onSeeAll}
-            endIcon={<ChevronRightIcon sx={{ fontSize: '0.85rem !important', ml: -0.5 }} />}
+            endIcon={<ChevronRightIcon sx={{ fontSize: '0.88rem !important', ml: -0.6 }} />}
             sx={{
-                textTransform: 'none', color: '#325fec',
+                textTransform: 'none', color: T.primary,
                 fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '0.72rem',
-                px: 1.2, py: 0.4, borderRadius: '6px',
-                bgcolor: T.primaryLight, minWidth: 0,
-                '&:hover': { bgcolor: '#d9eaff' },
+                px: 1.2, py: 0.45, borderRadius: '8px',
+                bgcolor: T.primaryGlow, minWidth: 0,
+                border: `1px solid rgba(41,82,232,0.12)`,
+                '&:hover': { bgcolor: T.primaryLight },
+                '& .MuiButton-endIcon': { ml: 0.2 },
             }}
         >
             See All
@@ -250,12 +242,12 @@ const SectionHeader = ({ title, subtitle, badge, onSeeAll }) => (
 );
 
 // ── Section Divider ───────────────────────────────────────────────────────────
-const SectionDivider = () => <Box sx={{ height: 8, bgcolor: '#F1F3F6' }} />;
+const SectionDivider = () => <Box sx={{ height: 10, bgcolor: T.surface }} />;
 
 // ── Scroll Rail ───────────────────────────────────────────────────────────────
 const ScrollRail = ({ children }) => (
     <Box sx={{
-        display: 'flex', gap: '10px', overflowX: 'auto',
+        display: 'flex', gap: '12px', overflowX: 'auto',
         pb: 1.5, px: { xs: 2, sm: 3, md: 4 },
         '&::-webkit-scrollbar': { display: 'none' },
         scrollbarWidth: 'none',
@@ -267,32 +259,32 @@ const ScrollRail = ({ children }) => (
 // ── Shop Card ─────────────────────────────────────────────────────────────────
 const ShopCard = ({ shop, onClick, index = 0 }) => (
     <Box onClick={onClick} sx={{
-        minWidth: { xs: 158, sm: 180, md: 200 },
-        maxWidth: { xs: 158, sm: 180, md: 200 },
-        flexShrink: 0, borderRadius: '10px', overflow: 'hidden',
+        minWidth: { xs: 162, sm: 185, md: 210 },
+        maxWidth: { xs: 162, sm: 185, md: 210 },
+        flexShrink: 0, borderRadius: T.radius, overflow: 'hidden',
         bgcolor: T.card, cursor: 'pointer',
         boxShadow: T.shadow, border: `1px solid ${T.border}`,
-        transition: 'transform 0.18s',
-        animation: 'fadeInCard 0.4s ease both',
-        animationDelay: `${index * 0.06}s`,
-        '&:active': { transform: 'scale(0.97)' },
-        '&:hover': { boxShadow: T.shadowMd },
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        animation: 'fadeInCard 0.45s ease both',
+        animationDelay: `${index * 0.07}s`,
+        '&:active': { transform: 'scale(0.96)' },
+        '&:hover': { boxShadow: T.shadowMd, transform: 'translateY(-2px)' },
     }}>
-        <Box sx={{ width: '100%', height: { xs: 105, sm: 120 }, bgcolor: '#F5F5F5', overflow: 'hidden', position: 'relative' }}>
+        <Box sx={{ width: '100%', height: { xs: 108, sm: 125 }, bgcolor: T.surfaceAlt, overflow: 'hidden', position: 'relative' }}>
             {shop.shop_image ? (
                 <img src={shop.shop_image} alt={shop.business_name}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     onError={(e) => { e.target.style.display = 'none'; }} />
             ) : (
                 <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: T.primaryLight }}>
-                    <StoreIcon sx={{ fontSize: 32, color: '#325fec' }} />
+                    <StoreIcon sx={{ fontSize: 34, color: T.primary }} />
                 </Box>
             )}
             {shop.is_verified && (
                 <Box sx={{
-                    position: 'absolute', bottom: 6, left: 6,
-                    bgcolor: T.green, borderRadius: '4px',
-                    px: 0.6, py: 0.15, display: 'flex', alignItems: 'center', gap: 0.3,
+                    position: 'absolute', bottom: 7, left: 7,
+                    bgcolor: T.green, borderRadius: '5px',
+                    px: 0.7, py: 0.2, display: 'flex', alignItems: 'center', gap: 0.3,
                 }}>
                     <VerifiedIcon sx={{ fontSize: '0.55rem', color: '#fff' }} />
                     <Typography sx={{ fontSize: '0.52rem', color: '#fff', fontWeight: 700, fontFamily: '"Inter", sans-serif' }}>
@@ -301,24 +293,17 @@ const ShopCard = ({ shop, onClick, index = 0 }) => (
                 </Box>
             )}
         </Box>
-        <Box sx={{ p: '8px 10px 10px' }}>
-            <Typography sx={{
-                fontFamily: '"Inter", sans-serif', fontWeight: 700,
-                fontSize: { xs: '0.78rem', sm: '0.82rem' }, color: T.text,
-                lineHeight: 1.3, mb: 0.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            }}>
+        <Box sx={{ p: '10px 11px 12px' }}>
+            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: { xs: '0.8rem', sm: '0.84rem' }, color: T.text, lineHeight: 1.3, mb: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {shop.business_name}
             </Typography>
-            <Typography sx={{
-                fontFamily: '"Inter", sans-serif', fontSize: '0.63rem',
-                color: '#325fec', fontWeight: 600, mb: 0.5,
-                bgcolor: T.primaryLight, display: 'inline-block',
-                px: 0.7, py: 0.1, borderRadius: '4px',
-            }}>
-                {shop.category}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, mt: 0.3 }}>
-                <LocationIcon sx={{ fontSize: '0.6rem', color: T.textMuted }} />
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', bgcolor: T.primaryGlow, borderRadius: '5px', px: 0.8, py: '2px', mb: 0.7 }}>
+                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.61rem', color: T.primary, fontWeight: 700 }}>
+                    {shop.category}
+                </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                <LocationIcon sx={{ fontSize: '0.62rem', color: T.textMuted }} />
                 <Typography sx={{ fontSize: '0.61rem', color: T.textMuted, fontFamily: '"Inter", sans-serif', lineHeight: 1 }}>
                     {shop.area}, {shop.city}
                 </Typography>
@@ -330,55 +315,50 @@ const ShopCard = ({ shop, onClick, index = 0 }) => (
 // ── House Card ────────────────────────────────────────────────────────────────
 const HouseCard = ({ house, onClick, index = 0 }) => (
     <Box onClick={onClick} sx={{
-        minWidth: { xs: 195, sm: 220, md: 240 },
-        maxWidth: { xs: 195, sm: 220, md: 240 },
-        flexShrink: 0, borderRadius: '10px', overflow: 'hidden',
+        minWidth: { xs: 198, sm: 224, md: 248 },
+        maxWidth: { xs: 198, sm: 224, md: 248 },
+        flexShrink: 0, borderRadius: T.radius, overflow: 'hidden',
         bgcolor: T.card, cursor: 'pointer',
         boxShadow: T.shadow, border: `1px solid ${T.border}`,
-        transition: 'transform 0.18s',
-        animation: 'fadeInCard 0.4s ease both',
-        animationDelay: `${index * 0.06}s`,
-        '&:active': { transform: 'scale(0.97)' },
-        '&:hover': { boxShadow: T.shadowMd },
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        animation: 'fadeInCard 0.45s ease both',
+        animationDelay: `${index * 0.07}s`,
+        '&:active': { transform: 'scale(0.96)' },
+        '&:hover': { boxShadow: T.shadowMd, transform: 'translateY(-2px)' },
     }}>
-        <Box sx={{ width: '100%', height: { xs: 120, sm: 135 }, bgcolor: '#F5F5F5', overflow: 'hidden', position: 'relative' }}>
+        <Box sx={{ width: '100%', height: { xs: 125, sm: 140 }, bgcolor: T.surfaceAlt, overflow: 'hidden', position: 'relative' }}>
             {house.house_image ? (
                 <img src={house.house_image} alt="House"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     onError={(e) => { e.target.style.display = 'none'; }} />
             ) : (
                 <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: T.greenLight }}>
-                    <HomeIcon sx={{ fontSize: 36, color: T.green }} />
+                    <HomeIcon sx={{ fontSize: 38, color: T.green }} />
                 </Box>
             )}
             <Box sx={{
                 position: 'absolute', bottom: 0, left: 0, right: 0,
-                background: 'linear-gradient(to top, rgba(0,0,0,0.65), transparent)',
-                pt: 3, pb: 1, px: 1,
+                background: 'linear-gradient(to top, rgba(0,0,0,0.72), transparent)',
+                pt: 4, pb: '10px', px: '10px',
             }}>
-                <Typography sx={{
-                    fontFamily: '"Inter", sans-serif', fontWeight: 800,
-                    fontSize: '0.92rem', color: '#fff', lineHeight: 1,
-                }}>
+                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: '0.96rem', color: '#fff', lineHeight: 1 }}>
                     {formatPrice(house.rent_per_month)}
-                    <span style={{ fontWeight: 400, fontSize: '0.62rem', opacity: 0.85 }}>/mo</span>
+                    <span style={{ fontWeight: 400, fontSize: '0.6rem', opacity: 0.82 }}>/mo</span>
                 </Typography>
             </Box>
         </Box>
-        <Box sx={{ p: '8px 10px 10px' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.4 }}>
-                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: { xs: '0.8rem', sm: '0.84rem' }, color: T.text }}>
+        <Box sx={{ p: '10px 11px 12px' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: { xs: '0.82rem', sm: '0.86rem' }, color: T.text }}>
                     {house.rooms} BHK House
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2, bgcolor: T.greenLight, px: 0.6, py: 0.15, borderRadius: '4px' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2, bgcolor: T.greenLight, px: 0.7, py: '2px', borderRadius: '5px' }}>
                     <ApartmentIcon sx={{ fontSize: '0.6rem', color: T.green }} />
-                    <Typography sx={{ fontSize: '0.56rem', color: T.green, fontWeight: 700, fontFamily: '"Inter", sans-serif' }}>
-                        Rent
-                    </Typography>
+                    <Typography sx={{ fontSize: '0.56rem', color: T.green, fontWeight: 700, fontFamily: '"Inter", sans-serif' }}>Rent</Typography>
                 </Box>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
-                <LocationIcon sx={{ fontSize: '0.6rem', color: T.textMuted }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                <LocationIcon sx={{ fontSize: '0.62rem', color: T.textMuted }} />
                 <Typography sx={{ fontSize: '0.61rem', color: T.textMuted, fontFamily: '"Inter", sans-serif', lineHeight: 1 }}>
                     {house.area}, {house.city}
                 </Typography>
@@ -390,45 +370,36 @@ const HouseCard = ({ house, onClick, index = 0 }) => (
 // ── Job Card ──────────────────────────────────────────────────────────────────
 const JobCard = ({ job, onClick, index = 0 }) => (
     <Box onClick={onClick} sx={{
-        minWidth: { xs: 210, sm: 230, md: 250 },
-        maxWidth: { xs: 210, sm: 230, md: 250 },
-        flexShrink: 0, borderRadius: '10px', bgcolor: T.card, cursor: 'pointer',
-        p: '12px', boxShadow: T.shadow, border: `1px solid ${T.border}`,
-        transition: 'transform 0.18s',
-        animation: 'fadeInCard 0.4s ease both',
-        animationDelay: `${index * 0.06}s`,
-        '&:active': { transform: 'scale(0.97)' },
-        '&:hover': { boxShadow: T.shadowMd },
+        minWidth: { xs: 215, sm: 238, md: 260 },
+        maxWidth: { xs: 215, sm: 238, md: 260 },
+        flexShrink: 0, borderRadius: T.radius, bgcolor: T.card, cursor: 'pointer',
+        p: '13px', boxShadow: T.shadow, border: `1px solid ${T.border}`,
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        animation: 'fadeInCard 0.45s ease both',
+        animationDelay: `${index * 0.07}s`,
+        '&:active': { transform: 'scale(0.96)' },
+        '&:hover': { boxShadow: T.shadowMd, transform: 'translateY(-2px)' },
     }}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1.2 }}>
             <Box sx={{
-                width: 36, height: 36, borderRadius: '8px', flexShrink: 0,
-                bgcolor: T.primaryLight, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: '1px solid rgba(50,95,236,0.15)',
+                width: 38, height: 38, borderRadius: '10px', flexShrink: 0,
+                background: 'linear-gradient(135deg, #EEF2FF, #E0E8FF)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: `1px solid rgba(41,82,232,0.12)`,
             }}>
-                <WorkIcon sx={{ fontSize: '1rem', color: '#325fec' }} />
+                <WorkIcon sx={{ fontSize: '1.05rem', color: T.primary }} />
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{
-                    fontFamily: '"Inter", sans-serif', fontWeight: 700,
-                    fontSize: { xs: '0.8rem', sm: '0.84rem' }, color: T.text,
-                    lineHeight: 1.25, mb: 0.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>
+                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: { xs: '0.82rem', sm: '0.86rem' }, color: T.text, lineHeight: 1.25, mb: 0.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {job.job_title}
                 </Typography>
-                <Typography sx={{
-                    fontSize: '0.64rem', color: T.textMuted, fontFamily: '"Inter", sans-serif',
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>
+                <Typography sx={{ fontSize: '0.64rem', color: T.textMuted, fontFamily: '"Inter", sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {job.shop_name || job.company_name}
                 </Typography>
             </Box>
         </Box>
-        <Box sx={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            bgcolor: T.primaryLight, borderRadius: '6px', px: 1, py: 0.6, mb: 0.9,
-        }}>
-            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: '0.86rem', color: '#325fec' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: T.primaryGlow, borderRadius: T.radiusXs, px: 1, py: 0.7, mb: 1 }}>
+            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: '0.9rem', color: T.primary }}>
                 {formatPrice(job.salary)}
                 <span style={{ fontWeight: 400, fontSize: '0.6rem', color: T.textMuted }}>
                     /{job.salary_type === 'month' ? 'mo' : 'day'}
@@ -438,16 +409,16 @@ const JobCard = ({ job, onClick, index = 0 }) => (
                 label={job.job_type === 'full_time' ? 'Full Time' : 'Part Time'}
                 size="small"
                 sx={{
-                    height: 17, fontSize: '0.54rem', fontFamily: '"Inter", sans-serif', fontWeight: 700,
+                    height: 18, fontSize: '0.54rem', fontFamily: '"Inter", sans-serif', fontWeight: 700,
                     bgcolor: job.job_type === 'full_time' ? T.greenLight : T.orangeLight,
                     color: job.job_type === 'full_time' ? T.green : T.orange,
-                    borderRadius: '4px', border: 'none',
-                    '& .MuiChip-label': { px: 0.7 },
+                    borderRadius: '5px', border: 'none',
+                    '& .MuiChip-label': { px: 0.8 },
                 }}
             />
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
-            <LocationIcon sx={{ fontSize: '0.6rem', color: T.textMuted }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+            <LocationIcon sx={{ fontSize: '0.62rem', color: T.textMuted }} />
             <Typography sx={{ fontSize: '0.61rem', color: T.textMuted, fontFamily: '"Inter", sans-serif', lineHeight: 1 }}>
                 {job.area}, {job.city}
             </Typography>
@@ -455,46 +426,18 @@ const JobCard = ({ job, onClick, index = 0 }) => (
     </Box>
 );
 
-// ── Feature Grid (background image + frosted glass) ───────────────────────────
+// ── Feature Grid ──────────────────────────────────────────────────────────────
 const GRID_ITEMS = [
-    {
-        label: 'Shop Finder',
-        sub: 'Discover local stores',
-        icon: StorefrontIcon,
-        route: '/app/shops',
-        img: shopImagePlaceholder,
-        accent: '#325fec',
-    },
-    {
-        label: 'Rent a Home',
-        sub: 'PGs & flats near you',
-        icon: HomeWorkIcon,
-        route: '/app/houses',
-        img: houseImagePlaceholder,
-        accent: '#388E3C',
-    },
-    {
-        label: 'Get Hired',
-        sub: 'Browse local openings',
-        icon: WorkOutlineIcon,
-        route: '/app/jobs',
-        img: jobImagePlaceholder,
-        accent: '#E65100',
-    },
-    {
-        label: 'Map View',
-        sub: 'Explore listings on map',
-        icon: MapIcon,
-        route: '/map',
-        img: mapImagePlaceholder,
-        accent: '#7B1FA2',
-    },
+    { label: 'Shop Finder',  sub: 'Discover local stores', icon: StorefrontIcon,  route: '/app/shops',   img: shopImagePlaceholder,  accent: '#2952E8', accentEnd: '#5B7EFF' },
+    { label: 'Rent a Home',  sub: 'PGs & flats near you',  icon: HomeWorkIcon,    route: '/app/houses',  img: houseImagePlaceholder, accent: '#16A34A', accentEnd: '#4ADE80' },
+    { label: 'Get Hired',    sub: 'Browse local openings', icon: WorkOutlineIcon, route: '/app/jobs',    img: jobImagePlaceholder,   accent: '#F05A00', accentEnd: '#FBBF24' },
+    { label: 'Map View',     sub: 'Explore on map',        icon: MapIcon,         route: '/map',         img: mapImagePlaceholder,   accent: '#7C3AED', accentEnd: '#A78BFA' },
 ];
 
 const FeatureGrid = ({ onNavigate }) => (
     <Box sx={{
         px: { xs: 2, sm: 3, md: 4 },
-        py: 1.5,
+        pt: 1.5, pb: 1,
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
         gap: { xs: 1.2, sm: 1.5 },
@@ -506,72 +449,46 @@ const FeatureGrid = ({ onNavigate }) => (
                     key={item.label}
                     onClick={() => item.route && onNavigate(item.route)}
                     sx={{
-                        borderRadius: '14px',
-                        overflow: 'hidden',
-                        position: 'relative',
-                        cursor: 'pointer',
-                        height: { xs: 110, sm: 130 },
-                        // background image
+                        borderRadius: T.radius, overflow: 'hidden',
+                        position: 'relative', cursor: 'pointer',
+                        height: { xs: 115, sm: 136 },
                         backgroundImage: `url(${item.img})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        boxShadow: '0 3px 12px rgba(0,0,0,0.18)',
-                        transition: 'transform 0.15s, box-shadow 0.15s',
+                        backgroundSize: 'cover', backgroundPosition: 'center',
+                        boxShadow: T.shadowMd,
+                        transition: 'transform 0.18s, box-shadow 0.18s',
                         '&:active': { transform: 'scale(0.96)' },
-                        '&:hover': { boxShadow: '0 6px 20px rgba(0,0,0,0.26)' },
+                        '&:hover': { boxShadow: T.shadowLg, transform: 'translateY(-1px)' },
                     }}
                 >
-                    {/* Frosted glass overlay */}
                     <Box sx={{
                         position: 'absolute', inset: 0,
-                        backdropFilter: 'blur(3px) brightness(0.55)',
-                        WebkitBackdropFilter: 'blur(3px) brightness(0.55)',
-                        bgcolor: 'rgba(0,0,0,0.03)',
+                        backdropFilter: 'blur(2px) brightness(0.48)',
+                        WebkitBackdropFilter: 'blur(2px) brightness(0.48)',
                     }} />
-
-                    {/* Accent bottom bar */}
                     <Box sx={{
-                        position: 'absolute', bottom: 0, left: 0, right: 0,
-                        height: 3,
-                        background: `linear-gradient(90deg, ${item.accent}, transparent)`,
+                        position: 'absolute', bottom: 0, left: 0, right: 0, height: 4,
+                        background: `linear-gradient(90deg, ${item.accent}, ${item.accentEnd}, transparent)`,
                     }} />
-
-                    {/* Content */}
                     <Box sx={{
                         position: 'relative', zIndex: 1,
-                        p: { xs: '13px 11px', sm: '15px 14px' },
-                        height: '100%',
-                        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                        p: { xs: '13px 12px', sm: '16px 14px' },
+                        height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                     }}>
-                        {/* Icon pill */}
                         <Box sx={{
-                            width: 34, height: 34, borderRadius: '10px',
-                            bgcolor: 'rgba(255,255,255,0.18)',
-                            backdropFilter: 'blur(6px)',
-                            WebkitBackdropFilter: 'blur(6px)',
-                            border: '1px solid rgba(255,255,255,0.32)',
+                            width: 36, height: 36, borderRadius: '10px',
+                            bgcolor: 'rgba(255,255,255,0.16)',
+                            backdropFilter: 'blur(8px)',
+                            WebkitBackdropFilter: 'blur(8px)',
+                            border: '1px solid rgba(255,255,255,0.28)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
                             <Icon sx={{ fontSize: { xs: '1.05rem', sm: '1.15rem' }, color: '#fff' }} />
                         </Box>
-
-                        {/* Labels */}
                         <Box>
-                            <Typography sx={{
-                                fontFamily: '"Inter", sans-serif', fontWeight: 800,
-                                fontSize: { xs: '0.84rem', sm: '0.9rem' },
-                                color: '#fff', lineHeight: 1.2, mb: 0.2,
-                                textShadow: '0 1px 4px rgba(0,0,0,0.5)',
-                            }}>
+                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: { xs: '0.86rem', sm: '0.93rem' }, color: '#fff', lineHeight: 1.2, mb: 0.15, textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}>
                                 {item.label}
                             </Typography>
-                            <Typography sx={{
-                                fontFamily: '"Inter", sans-serif',
-                                fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                                color: 'rgba(255,255,255,0.82)',
-                                lineHeight: 1.3,
-                                textShadow: '0 1px 3px rgba(0,0,0,0.4)',
-                            }}>
+                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: { xs: '0.6rem', sm: '0.64rem' }, color: 'rgba(255,255,255,0.78)', lineHeight: 1.3, textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
                                 {item.sub}
                             </Typography>
                         </Box>
@@ -582,79 +499,52 @@ const FeatureGrid = ({ onNavigate }) => (
     </Box>
 );
 
-// ── Boost Banner (#325fec, no Learn More button) ──────────────────────────────
+// ── Boost Banner ──────────────────────────────────────────────────────────────
 const BoostBanner = ({ onLearnMore }) => (
     <Box sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
         <Box
             onClick={onLearnMore}
             sx={{
-                borderRadius: '14px', overflow: 'hidden', cursor: 'pointer',
-                background: 'linear-gradient(135deg, #1a45c8 0%, #325fec 55%, #4f78f5 100%)',
-                boxShadow: '0 6px 24px rgba(50,95,236,0.35)',
-                p: { xs: '16px 18px', sm: '20px 24px' },
+                borderRadius: T.radius, overflow: 'hidden', cursor: 'pointer',
+                background: 'linear-gradient(135deg, #1A3BB8 0%, #2952E8 60%, #5B7EFF 100%)',
+                boxShadow: '0 8px 32px rgba(41,82,232,0.32)',
+                p: { xs: '18px 20px', sm: '22px 28px' },
                 position: 'relative',
-                transition: 'transform 0.15s',
+                transition: 'transform 0.15s, box-shadow 0.15s',
                 '&:active': { transform: 'scale(0.985)' },
-                '&:hover': { boxShadow: '0 8px 30px rgba(50,95,236,0.45)' },
+                '&:hover': { boxShadow: '0 12px 40px rgba(41,82,232,0.4)', transform: 'translateY(-1px)' },
             }}
         >
-            {/* Decorative circles */}
-            <Box sx={{ position: 'absolute', right: -20, top: -20, width: 110, height: 110, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', pointerEvents: 'none' }} />
-            <Box sx={{ position: 'absolute', right: 30, bottom: -28, width: 70, height: 70, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
-            <Box sx={{ position: 'absolute', left: -15, bottom: -15, width: 60, height: 60, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+            <Box sx={{ position: 'absolute', right: -28, top: -28, width: 130, height: 130, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
+            <Box sx={{ position: 'absolute', right: 24, bottom: -36, width: 88, height: 88, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+            <Box sx={{ position: 'absolute', left: -18, bottom: -18, width: 72, height: 72, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
 
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
-                <Box sx={{ flex: 1, pr: { xs: 1, sm: 2 } }}>
-                    {/* Tag */}
+                <Box sx={{ flex: 1, pr: { xs: 1.5, sm: 3 } }}>
                     <Box sx={{
-                        display: 'inline-flex', alignItems: 'center', gap: 0.4,
-                        bgcolor: 'rgba(255,255,255,0.18)', borderRadius: '5px',
-                        px: 0.9, py: 0.2, mb: { xs: 0.9, sm: 1 },
-                        border: '1px solid rgba(255,255,255,0.25)',
+                        display: 'inline-flex', alignItems: 'center', gap: 0.5,
+                        bgcolor: 'rgba(255,255,255,0.16)', borderRadius: '6px',
+                        px: 1, py: '3px', mb: { xs: 1, sm: 1.2 },
+                        border: '1px solid rgba(255,255,255,0.24)',
                     }}>
                         <SparkleIcon sx={{ fontSize: '0.6rem', color: '#FFD600' }} />
-                        <Typography sx={{
-                            fontFamily: '"Inter", sans-serif', fontSize: '0.54rem',
-                            fontWeight: 800, color: '#fff', letterSpacing: '0.08em', textTransform: 'uppercase',
-                        }}>
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.52rem', fontWeight: 800, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                             Coming Soon
                         </Typography>
                     </Box>
-
-                    <Typography sx={{
-                        fontFamily: '"Inter", sans-serif', fontWeight: 800,
-                        fontSize: { xs: '1.08rem', sm: '1.2rem' },
-                        color: '#fff', lineHeight: 1.2, mb: 0.4, letterSpacing: '-0.02em',
-                    }}>
+                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: { xs: '1.12rem', sm: '1.25rem' }, color: '#fff', lineHeight: 1.2, mb: 0.5, letterSpacing: '-0.025em' }}>
                         NearZO Boost
                     </Typography>
-                    <Typography sx={{
-                        fontFamily: '"Inter", sans-serif',
-                        fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                        color: 'rgba(255,255,255,0.82)', lineHeight: 1.45,
-                    }}>
+                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: { xs: '0.71rem', sm: '0.77rem' }, color: 'rgba(255,255,255,0.78)', lineHeight: 1.5 }}>
                         Get 10× more views with premium placement & real-time analytics
                     </Typography>
                 </Box>
-
-                {/* Icons */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.9 }}>
-                    <Box sx={{
-                        width: { xs: 46, sm: 52 }, height: { xs: 46, sm: 52 },
-                        borderRadius: '14px',
-                        bgcolor: 'rgba(255,255,255,0.18)',
-                        border: '1.5px solid rgba(255,255,255,0.3)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                        <RocketIcon sx={{ fontSize: { xs: '1.3rem', sm: '1.45rem' }, color: '#fff' }} />
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: { xs: 50, sm: 56 }, height: { xs: 50, sm: 56 }, borderRadius: '15px', bgcolor: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <RocketIcon sx={{ fontSize: { xs: '1.4rem', sm: '1.55rem' }, color: '#fff' }} />
                     </Box>
-                    <Box sx={{
-                        width: 32, height: 32, borderRadius: '10px',
-                        bgcolor: 'rgba(255,255,255,0.12)',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                        <TrendingUpIcon sx={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.9)' }} />
+                    <Box sx={{ width: 34, height: 34, borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <TrendingUpIcon sx={{ fontSize: '1rem', color: 'rgba(255,255,255,0.9)' }} />
                     </Box>
                 </Box>
             </Box>
@@ -670,34 +560,40 @@ const LocationPermissionDialog = ({ open, onClose, onAllow, onManualCity, loadin
     };
     return (
         <Dialog open={open} onClose={onClose}
-            PaperProps={{ sx: { borderRadius: '18px', maxWidth: '360px', width: '92%', p: 0.5, mx: 'auto' } }}
+            PaperProps={{ sx: { borderRadius: '20px', maxWidth: '380px', width: '92%', p: 0, mx: 'auto', overflow: 'hidden' } }}
         >
-            <Box sx={{ bgcolor: '#325fec', p: '18px 22px 15px', borderRadius: '14px 14px 0 0' }}>
+            <Box sx={{
+                background: 'linear-gradient(135deg, #1A3BB8, #2952E8)',
+                p: '20px 24px 18px',
+            }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <LocationIcon sx={{ color: '#FFD600', fontSize: '1.3rem' }} />
+                    <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <LocationIcon sx={{ color: '#FFD600', fontSize: '1.1rem' }} />
+                    </Box>
                     <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#fff' }}>
                         Set Your Location
                     </Typography>
                 </Box>
-                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.75rem', color: 'rgba(255,255,255,0.78)', mt: 0.5 }}>
+                <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.76rem', color: 'rgba(255,255,255,0.76)', mt: 0.7 }}>
                     Get results for shops, houses & jobs near you.
                 </Typography>
             </Box>
-            <DialogContent sx={{ pt: 2.5, px: 2.5 }}>
+            <DialogContent sx={{ pt: 2.5, px: 2.5, pb: 0 }}>
                 <Button fullWidth variant="contained"
                     startIcon={loading ? null : <MyLocationIcon />}
                     onClick={onAllow} disabled={loading}
                     sx={{
-                        bgcolor: '#325fec', borderRadius: '10px', py: 1.2,
+                        background: 'linear-gradient(135deg, #1A3BB8, #2952E8)',
+                        borderRadius: '11px', py: 1.25,
                         textTransform: 'none', fontFamily: '"Inter", sans-serif',
-                        fontWeight: 700, fontSize: '0.85rem', mb: 2,
-                        '&:hover': { bgcolor: T.primaryDark },
-                        boxShadow: '0 3px 12px rgba(50,95,236,0.4)',
+                        fontWeight: 700, fontSize: '0.87rem', mb: 2.2,
+                        boxShadow: '0 4px 14px rgba(41,82,232,0.4)',
+                        '&:hover': { background: 'linear-gradient(135deg, #1430A0, #2040D0)' },
                     }}
                 >
                     {loading ? <CircularProgress size={20} color="inherit" /> : 'Use My Current Location'}
                 </Button>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.8 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <Box sx={{ flex: 1, height: 1, bgcolor: T.border }} />
                     <Typography sx={{ fontSize: '0.7rem', color: T.textMuted, fontFamily: '"Inter", sans-serif' }}>or type your city</Typography>
                     <Box sx={{ flex: 1, height: 1, bgcolor: T.border }} />
@@ -709,10 +605,10 @@ const LocationPermissionDialog = ({ open, onClose, onAllow, onManualCity, loadin
                     onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
                     size="small" fullWidth
                     sx={{
-                        mb: 1.3,
+                        mb: 1.5,
                         '& .MuiOutlinedInput-root': {
-                            borderRadius: '10px', fontFamily: '"Inter", sans-serif', fontSize: '0.85rem',
-                            '&.Mui-focused fieldset': { borderColor: '#325fec' },
+                            borderRadius: '11px', fontFamily: '"Inter", sans-serif', fontSize: '0.86rem',
+                            '&.Mui-focused fieldset': { borderColor: T.primary },
                         }
                     }}
                 />
@@ -720,20 +616,17 @@ const LocationPermissionDialog = ({ open, onClose, onAllow, onManualCity, loadin
                     onClick={handleManualSubmit}
                     disabled={!manualCity.trim() || loading}
                     sx={{
-                        borderRadius: '10px', py: 1, textTransform: 'none',
-                        fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '0.83rem',
-                        borderColor: '#325fec', color: '#325fec',
+                        borderRadius: '11px', py: 1.1, textTransform: 'none',
+                        fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '0.84rem',
+                        borderColor: T.primary, color: T.primary,
                         '&:hover': { bgcolor: T.primaryLight, borderColor: T.primaryDark },
                     }}
                 >
                     Search This City
                 </Button>
             </DialogContent>
-            <DialogActions sx={{ px: 2.5, pb: 2.5, pt: 0, justifyContent: 'center' }}>
-                <Button onClick={onClose} sx={{
-                    color: T.textMuted, textTransform: 'none',
-                    fontFamily: '"Inter", sans-serif', fontSize: '0.78rem',
-                }}>
+            <DialogActions sx={{ px: 2.5, pb: 2.5, pt: 1.2, justifyContent: 'center' }}>
+                <Button onClick={onClose} sx={{ color: T.textMuted, textTransform: 'none', fontFamily: '"Inter", sans-serif', fontSize: '0.78rem' }}>
                     Skip for now
                 </Button>
             </DialogActions>
@@ -743,30 +636,144 @@ const LocationPermissionDialog = ({ open, onClose, onAllow, onManualCity, loadin
 
 // ── Loading Skeleton ──────────────────────────────────────────────────────────
 const LoadingSkeleton = () => (
-    <Box sx={{ bgcolor: '#fff', minHeight: '100vh' }}>
-        <Box sx={{ px: { xs: 2, sm: 3 }, pt: 2.5, pb: 1.5 }}>
-            <Skeleton variant="text" width={70} height={14} sx={{ mb: 0.5 }} />
-            <Skeleton variant="rounded" height={30} width={170} sx={{ borderRadius: '8px' }} />
-        </Box>
-        <Box sx={{ px: { xs: 2, sm: 3 } }}>
-            <Skeleton variant="rounded" sx={{ height: { xs: 200, sm: 300, md: 400 }, borderRadius: '12px', mb: 0 }} />
-        </Box>
-        <Skeleton variant="rounded" height={52} sx={{ mx: 0, borderRadius: 0, mt: 0, mb: 1 }} />
-        <Box sx={{ px: { xs: 2, sm: 3 } }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.2, mb: 2 }}>
-                {[1,2,3,4].map(i => <Skeleton key={i} variant="rounded" height={110} sx={{ borderRadius: '12px' }} />)}
+    <Box sx={{ bgcolor: T.surface, minHeight: '100vh' }}>
+        {/* Header */}
+        <Box sx={{ px: { xs: 2, sm: 3 }, pt: 2.5, pb: 1.5, bgcolor: '#fff', borderBottom: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Skeleton variant="rounded" width={32} height={32} sx={{ borderRadius: '9px' }} />
+                <Box>
+                    <Skeleton variant="text" width={50} height={12} />
+                    <Skeleton variant="text" width={100} height={22} />
+                </Box>
             </Box>
-            {[1,2,3].map(s => (
-                <Box key={s} sx={{ mb: 2.5 }}>
-                    <Skeleton variant="text" width={160} height={28} sx={{ mb: 1 }} />
-                    <Box sx={{ display: 'flex', gap: 1.2 }}>
-                        {[1,2,3].map((_, i) => <Skeleton key={i} variant="rounded" width={160} height={170} sx={{ borderRadius: '10px' }} />)}
+            <Skeleton variant="rounded" width={80} height={30} sx={{ borderRadius: '20px' }} />
+        </Box>
+
+        {/* Ad Carousel */}
+        <Box sx={{ p: { xs: 2, sm: 3 }, pb: 0 }}>
+            <Skeleton variant="rounded" sx={{
+                height: { xs: 210, sm: 290, md: 380, lg: 460 },
+                borderRadius: T.radius,
+            }} />
+        </Box>
+
+        {/* Feature Strip */}
+        <Box sx={{ px: { xs: 2, sm: 3 }, mt: 2 }}>
+            <Skeleton variant="rounded" height={56} sx={{ borderRadius: T.radius }} />
+        </Box>
+
+        {/* Feature Grid */}
+        <Box sx={{ px: { xs: 2, sm: 3 }, mt: 2 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                {[1,2,3,4].map(i => (
+                    <Skeleton key={i} variant="rounded" height={115} sx={{ borderRadius: T.radius }} />
+                ))}
+            </Box>
+        </Box>
+
+        <Box sx={{ height: 10, bgcolor: T.surface, mt: 2 }} />
+
+        {/* Section skeletons */}
+        {[1,2,3].map(s => (
+            <Box key={s} sx={{ bgcolor: '#fff', px: { xs: 2, sm: 3 }, pt: 2.5, pb: 2, mb: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                    <Box>
+                        <Skeleton variant="text" width={160} height={24} />
+                        <Skeleton variant="text" width={110} height={16} />
                     </Box>
+                    <Skeleton variant="rounded" width={64} height={28} sx={{ borderRadius: '8px' }} />
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1.5 }}>
+                    {[1,2,3].map((_, i) => (
+                        <Skeleton key={i} variant="rounded"
+                            width={s === 3 ? 220 : s === 2 ? 200 : 165}
+                            height={s === 3 ? 120 : s === 2 ? 185 : 185}
+                            sx={{ borderRadius: T.radius, flexShrink: 0 }}
+                        />
+                    ))}
+                </Box>
+            </Box>
+        ))}
+    </Box>
+);
+
+// ── Ad Carousel with responsive heights ───────────────────────────────────────
+const AdCarousel = ({ ads, onNavigate }) => {
+    const adSliderSettings = {
+        dots: true, infinite: true, speed: 600,
+        slidesToShow: 1, slidesToScroll: 1, autoplay: true,
+        autoplaySpeed: 4500, arrows: false, pauseOnHover: true,
+        dotsClass: 'slick-dots nearzo-dots', adaptiveHeight: false,
+    };
+
+    return (
+        <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: 2 }}>
+            <Box sx={{
+                borderRadius: T.radius, overflow: 'hidden',
+                boxShadow: T.shadowLg,
+                // Responsive height: taller on desktop
+                height: { xs: 210, sm: 290, md: 380, lg: 460 },
+                position: 'relative',
+            }} className="nearzo-ad-slider">
+                <Slider {...adSliderSettings} style={{ height: '100%' }}>
+                    {ads.map((ad) => (
+                        <Box key={ad.id}
+                            onClick={() => onNavigate(`/app/shops/${ad.shop_id}`)}
+                            sx={{ cursor: 'pointer', height: '100%', display: 'block !important', position: 'relative' }}
+                        >
+                            <Box component="img" src={ad.image_url} alt={ad.title}
+                                sx={{
+                                    width: '100%',
+                                    height: { xs: 210, sm: 290, md: 380, lg: 460 },
+                                    objectFit: 'cover', display: 'block',
+                                }}
+                            />
+                            <Box sx={{
+                                position: 'absolute', inset: 0,
+                                background: 'linear-gradient(to top, rgba(0,0,0,0.22) 0%, transparent 50%)',
+                            }} />
+                        </Box>
+                    ))}
+                </Slider>
+            </Box>
+        </Box>
+    );
+};
+
+// ── Stats Bar ─────────────────────────────────────────────────────────────────
+const StatsBar = ({ shops, houses, jobs, city }) => {
+    const items = [
+        { count: shops?.length || 0, label: 'Shops', color: T.primary },
+        { count: houses?.length || 0, label: 'Houses', color: T.green },
+        { count: jobs?.length || 0, label: 'Jobs', color: T.orange },
+    ];
+    return (
+        <Box sx={{
+            mx: { xs: 2, sm: 3, md: 4 }, mt: 2,
+            borderRadius: T.radius,
+            bgcolor: '#fff',
+            border: `1px solid ${T.border}`,
+            boxShadow: T.shadow,
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+            overflow: 'hidden',
+        }}>
+            {items.map((item, i) => (
+                <Box key={i} sx={{
+                    py: '11px', px: 1,
+                    textAlign: 'center',
+                    borderRight: i < 2 ? `1px solid ${T.border}` : 'none',
+                }}>
+                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: { xs: '1.05rem', sm: '1.15rem' }, color: item.color, lineHeight: 1, letterSpacing: '-0.02em' }}>
+                        {item.count}+
+                    </Typography>
+                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.62rem', color: T.textMuted, fontWeight: 500, mt: 0.15 }}>
+                        {item.label}
+                    </Typography>
                 </Box>
             ))}
         </Box>
-    </Box>
-);
+    );
+};
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function Home() {
@@ -861,18 +868,11 @@ export default function Home() {
         init();
     }, []);
 
-    const adSliderSettings = {
-        dots: true, infinite: true, speed: 600,
-        slidesToShow: 1, slidesToScroll: 1, autoplay: true,
-        autoplaySpeed: 4500, arrows: false, pauseOnHover: true,
-        dotsClass: 'slick-dots nearzo-dots', adaptiveHeight: false,
-    };
-
     if (loading && !homeData.city) return <LoadingSkeleton />;
 
     if (error && !locationDialogOpen) return (
-        <Box sx={{ p: 2 }}>
-            <Alert severity="error" sx={{ borderRadius: '10px', fontFamily: '"Inter", sans-serif' }}
+        <Box sx={{ p: 3 }}>
+            <Alert severity="error" sx={{ borderRadius: T.radiusSm, fontFamily: '"Inter", sans-serif' }}
                 action={<Button color="inherit" size="small" onClick={() => setLocationDialogOpen(true)}>Retry</Button>}
             >{error}</Alert>
         </Box>
@@ -887,11 +887,11 @@ export default function Home() {
                 * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
 
                 @keyframes fadeInCard {
-                    from { opacity: 0; transform: translateY(10px); }
+                    from { opacity: 0; transform: translateY(12px); }
                     to   { opacity: 1; transform: translateY(0); }
                 }
                 @keyframes featureSlideIn {
-                    from { opacity: 0; transform: translateX(18px); }
+                    from { opacity: 0; transform: translateX(20px); }
                     to   { opacity: 1; transform: translateX(0); }
                 }
 
@@ -899,9 +899,9 @@ export default function Home() {
                 .nearzo-ad-slider .slick-list       { height: 100%; }
                 .nearzo-ad-slider .slick-track      { height: 100%; display: flex; }
                 .nearzo-ad-slider .slick-slide      { height: inherit; }
-                .nearzo-dots { bottom: 12px !important; }
+                .nearzo-dots { bottom: 14px !important; }
                 .nearzo-dots li button:before {
-                    color: rgba(255,255,255,0.8) !important;
+                    color: rgba(255,255,255,0.7) !important;
                     font-size: 7px !important; opacity: 1 !important;
                 }
                 .nearzo-dots li.slick-active button:before {
@@ -921,15 +921,16 @@ export default function Home() {
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >
                 <Alert severity="info" icon={<GpsFixedIcon />} sx={{
-                    borderRadius: '10px', fontFamily: '"Inter", sans-serif',
-                    bgcolor: '#325fec', color: '#fff',
+                    borderRadius: T.radiusSm, fontFamily: '"Inter", sans-serif',
+                    background: 'linear-gradient(135deg, #1A3BB8, #2952E8)',
+                    color: '#fff', boxShadow: T.shadowLg,
                     '& .MuiAlert-icon': { color: '#FFD600' },
                 }}>
                     Now showing results for <strong>{detectedCity}</strong>
                 </Alert>
             </Snackbar>
 
-            <Box sx={{ bgcolor: '#ffffff', minHeight: '100vh', pb: 6 }}>
+            <Box sx={{ bgcolor: T.surface, minHeight: '100vh', pb: 8 }}>
 
                 {/* 1 ── City Header */}
                 <CityHeader
@@ -938,44 +939,38 @@ export default function Home() {
                     onRefresh={() => setLocationDialogOpen(true)}
                 />
 
-                {/* 2 ── Ad Slider */}
+                {/* 2 ── Ad Carousel */}
                 {homeData.ads?.length > 0 && (
-                    <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pb: 0 }}>
-                        <Box sx={{
-                            borderRadius: '14px', overflow: 'hidden',
-                            height: { xs: 200, sm: 300, md: 420, lg: 800 },
-                            boxShadow: T.shadowMd,
-                        }} className="nearzo-ad-slider">
-                            <Slider {...adSliderSettings} style={{ height: '100%' }}>
-                                {homeData.ads.map((ad) => (
-                                    <Box key={ad.id} onClick={() => navigate(`/app/shops/${ad.shop_id}`)}
-                                        sx={{ cursor: 'pointer', height: '100%', display: 'block !important', position: 'relative' }}>
-                                        <Box component="img" src={ad.image_url} alt={ad.title}
-                                            sx={{
-                                                width: '100%',
-                                                height: { xs: 200, sm: 300, md: 420, lg: 800 },
-                                                objectFit: 'cover', display: 'block',
-                                            }} />
-                                        <Box sx={{
-                                            position: 'absolute', inset: 0,
-                                            background: 'linear-gradient(to top, rgba(0,0,0,0.28) 0%, transparent 55%)',
-                                        }} />
-                                    </Box>
-                                ))}
-                            </Slider>
-                        </Box>
-                    </Box>
+                    <AdCarousel ads={homeData.ads} onNavigate={navigate} />
                 )}
 
-                {/* 3 ── Feature Highlights Strip */}
+                {/* 3 ── Stats Bar */}
+                <StatsBar
+                    shops={homeData.shops}
+                    houses={homeData.houses}
+                    jobs={homeData.jobs}
+                    city={displayCity}
+                />
+
+                {/* 4 ── Feature Highlights Strip */}
                 <FeatureHighlightsStrip />
 
-                {/* 4 ── Feature Grid */}
-                <FeatureGrid onNavigate={navigate} />
+                {/* 5 ── Feature Grid */}
+                <Box sx={{ bgcolor: '#fff', mt: 2, pb: 0.5 }}>
+                    <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: 2.5, pb: 1 }}>
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: { xs: '1.05rem', sm: '1.1rem' }, color: T.text, letterSpacing: '-0.025em' }}>
+                            Explore NearZO
+                        </Typography>
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.68rem', color: T.textMuted, mt: 0.2 }}>
+                            Everything local, in one place
+                        </Typography>
+                    </Box>
+                    <FeatureGrid onNavigate={navigate} />
+                </Box>
 
                 <SectionDivider />
 
-                {/* 5 ── Shops */}
+                {/* 6 ── Shops */}
                 {homeData.shops?.length > 0 && (
                     <Box sx={{ bgcolor: '#fff' }}>
                         <SectionHeader
@@ -989,13 +984,13 @@ export default function Home() {
                                 <ShopCard key={shop.id} shop={shop} index={i} onClick={() => navigate(`/app/shops/${shop.id}`)} />
                             ))}
                         </ScrollRail>
-                        <Box sx={{ height: 10 }} />
+                        <Box sx={{ height: 12 }} />
                     </Box>
                 )}
 
                 <SectionDivider />
 
-                {/* 6 ── Houses */}
+                {/* 7 ── Houses */}
                 {homeData.houses?.length > 0 && (
                     <Box sx={{ bgcolor: '#fff' }}>
                         <SectionHeader
@@ -1008,20 +1003,20 @@ export default function Home() {
                                 <HouseCard key={house.id} house={house} index={i} onClick={() => navigate(`/app/houses/${house.id}`)} />
                             ))}
                         </ScrollRail>
-                        <Box sx={{ height: 10 }} />
+                        <Box sx={{ height: 12 }} />
                     </Box>
                 )}
 
                 <SectionDivider />
 
-                {/* 7 ── Boost Banner */}
+                {/* 8 ── Boost Banner */}
                 <Box sx={{ bgcolor: '#fff', py: 2.5 }}>
                     <BoostBanner onLearnMore={() => navigate('/app/boost')} />
                 </Box>
 
                 <SectionDivider />
 
-                {/* 8 ── Jobs */}
+                {/* 9 ── Jobs */}
                 {homeData.jobs?.length > 0 && (
                     <Box sx={{ bgcolor: '#fff' }}>
                         <SectionHeader
@@ -1035,32 +1030,27 @@ export default function Home() {
                                 <JobCard key={job.id} job={job} index={i} onClick={() => navigate(`/app/jobs/${job.id}`)} />
                             ))}
                         </ScrollRail>
-                        <Box sx={{ height: 10 }} />
+                        <Box sx={{ height: 12 }} />
                     </Box>
                 )}
 
-                {/* 9 ── Empty State */}
+                {/* 10 ── Empty State */}
                 {!homeData.shops?.length && !homeData.houses?.length && !homeData.jobs?.length && !loading && (
                     <Box sx={{ bgcolor: '#fff', textAlign: 'center', py: 10, px: 4 }}>
                         <Box sx={{
-                            width: 72, height: 72, borderRadius: '18px',
-                            bgcolor: T.primaryLight, border: '2px solid rgba(50,95,236,0.15)',
+                            width: 76, height: 76, borderRadius: '20px',
+                            background: 'linear-gradient(135deg, #EEF2FF, #E0E8FF)',
+                            border: `2px solid rgba(41,82,232,0.12)`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             mx: 'auto', mb: 2.5,
-                            boxShadow: '0 4px 20px rgba(50,95,236,0.18)',
+                            boxShadow: '0 4px 20px rgba(41,82,232,0.14)',
                         }}>
-                            <LocationIcon sx={{ fontSize: '2rem', color: '#325fec' }} />
+                            <LocationIcon sx={{ fontSize: '2.1rem', color: T.primary }} />
                         </Box>
-                        <Typography sx={{
-                            fontFamily: '"Inter", sans-serif', fontWeight: 800,
-                            fontSize: '1.1rem', color: T.text, mb: 0.5,
-                        }}>
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: '1.12rem', color: T.text, mb: 0.5, letterSpacing: '-0.02em' }}>
                             No listings found nearby
                         </Typography>
-                        <Typography sx={{
-                            fontFamily: '"Inter", sans-serif', fontSize: '0.8rem',
-                            color: T.textSub, mb: 3,
-                        }}>
+                        <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.8rem', color: T.textSub, mb: 3, lineHeight: 1.5 }}>
                             We couldn't find shops, houses, or jobs in {displayCity}
                         </Typography>
                         <Button
@@ -1068,11 +1058,12 @@ export default function Home() {
                             onClick={() => setLocationDialogOpen(true)}
                             startIcon={<GpsFixedIcon />}
                             sx={{
-                                bgcolor: '#325fec', borderRadius: '10px', py: 1.1, px: 3,
+                                background: 'linear-gradient(135deg, #1A3BB8, #2952E8)',
+                                borderRadius: '11px', py: 1.15, px: 3,
                                 textTransform: 'none', fontFamily: '"Inter", sans-serif',
-                                fontWeight: 700, fontSize: '0.85rem',
-                                boxShadow: '0 4px 16px rgba(50,95,236,0.4)',
-                                '&:hover': { bgcolor: T.primaryDark },
+                                fontWeight: 700, fontSize: '0.87rem',
+                                boxShadow: '0 4px 16px rgba(41,82,232,0.4)',
+                                '&:hover': { background: 'linear-gradient(135deg, #1430A0, #2040D0)' },
                             }}
                         >
                             Try Different Location

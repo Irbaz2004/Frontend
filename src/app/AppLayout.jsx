@@ -1,5 +1,5 @@
-// AppLayout.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+// AppLayout.jsx — Aligned with the Shops/Houses/Jobs design system
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     Box,
@@ -27,6 +27,11 @@ import {
     Badge,
     CircularProgress,
     Snackbar,
+    Slide,
+    Chip,
+    TextField,
+    InputAdornment,
+    Fade,
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -42,13 +47,52 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import CloseIcon from '@mui/icons-material/Close';
 import StoreIcon from '@mui/icons-material/Store';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import DownloadIcon from '@mui/icons-material/Download';
+import PersonIcon from '@mui/icons-material/Person';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 import { LocationOnOutlined, HouseOutlined, StoreOutlined, GridViewOutlined } from '@mui/icons-material';
 import { PlaceOutlined } from '@mui/icons-material';
 import logo from '../assets/nearzologo.png';
 import loadingGif from '../assets/Radar.gif';
-import { getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead } from '../services/notification';
+import { getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead } from '../services/profile';
 import { useAuth } from './context/AuthContext';
+
+// ─── Design Tokens (same theme as Shops / Houses / Jobs) ───────────────────
+const C = {
+    bg:          '#F4F6FB',
+    surface:     '#FFFFFF',
+    surfaceAlt:  '#F0F3FA',
+    border:      '#E2E8F5',
+    borderLight: '#EBF0F9',
+    accent:      '#325fec',
+    accentLight: '#EEF4FF',
+    accentMid:   '#BFCFFF',
+    accentDark:  '#1A45C2',
+    green:       '#16A34A',
+    greenLight:  '#DCFCE7',
+    amber:       '#D97706',
+    amberLight:  '#FEF3C7',
+    red:         '#DC2626',
+    redLight:    '#FEE2E2',
+    purple:      '#7C3AED',
+    purpleLight: '#EDE9FE',
+    text:        '#0F172A',
+    textSub:     '#475569',
+    textMuted:   '#94A3B8',
+    shadow:      'rgba(50,95,236,0.12)',
+    shadowMd:    'rgba(15,23,42,0.07)',
+    shadowLg:    'rgba(15,23,42,0.18)',
+    white:       '#FFFFFF',
+};
+
+const FONT = '"Inter", sans-serif';
+const SHEET_EASE_ENTER = 'cubic-bezier(0.16, 1, 0.3, 1)';
+const SHEET_EASE_EXIT  = 'cubic-bezier(0.7, 0, 0.84, 0)';
+
+const SlideUpTransition = React.forwardRef(function SlideUpTransition(props, ref) {
+    return <Slide direction="up" ref={ref} easing={{ enter: SHEET_EASE_ENTER, exit: SHEET_EASE_EXIT }} {...props} />;
+});
 
 // ─── HAPTIC UTILITY ──────────────────────────────────────────────────────────
 const HAPTIC_PATTERNS = {
@@ -73,13 +117,8 @@ const NAV_CONFIG = {
         { label: 'Houses', icon: <HouseOutlined />, path: '/app/houses' },
         { label: 'Jobs', icon: <WorkIcon />, path: '/app/jobs' },
     ],
-    business: [
-        { label: 'Dashboard', icon: <DashboardIcon />, path: '/app/business/dashboard' },
-        { label: 'Jobs', icon: <WorkIcon />, path: '/app/business/jobs' },
-    ],
     admin: [
         { label: 'Dashboard', icon: <DashboardIcon />, path: '/app/admin/dashboard' },
-        { label: 'Shops', icon: <BusinessIcon />, path: '/app/admin/businesses' },
         { label: 'Categories', icon: <GridViewOutlined />, path: '/app/admin/categories' },
         { label: 'Jobs', icon: <WorkIcon />, path: '/app/admin/jobs' },
         { label: 'Verify Shops', icon: <VerifiedIcon />, path: '/app/admin/verify-shops' },
@@ -95,10 +134,98 @@ const COLLAPSED_DRAWER_WIDTH = 68;
 const BOTTOM_NAV_HEIGHT = 66;
 const TOP_BAR_HEIGHT = 64;
 
+// ─── Avatar initial — always the person's NAME, never a phone digit ────────
+const looksLikePhoneNumber = (str) => /^[+\d\s().-]+$/.test(str.trim());
+
 const getUserInitial = (role, user) => {
-    if (user?.full_name) return user.full_name.charAt(0).toUpperCase();
+    const nameCandidates = [user?.full_name, user?.name, user?.first_name, user?.username];
+    for (const candidate of nameCandidates) {
+        if (candidate && typeof candidate === 'string') {
+            const trimmed = candidate.trim();
+            if (trimmed && !looksLikePhoneNumber(trimmed)) {
+                return trimmed.charAt(0).toUpperCase();
+            }
+        }
+    }
     return role ? role.charAt(0).toUpperCase() : 'U';
 };
+
+// ─── Location Service for City Detection ────────────────────────────────────
+class LocationService {
+    async getUserCity() {
+        try {
+            // Try to get from localStorage first
+            const savedCity = localStorage.getItem('nearzo_user_city');
+            if (savedCity) {
+                console.log(`📍 Using saved city: ${savedCity}`);
+                return savedCity;
+            }
+
+            // Try geolocation
+            if (navigator.geolocation) {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
+                    });
+                });
+
+                const { latitude, longitude } = position.coords;
+                const city = await this.reverseGeocode(latitude, longitude);
+                
+                if (city) {
+                    localStorage.setItem('nearzo_user_city', city);
+                    console.log(`📍 Detected city via geolocation: ${city}`);
+                    return city;
+                }
+            }
+
+            // Fallback: try to get from user profile
+            const user = JSON.parse(localStorage.getItem('nearzo_user') || '{}');
+            if (user?.city) {
+                localStorage.setItem('nearzo_user_city', user.city);
+                console.log(`📍 Using city from user profile: ${user.city}`);
+                return user.city;
+            }
+
+            console.log('⚠️ Could not detect user city');
+            return null;
+        } catch (error) {
+            console.error('Error getting user city:', error);
+            // Try to get from user profile as fallback
+            try {
+                const user = JSON.parse(localStorage.getItem('nearzo_user') || '{}');
+                if (user?.city) {
+                    localStorage.setItem('nearzo_user_city', user.city);
+                    console.log(`📍 Using city from user profile (fallback): ${user.city}`);
+                    return user.city;
+                }
+            } catch (e) {}
+            return null;
+        }
+    }
+
+    async reverseGeocode(lat, lng) {
+        try {
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1&accept-language=en`,
+                { headers: { 'User-Agent': 'NearZO-App/1.0' } }
+            );
+            const data = await response.json();
+            if (data?.address) {
+                const address = data.address;
+                return address.city || address.town || address.village || address.municipality || null;
+            }
+            return null;
+        } catch (error) {
+            console.error('Reverse geocode error:', error);
+            return null;
+        }
+    }
+}
+
+const locationService = new LocationService();
 
 function AppLayout() {
     const navigate = useNavigate();
@@ -112,16 +239,28 @@ function AppLayout() {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-    const [anchorEl, setAnchorEl] = useState(null);
-    const [notificationsAnchorEl, setNotificationsAnchorEl] = useState(null);
+    
+    // ─── Menu States ──────────────────────────────────────────────────────────
+    const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
+    const profileMenuOpen = Boolean(profileMenuAnchor);
+    
+    const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
+    
     const [notifications, setNotifications] = useState([]);
+    const [filteredNotifications, setFilteredNotifications] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [unreadCount, setUnreadCount] = useState(0);
     const [notificationsLoading, setNotificationsLoading] = useState(false);
-    const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
+    const [userCity, setUserCity] = useState(null);
+    const [cityLoading, setCityLoading] = useState(true);
+    const [locationError, setLocationError] = useState(null);
 
     // ─── PWA INSTALL ────────────────────────────────────────────────────────────
     const [deferredPrompt, setDeferredPrompt] = useState(null);
     const [installSnackbarOpen, setInstallSnackbarOpen] = useState(false);
+
+    // ─── Polling interval for notifications ──────────────────────────────────
+    const pollingInterval = useRef(null);
 
     useEffect(() => {
         const handler = (e) => {
@@ -136,13 +275,15 @@ function AppLayout() {
 
         return () => {
             window.removeEventListener('beforeinstallprompt', handler);
+            if (pollingInterval.current) {
+                clearInterval(pollingInterval.current);
+            }
         };
     }, []);
 
     const handleInstallClick = async () => {
         haptic('action');
         if (!deferredPrompt) {
-            // If prompt not available (already installed or not supported), show info snackbar
             setInstallSnackbarOpen(true);
             return;
         }
@@ -154,31 +295,142 @@ function AppLayout() {
     };
     // ───────────────────────────────────────────────────────────────────────────
 
-    const open = Boolean(anchorEl);
-    const notificationsOpen = Boolean(notificationsAnchorEl);
+    // ─── Get user's city location (only for non-admin) ──────────────────────
+    const getUserCityLocation = useCallback(async () => {
+        // Admin doesn't need city detection - they see all notifications
+        if (role === 'admin') {
+            setCityLoading(false);
+            console.log('👑 Admin mode - no city detection needed');
+            return;
+        }
 
-    const loadNotifications = async () => {
+        setCityLoading(true);
+        try {
+            const city = await locationService.getUserCity();
+            if (city) {
+                setUserCity(city);
+                localStorage.setItem('nearzo_user_city', city);
+                console.log(`📍 User city detected: ${city}`);
+                setLocationError(null);
+            } else {
+                setLocationError('Unable to detect your city. Please set your location in profile.');
+                console.warn('⚠️ Could not detect user city');
+            }
+        } catch (error) {
+            console.error('Error getting user city:', error);
+            setLocationError('Error detecting location. Please check your profile settings.');
+        } finally {
+            setCityLoading(false);
+        }
+    }, [role]);
+
+    // ─── Load notifications with city filter (or all for admin) ──────────────
+    const loadNotifications = useCallback(async () => {
+        const isAdmin = role === 'admin';
+        
+        console.log(`📬 Loading notifications - Role: ${role}, isAdmin: ${isAdmin}, userCity: ${userCity}`);
+        
+        // For non-admin, wait for city detection
+        if (!isAdmin && !userCity) {
+            console.log('⏳ Waiting for city detection before loading notifications');
+            const savedCity = localStorage.getItem('nearzo_user_city');
+            if (savedCity) {
+                console.log(`📬 Using saved city from localStorage: ${savedCity}`);
+                setUserCity(savedCity);
+            } else {
+                await getUserCityLocation();
+                return;
+            }
+        }
+
         setNotificationsLoading(true);
         try {
-            const data = await getNotifications(100, 0);
+            let data;
+            if (isAdmin) {
+                console.log('👑 Admin loading all notifications');
+                data = await getNotifications(100, 0);
+                console.log(`📬 Admin loaded ${data.notifications?.length || 0} notifications (all cities)`);
+            } else {
+                const cityToUse = userCity || localStorage.getItem('nearzo_user_city');
+                console.log(`📍 Loading notifications for city: ${cityToUse}`);
+                data = await getNotifications(100, 0, cityToUse);
+                console.log(`📬 Loaded ${data.notifications?.length || 0} notifications for city: ${cityToUse}`);
+            }
             setNotifications(data.notifications || []);
+            setFilteredNotifications(data.notifications || []);
             setUnreadCount(data.unread_count || 0);
         } catch (err) {
             console.error('Failed to load notifications:', err);
+            try {
+                console.log('📬 Trying fallback - loading all notifications');
+                const fallbackData = await getNotifications(100, 0);
+                setNotifications(fallbackData.notifications || []);
+                setFilteredNotifications(fallbackData.notifications || []);
+                setUnreadCount(fallbackData.unread_count || 0);
+                console.log(`📬 Loaded ${fallbackData.notifications?.length || 0} fallback notifications (no city filter)`);
+            } catch (fallbackErr) {
+                console.error('Fallback notification load failed:', fallbackErr);
+            }
         } finally {
             setNotificationsLoading(false);
         }
-    };
+    }, [userCity, role, getUserCityLocation]);
 
-    const loadUnreadCount = async () => {
+    // ─── Load unread count with city filter (or all for admin) ──────────────
+    const loadUnreadCount = useCallback(async () => {
+        const isAdmin = role === 'admin';
+        
+        if (!isAdmin && !userCity) return;
+
         try {
-            const data = await getUnreadCount();
+            let data;
+            if (isAdmin) {
+                data = await getUnreadCount();
+            } else {
+                const cityToUse = userCity || localStorage.getItem('nearzo_user_city');
+                if (cityToUse) {
+                    data = await getUnreadCount(cityToUse);
+                } else {
+                    data = await getUnreadCount();
+                }
+            }
             setUnreadCount(data.unread_count || 0);
         } catch (err) {
             console.error('Failed to load unread count:', err);
         }
+    }, [userCity, role]);
+
+    // ─── Filter notifications by search query ──────────────────────────────
+    const filterNotifications = useCallback((query) => {
+        if (!query.trim()) {
+            setFilteredNotifications(notifications);
+            return;
+        }
+        
+        const lowerQuery = query.toLowerCase().trim();
+        const filtered = notifications.filter(n => 
+            n.title?.toLowerCase().includes(lowerQuery) ||
+            n.message?.toLowerCase().includes(lowerQuery) ||
+            n.city?.toLowerCase().includes(lowerQuery) ||
+            n.type?.toLowerCase().includes(lowerQuery) ||
+            n.created_by_name?.toLowerCase().includes(lowerQuery)
+        );
+        setFilteredNotifications(filtered);
+    }, [notifications]);
+
+    // ─── Handle search query change ─────────────────────────────────────────
+    const handleSearchChange = (e) => {
+        const query = e.target.value;
+        setSearchQuery(query);
+        filterNotifications(query);
     };
 
+    const handleClearSearch = () => {
+        setSearchQuery('');
+        setFilteredNotifications(notifications);
+    };
+
+    // ─── Initialize ─────────────────────────────────────────────────────────────
     useEffect(() => {
         const storedRole = localStorage.getItem('nearzo_role');
         const token = localStorage.getItem('nearzo_token');
@@ -194,13 +446,53 @@ function AppLayout() {
             navigate(defaultPath, { replace: true });
         }
         setLoading(false);
-        loadUnreadCount();
     }, [navigate, location.pathname]);
+
+    // ─── Get user city and load notifications ──────────────────────────────────
+    useEffect(() => {
+        if (!loading && role) {
+            getUserCityLocation();
+        }
+    }, [loading, role, getUserCityLocation]);
+
+    useEffect(() => {
+        if (role && userCity !== undefined) {
+            loadNotifications();
+            loadUnreadCount();
+
+            if (pollingInterval.current) {
+                clearInterval(pollingInterval.current);
+            }
+            pollingInterval.current = setInterval(() => {
+                loadUnreadCount();
+                if (notificationDialogOpen) {
+                    loadNotifications();
+                }
+            }, 30000);
+        }
+
+        return () => {
+            if (pollingInterval.current) {
+                clearInterval(pollingInterval.current);
+            }
+        };
+    }, [role, userCity, loadNotifications, loadUnreadCount, notificationDialogOpen]);
+
+    // ─── Reload notifications when dialog opens ──────────────────────────────
+    useEffect(() => {
+        if (notificationDialogOpen) {
+            loadNotifications();
+            // Clear search when dialog opens
+            setSearchQuery('');
+            setFilteredNotifications(notifications);
+        }
+    }, [notificationDialogOpen, loadNotifications]);
 
     const handleLogoutRedirect = () => {
         localStorage.removeItem('nearzo_token');
         localStorage.removeItem('nearzo_role');
         localStorage.removeItem('nearzo_user');
+        localStorage.removeItem('nearzo_user_city');
         sessionStorage.clear();
         setTimeout(() => { window.location.href = '/app/login'; }, 100);
     };
@@ -208,6 +500,7 @@ function AppLayout() {
     const handleLogout = () => {
         haptic('warning');
         setLogoutDialogOpen(false);
+        setProfileMenuAnchor(null);
         handleLogoutRedirect();
     };
 
@@ -222,9 +515,15 @@ function AppLayout() {
         if (!notification.is_read) {
             await markNotificationRead(notification.id);
             setUnreadCount(prev => Math.max(0, prev - 1));
+            // Update local state to reflect read status
+            setNotifications(prev => prev.map(n => 
+                n.id === notification.id ? { ...n, is_read: true } : n
+            ));
+            setFilteredNotifications(prev => prev.map(n => 
+                n.id === notification.id ? { ...n, is_read: true } : n
+            ));
         }
         setNotificationDialogOpen(false);
-        setNotificationsAnchorEl(null);
         if (notification.reference_type === 'shop') navigate(`/app/shops/${notification.reference_id}`);
         else if (notification.reference_type === 'house') navigate(`/app/houses/${notification.reference_id}`);
         else if (notification.reference_type === 'job') navigate(`/app/jobs/${notification.reference_id}`);
@@ -233,9 +532,12 @@ function AppLayout() {
     const handleMarkAllRead = async () => {
         haptic('success');
         try {
-            await markAllNotificationsRead();
+            // Get city filter
+            const cityToUse = !isAdmin ? (userCity || localStorage.getItem('nearzo_user_city')) : null;
+            await markAllNotificationsRead(cityToUse);
             setUnreadCount(0);
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            setFilteredNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
         } catch (err) {
             console.error('Failed to mark all as read:', err);
         }
@@ -243,16 +545,40 @@ function AppLayout() {
 
     const openNotificationsDialog = async () => {
         haptic('action');
+        // Clear unread count when dialog opens
+        setUnreadCount(0);
         setNotificationDialogOpen(true);
         await loadNotifications();
     };
 
+    // ─── Profile Menu Handlers ──────────────────────────────────────────────────
+    const handleProfileMenuOpen = (event) => {
+        haptic('action');
+        setProfileMenuAnchor(event.currentTarget);
+    };
+
+    const handleProfileMenuClose = () => {
+        setProfileMenuAnchor(null);
+    };
+
+    const handleProfileClick = () => {
+        haptic('select');
+        setProfileMenuAnchor(null);
+        navigate('/app/profile');
+    };
+
+    const handleLogoutClick = () => {
+        handleProfileMenuClose();
+        haptic('warning');
+        setLogoutDialogOpen(true);
+    };
+
     const getNotificationIcon = (type) => {
         switch (type) {
-            case 'new_shop': return <StoreIcon sx={{ fontSize: 20, color: '#325fec' }} />;
-            case 'new_house': return <HomeOutlinedIcon sx={{ fontSize: 20, color: '#16a34a' }} />;
-            case 'new_job': return <WorkIcon sx={{ fontSize: 20, color: '#ea580c' }} />;
-            default: return <NotificationsIcon sx={{ fontSize: 20, color: '#325fec' }} />;
+            case 'new_shop': return <StoreIcon sx={{ fontSize: 20, color: C.accent }} />;
+            case 'new_house': return <HomeOutlinedIcon sx={{ fontSize: 20, color: C.green }} />;
+            case 'new_job': return <WorkIcon sx={{ fontSize: 20, color: C.amber }} />;
+            default: return <NotificationsIcon sx={{ fontSize: 20, color: C.accent }} />;
         }
     };
 
@@ -277,15 +603,15 @@ function AppLayout() {
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                bgcolor: '#fff',
-                borderRight: '1px solid #f0f0f0',
+                bgcolor: C.surface,
+                borderRight: `1px solid ${C.borderLight}`,
             }}>
                 <Box sx={{
                     p: sidebarCollapsed ? 1.5 : 2.5,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: sidebarCollapsed ? 'center' : 'space-between',
-                    borderBottom: '1px solid #f0f0f0',
+                    borderBottom: `1px solid ${C.borderLight}`,
                     minHeight: TOP_BAR_HEIGHT,
                 }}>
                     {!sidebarCollapsed && (
@@ -306,7 +632,7 @@ function AppLayout() {
                         <IconButton
                             onClick={() => { haptic('tap'); setSidebarCollapsed(true); }}
                             size="small"
-                            sx={{ color: '#aaa', '&:hover': { color: '#325fec', bgcolor: '#f0f4ff' } }}
+                            sx={{ color: C.textMuted, '&:hover': { color: C.accent, bgcolor: C.accentLight } }}
                         >
                             <ChevronLeftIcon sx={{ fontSize: '1.1rem' }} />
                         </IconButton>
@@ -319,7 +645,7 @@ function AppLayout() {
                         <IconButton
                             onClick={() => { haptic('tap'); setSidebarCollapsed(false); }}
                             size="small"
-                            sx={{ color: '#aaa', '&:hover': { color: '#325fec', bgcolor: '#f0f4ff' } }}
+                            sx={{ color: C.textMuted, '&:hover': { color: C.accent, bgcolor: C.accentLight } }}
                         >
                             <ChevronLeftIcon sx={{ fontSize: '1.1rem', transform: 'rotate(180deg)' }} />
                         </IconButton>
@@ -344,15 +670,15 @@ function AppLayout() {
                                             justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
                                             px: sidebarCollapsed ? 1.2 : 1.5,
                                             py: 1,
-                                            bgcolor: active ? '#f0f4ff' : 'transparent',
-                                            '&:hover': { bgcolor: active ? '#e8effe' : '#f8f8f8' },
+                                            bgcolor: active ? C.accentLight : 'transparent',
+                                            '&:hover': { bgcolor: active ? C.accentLight : C.surfaceAlt },
                                             transition: 'all 0.15s ease',
                                         }}
                                     >
                                         <ListItemIcon sx={{
                                             minWidth: 0,
                                             mr: sidebarCollapsed ? 0 : 1.5,
-                                            color: active ? '#325fec' : '#9aa',
+                                            color: active ? C.accent : C.textMuted,
                                             '& svg': { fontSize: '1.2rem' }
                                         }}>
                                             {item.icon}
@@ -362,9 +688,9 @@ function AppLayout() {
                                                 primary={item.label}
                                                 primaryTypographyProps={{
                                                     fontSize: '0.825rem',
-                                                    fontFamily: '"Inter", sans-serif',
-                                                    fontWeight: active ? 600 : 400,
-                                                    color: active ? '#325fec' : '#444',
+                                                    fontFamily: FONT,
+                                                    fontWeight: active ? 700 : 500,
+                                                    color: active ? C.accent : C.textSub,
                                                     letterSpacing: '-0.01em',
                                                 }}
                                             />
@@ -372,7 +698,7 @@ function AppLayout() {
                                         {!sidebarCollapsed && active && (
                                             <Box sx={{
                                                 width: 5, height: 5, borderRadius: '50%',
-                                                bgcolor: '#325fec', ml: 'auto', flexShrink: 0
+                                                bgcolor: C.accent, ml: 'auto', flexShrink: 0
                                             }} />
                                         )}
                                     </ListItemButton>
@@ -383,7 +709,7 @@ function AppLayout() {
                 </List>
 
                 <Box sx={{ px: 1, pb: 2 }}>
-                    <Divider sx={{ mb: 1.5, borderColor: '#f0f0f0' }} />
+                    <Divider sx={{ mb: 1.5, borderColor: C.borderLight }} />
                     <Tooltip title={sidebarCollapsed ? 'Logout' : ''} placement="right">
                         <ListItemButton
                             onClick={() => { haptic('warning'); setLogoutDialogOpen(true); }}
@@ -392,10 +718,10 @@ function AppLayout() {
                                 justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
                                 px: sidebarCollapsed ? 1.2 : 1.5,
                                 py: 1,
-                                '&:hover': { bgcolor: '#fff1f0' },
+                                '&:hover': { bgcolor: C.redLight },
                             }}
                         >
-                            <ListItemIcon sx={{ minWidth: 0, mr: sidebarCollapsed ? 0 : 1.5, color: '#ccc', '& svg': { fontSize: '1.2rem' } }}>
+                            <ListItemIcon sx={{ minWidth: 0, mr: sidebarCollapsed ? 0 : 1.5, color: C.textMuted, '& svg': { fontSize: '1.2rem' } }}>
                                 <LogoutIcon />
                             </ListItemIcon>
                             {!sidebarCollapsed && (
@@ -403,9 +729,9 @@ function AppLayout() {
                                     primary="Logout"
                                     primaryTypographyProps={{
                                         fontSize: '0.825rem',
-                                        fontFamily: '"Inter", sans-serif',
-                                        fontWeight: 400,
-                                        color: '#999',
+                                        fontFamily: FONT,
+                                        fontWeight: 500,
+                                        color: C.textMuted,
                                     }}
                                 />
                             )}
@@ -427,8 +753,8 @@ function AppLayout() {
                             width: sidebarCollapsed ? COLLAPSED_DRAWER_WIDTH : DRAWER_WIDTH,
                             boxSizing: 'border-box',
                             border: 'none',
-                            borderRight: '1px solid #f0f0f0',
-                            bgcolor: '#fff',
+                            borderRight: `1px solid ${C.borderLight}`,
+                            bgcolor: C.surface,
                             transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                             overflowX: 'hidden',
                         },
@@ -442,13 +768,15 @@ function AppLayout() {
                     variant="temporary"
                     open={mobileOpen}
                     onClose={() => { haptic('tap'); setMobileOpen(false); }}
+                    transitionDuration={{ enter: 320, exit: 260 }}
+                    SlideProps={{ easing: { enter: SHEET_EASE_ENTER, exit: SHEET_EASE_EXIT } }}
                     ModalProps={{ keepMounted: true }}
                     sx={{
                         display: { xs: 'block', md: 'none' },
                         '& .MuiDrawer-paper': {
                             width: DRAWER_WIDTH,
                             boxSizing: 'border-box',
-                            bgcolor: '#fff',
+                            bgcolor: C.surface,
                         },
                     }}
                 >
@@ -460,6 +788,8 @@ function AppLayout() {
 
     // ─── BOTTOM NAV (User/Business) ──────────────────────────────────────────
     const renderBottomNav = () => {
+        if (isAdmin) return null;
+
         const currentIndex = navItems.findIndex(item =>
             location.pathname === item.path || location.pathname.startsWith(item.path + '/')
         );
@@ -510,7 +840,7 @@ function AppLayout() {
                         bottom: 0,
                         left: 0,
                         right: 0,
-                        zIndex: 1300,
+                        zIndex: 1000,
                         display: 'flex',
                         justifyContent: 'center',
                         pb: 'max(env(safe-area-inset-bottom, 0px), 14px)',
@@ -524,12 +854,12 @@ function AppLayout() {
                             alignItems: 'center',
                             gap: '4px',
                             pointerEvents: 'all',
-                            bgcolor: '#ffffff',
+                            bgcolor: C.surface,
                             borderRadius: '100px',
                             px: '6px',
                             py: '6px',
-                            border: '1px solid rgba(0, 0, 0, 0.08)',
-                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.05)',
+                            border: `1px solid ${C.border}`,
+                            boxShadow: `0 4px 20px ${C.shadowMd}, 0 1px 2px rgba(0,0,0,0.05)`,
                         }}
                     >
                         {navItems.map((item, index) => {
@@ -559,8 +889,8 @@ function AppLayout() {
                                                 px: '14px',
                                                 height: '44px',
                                                 borderRadius: '100px',
-                                                bgcolor: '#325fec',
-                                                boxShadow: '0 2px 8px rgba(50, 95, 236, 0.3)',
+                                                bgcolor: C.accent,
+                                                boxShadow: `0 4px 14px ${C.shadow}`,
                                             }}
                                         >
                                             <Box sx={{
@@ -574,8 +904,8 @@ function AppLayout() {
                                             <Typography
                                                 className="nearzo-active-label"
                                                 sx={{
-                                                    fontFamily: '"Inter", sans-serif',
-                                                    fontWeight: 600,
+                                                    fontFamily: FONT,
+                                                    fontWeight: 700,
                                                     fontSize: '0.82rem',
                                                     color: '#ffffff',
                                                     letterSpacing: '-0.015em',
@@ -597,10 +927,10 @@ function AppLayout() {
                                                 height: '44px',
                                                 borderRadius: '100px',
                                                 transition: 'all 0.18s ease',
-                                                color: 'rgba(60, 60, 80, 0.5)',
+                                                color: C.textMuted,
                                                 '&:hover': {
-                                                    bgcolor: 'rgba(50, 95, 236, 0.08)',
-                                                    color: '#325fec',
+                                                    bgcolor: C.accentLight,
+                                                    color: C.accent,
                                                 },
                                                 '& svg': { fontSize: '1.22rem' }
                                             }}
@@ -617,9 +947,64 @@ function AppLayout() {
         );
     };
 
-    // ─── TOP BAR (User/Business) ───────────────────────────────────────────────
+    // ─── TOP BAR ────────────────────────────────────────────────────────────────
     const renderTopBar = () => {
-        if (isAdmin) return null;
+        const cityDisplay = !isAdmin ? (
+            userCity ? (
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: '8px',
+                    bgcolor: C.accentLight,
+                    color: C.accent,
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    fontFamily: FONT,
+                    border: `1px solid ${C.accentMid}`,
+                }}>
+                    <LocationOnIcon sx={{ fontSize: 12 }} />
+                    <span>{userCity}</span>
+                </Box>
+            ) : cityLoading ? (
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: '8px',
+                    bgcolor: C.surfaceAlt,
+                    color: C.textMuted,
+                    fontSize: '0.7rem',
+                    fontWeight: 500,
+                    fontFamily: FONT,
+                }}>
+                    <CircularProgress size={12} thickness={4} sx={{ color: C.textMuted }} />
+                    <span>Detecting city...</span>
+                </Box>
+            ) : null
+        ) : (
+            <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                px: 1.5,
+                py: 0.5,
+                borderRadius: '8px',
+                bgcolor: C.purpleLight,
+                color: C.purple,
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                fontFamily: FONT,
+                border: `1px solid ${C.purple}44`,
+            }}>
+                <DashboardIcon sx={{ fontSize: 12 }} />
+                <span>All Cities</span>
+            </Box>
+        );
 
         return (
             <Box
@@ -632,96 +1017,43 @@ function AppLayout() {
                     bgcolor: 'rgba(255,255,255,0.95)',
                     backdropFilter: 'blur(12px)',
                     WebkitBackdropFilter: 'blur(12px)',
-                    borderBottom: '1px solid rgba(0,0,0,0.06)',
+                    borderBottom: `1px solid ${C.borderLight}`,
                     position: 'sticky',
                     top: 0,
                     zIndex: 1100,
                 }}
             >
-                <Box
-                    component="img" src={logo} alt="NearZO"
-                    sx={{ width: 90, height: 'auto', objectFit: 'contain', cursor: 'pointer' }}
-                    onClick={() => { haptic('tap'); navigate('/'); }}
-                />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box
+                        component="img" src={logo} alt="NearZO"
+                        sx={{ width: 90, height: 'auto', objectFit: 'contain', cursor: 'pointer' }}
+                        onClick={() => { haptic('tap'); navigate('/'); }}
+                    />
+                </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Tooltip title="Notifications" arrow>
+                        <IconButton
+                            size="small"
+                            onClick={openNotificationsDialog}
+                            sx={{
+                                width: 38, height: 38,
+                                borderRadius: '12px',
+                                color: C.textMuted,
+                                bgcolor: C.surfaceAlt,
+                                '&:hover': { bgcolor: C.accentLight, color: C.accent },
+                                transition: 'all 0.15s ease',
+                                '&:active': { transform: 'scale(0.88)' },
+                            }}
+                        >
+                            <Badge badgeContent={unreadCount} color="error" invisible={unreadCount === 0}>
+                                <NotificationsIcon sx={{ fontSize: '1.15rem' }} />
+                            </Badge>
+                        </IconButton>
+                    </Tooltip>
 
-                    {/* ── Download Now / Install PWA button ── */}
-                    {/* <Button
-                        size="small"
-                        startIcon={<DownloadIcon sx={{ fontSize: '0.95rem !important' }} />}
-                        onClick={handleInstallClick}
-                        sx={{
-                            textTransform: 'none',
-                            fontFamily: '"Inter", sans-serif',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                            color: '#325fec',
-                            bgcolor: '#f0f4ff',
-                            border: '1px solid #d6e0ff',
-                            borderRadius: '10px',
-                            px: 1.5,
-                            py: 0.6,
-                            mr: 0.5,
-                            whiteSpace: 'nowrap',
-                            boxShadow: 'none',
-                            '&:hover': {
-                                bgcolor: '#e3eaff',
-                                boxShadow: 'none',
-                            },
-                            '&:active': {
-                                transform: 'scale(0.93)',
-                            },
-                            transition: 'all 0.15s ease',
-                            // Hide on very small screens, show from sm up
-                            display: { xs: 'none', sm: 'flex' },
-                        }}
-                    >
-                        Download Now
-                    </Button> */}
-
-                    {/* Download icon-only on xs */}
-                    {/* <IconButton
-                        size="small"
-                        onClick={handleInstallClick}
-                        sx={{
-                            width: 38, height: 38,
-                            borderRadius: '12px',
-                            color: '#325fec',
-                            bgcolor: '#f0f4ff',
-                            border: '1px solid #d6e0ff',
-                            '&:hover': { bgcolor: '#e3eaff' },
-                            '&:active': { transform: 'scale(0.88)' },
-                            transition: 'all 0.15s ease',
-                            display: { xs: 'flex', sm: 'none' },
-                            mr: 0.5,
-                        }}
-                    >
-                        <DownloadIcon sx={{ fontSize: '1.1rem' }} />
-                    </IconButton> */}
-
-                    {/* Notification bell */}
-                    <IconButton
-                        size="small"
-                        onClick={openNotificationsDialog}
-                        sx={{
-                            width: 38, height: 38,
-                            borderRadius: '12px',
-                            color: '#888',
-                            bgcolor: '#f7f7f7',
-                            '&:hover': { bgcolor: '#f0f4ff', color: '#325fec' },
-                            transition: 'all 0.15s ease',
-                            '&:active': { transform: 'scale(0.88)' },
-                        }}
-                    >
-                        <Badge badgeContent={unreadCount} color="error" invisible={unreadCount === 0}>
-                            <NotificationsIcon sx={{ fontSize: '1.15rem' }} />
-                        </Badge>
-                    </IconButton>
-
-                    {/* Profile chip */}
                     <Box
-                        onClick={(e) => { haptic('action'); setAnchorEl(e.currentTarget); }}
+                        onClick={handleProfileMenuOpen}
                         sx={{
                             display: 'flex',
                             alignItems: 'center',
@@ -731,31 +1063,29 @@ function AppLayout() {
                             pr: 1.2,
                             py: 0.6,
                             borderRadius: '12px',
-                            bgcolor: '#f7f7f7',
+                            bgcolor: C.surfaceAlt,
                             cursor: 'pointer',
                             border: '1px solid transparent',
                             transition: 'all 0.15s ease',
-                            '&:hover': { bgcolor: '#f0f4ff', borderColor: '#d6e0ff' },
+                            '&:hover': { bgcolor: C.accentLight, borderColor: C.accentMid },
                             '&:active': { transform: 'scale(0.94)' },
                         }}
                     >
                         <Avatar
                             sx={{
-                                width: 26, height: 26,
-                                bgcolor: '#325fec',
+                                width: 26,
+                                height: 26,
+                                bgcolor: C.accent,
                                 color: '#fff',
-                                fontSize: '0.7rem',
-                                fontWeight: 700,
-                                fontFamily: '"Inter", sans-serif',
                             }}
                         >
-                            {getUserInitial(role, user)}
+                            <PersonIcon sx={{ fontSize: 16 }} />
                         </Avatar>
                         <Typography sx={{
                             fontSize: '0.75rem',
-                            fontFamily: '"Inter", sans-serif',
-                            fontWeight: 500,
-                            color: '#555',
+                            fontFamily: FONT,
+                            fontWeight: 600,
+                            color: C.textSub,
                             textTransform: 'capitalize',
                             display: { xs: 'none', sm: 'block' },
                         }}>
@@ -764,41 +1094,43 @@ function AppLayout() {
                     </Box>
 
                     <Menu
-                        anchorEl={anchorEl}
-                        open={open}
-                        onClose={() => setAnchorEl(null)}
-                        onClick={() => setAnchorEl(null)}
+                        anchorEl={profileMenuAnchor}
+                        open={profileMenuOpen}
+                        onClose={handleProfileMenuClose}
+                        onClick={handleProfileMenuClose}
+                        transitionDuration={{ enter: 220, exit: 160 }}
                         PaperProps={{
                             elevation: 0,
                             sx: {
                                 mt: 1,
                                 borderRadius: '14px',
-                                border: '1px solid #f0f0f0',
-                                boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
+                                border: `1px solid ${C.borderLight}`,
+                                boxShadow: `0 8px 32px ${C.shadowLg}`,
                                 minWidth: 170,
                                 overflow: 'hidden',
                                 '& .MuiMenuItem-root': {
-                                    px: 2, py: 1.2,
+                                    px: 2, 
+                                    py: 1.2,
                                     fontSize: '0.82rem',
-                                    fontFamily: '"Inter", sans-serif',
-                                    fontWeight: 500,
-                                    color: '#333',
+                                    fontFamily: FONT,
+                                    fontWeight: 600,
+                                    color: C.text,
                                     gap: 1.5,
-                                    '&:hover': { bgcolor: '#f5f7ff' },
+                                    '&:hover': { bgcolor: C.accentLight },
                                 },
                             },
                         }}
                         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                     >
-                        <MenuItem onClick={() => { haptic('select'); navigate('/app/profile'); }}>
-                            <AccountCircleIcon sx={{ fontSize: '1.1rem', color: '#325fec' }} />
+                        <MenuItem onClick={handleProfileClick}>
+                            <AccountCircleIcon sx={{ fontSize: '1.1rem', color: C.accent }} />
                             Profile
                         </MenuItem>
-                        <Divider sx={{ my: 0.5, borderColor: '#f5f5f5' }} />
-                        <MenuItem onClick={() => { haptic('warning'); setAnchorEl(null); setLogoutDialogOpen(true); }}>
-                            <LogoutIcon sx={{ fontSize: '1.1rem', color: '#aaa' }} />
-                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.82rem', color: '#888' }}>
+                        <Divider sx={{ my: 0.5, borderColor: C.borderLight }} />
+                        <MenuItem onClick={handleLogoutClick}>
+                            <LogoutIcon sx={{ fontSize: '1.1rem', color: C.textMuted }} />
+                            <Typography sx={{ fontFamily: FONT, fontSize: '0.82rem', fontWeight: 600, color: C.textMuted }}>
                                 Logout
                             </Typography>
                         </MenuItem>
@@ -809,232 +1141,377 @@ function AppLayout() {
     };
 
     // ─── NOTIFICATION DIALOG ────────────────────────────────────────────────────
-    const renderNotificationDialog = () => (
-        <Dialog
-            open={notificationDialogOpen}
-            onClose={() => { haptic('tap'); setNotificationDialogOpen(false); }}
-            fullScreen
-            PaperProps={{
-                sx: { bgcolor: '#f8f9fa', backgroundImage: 'none' }
-            }}
-        >
-            <Box sx={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 10,
-                bgcolor: '#ffffff',
-                borderBottom: '1px solid #f0f0f0',
-                px: 2,
-                py: 1.5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-            }}>
-                <Typography sx={{
-                    fontFamily: '"Inter", sans-serif',
-                    fontWeight: 700,
-                    fontSize: '1.1rem',
-                    color: '#1a1a1a',
-                }}>
-                    Notifications
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                    {notifications.length > 0 && unreadCount > 0 && (
-                        <Button
-                            size="small"
-                            onClick={handleMarkAllRead}
-                            sx={{
-                                textTransform: 'none',
-                                fontFamily: '"Inter", sans-serif',
-                                fontSize: '0.75rem',
-                                color: '#325fec',
-                                fontWeight: 600,
-                                '&:active': { transform: 'scale(0.92)' },
-                            }}
-                        >
-                            Mark all as read
-                        </Button>
-                    )}
-                    <IconButton
-                        onClick={() => { haptic('tap'); setNotificationDialogOpen(false); }}
-                        size="small"
-                        sx={{ '&:active': { transform: 'scale(0.88)' } }}
-                    >
-                        <CloseIcon sx={{ fontSize: '1.2rem', color: '#888' }} />
-                    </IconButton>
-                </Box>
-            </Box>
+    const renderNotificationDialog = () => {
+        const displayNotifications = searchQuery.trim() ? filteredNotifications : notifications;
 
-            <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
-                {notificationsLoading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                        <CircularProgress size={32} sx={{ color: '#325fec' }} />
-                    </Box>
-                ) : notifications.length === 0 ? (
+        return (
+            <Dialog
+                open={notificationDialogOpen}
+                onClose={() => { haptic('tap'); setNotificationDialogOpen(false); }}
+                fullScreen
+                TransitionComponent={SlideUpTransition}
+                transitionDuration={{ enter: 360, exit: 280 }}
+                PaperProps={{
+                    sx: { bgcolor: C.bg, backgroundImage: 'none' }
+                }}
+            >
+                <Box sx={{
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 10,
+                    bgcolor: C.surface,
+                    borderBottom: `1px solid ${C.borderLight}`,
+                    px: 2,
+                    py: 1.5,
+                }}>
                     <Box sx={{
-                        textAlign: 'center',
-                        py: 12,
                         display: 'flex',
-                        flexDirection: 'column',
                         alignItems: 'center',
-                        gap: 2
+                        justifyContent: 'space-between',
+                        mb: 1.5,
                     }}>
-                        <Box sx={{
-                            width: 64, height: 64,
-                            borderRadius: '50%',
-                            bgcolor: '#f0f4ff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}>
-                            <NotificationsIcon sx={{ fontSize: 28, color: '#325fec', opacity: 0.6 }} />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Typography sx={{ fontFamily: FONT, fontWeight: 700, fontSize: '1.1rem', color: C.text }}>
+                                Notifications
+                            </Typography>
+                            {isAdmin ? (
+                                <Chip
+                                    label="All Cities"
+                                    size="small"
+                                    sx={{
+                                        bgcolor: C.purpleLight,
+                                        color: C.purple,
+                                        fontWeight: 600,
+                                        fontSize: '0.65rem',
+                                        height: 22,
+                                        '& .MuiChip-label': { px: 1 },
+                                    }}
+                                    icon={<DashboardIcon sx={{ fontSize: 12 }} />}
+                                />
+                            ) : userCity ? (
+                                <Chip
+                                    label={userCity}
+                                    size="small"
+                                    sx={{
+                                        bgcolor: C.accentLight,
+                                        color: C.accent,
+                                        fontWeight: 600,
+                                        fontSize: '0.65rem',
+                                        height: 22,
+                                        '& .MuiChip-label': { px: 1 },
+                                    }}
+                                    icon={<LocationOnIcon sx={{ fontSize: 12 }} />}
+                                />
+                            ) : (
+                                <Chip
+                                    label="No City"
+                                    size="small"
+                                    sx={{
+                                        bgcolor: C.amberLight,
+                                        color: C.amber,
+                                        fontWeight: 600,
+                                        fontSize: '0.65rem',
+                                        height: 22,
+                                    }}
+                                    icon={<LocationOnIcon sx={{ fontSize: 12 }} />}
+                                />
+                            )}
+                            {notifications.length > 0 && (
+                                <Chip
+                                    label={`${displayNotifications.length} shown`}
+                                    size="small"
+                                    sx={{
+                                        bgcolor: C.surfaceAlt,
+                                        color: C.textMuted,
+                                        fontWeight: 500,
+                                        fontSize: '0.6rem',
+                                        height: 20,
+                                    }}
+                                />
+                            )}
                         </Box>
-                        <Typography sx={{
-                            fontFamily: '"Inter", sans-serif',
-                            fontSize: '0.9rem',
-                            color: '#888',
-                            fontWeight: 500,
-                        }}>
-                            No notifications yet
-                        </Typography>
-                        <Typography sx={{
-                            fontFamily: '"Inter", sans-serif',
-                            fontSize: '0.75rem',
-                            color: '#aaa',
-                        }}>
-                            When someone posts in your city, you'll see it here
-                        </Typography>
-                    </Box>
-                ) : (
-                    notifications.map((notification) => (
-                        <Box
-                            key={notification.id}
-                            onClick={() => handleNotificationClick(notification)}
-                            sx={{
-                                bgcolor: notification.is_read ? '#ffffff' : '#f0f7ff',
-                                borderRadius: '14px',
-                                p: 2,
-                                mb: 1.5,
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease',
-                                border: '1px solid',
-                                borderColor: notification.is_read ? '#f0f0f0' : '#d6e4ff',
-                                WebkitTapHighlightColor: 'transparent',
-                                '&:hover': {
-                                    transform: 'translateY(-1px)',
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                                    borderColor: '#c7d2fe',
-                                },
-                                '&:active': {
-                                    transform: 'scale(0.97)',
-                                    boxShadow: 'none',
-                                },
-                            }}
-                        >
-                            <Box sx={{ display: 'flex', gap: 1.5 }}>
-                                <Box sx={{
-                                    width: 40, height: 40,
-                                    borderRadius: '12px',
-                                    bgcolor: notification.type === 'new_shop' ? '#f0f4ff' :
-                                             notification.type === 'new_house' ? '#f0fdf4' : '#fff7ed',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0,
-                                }}>
-                                    {getNotificationIcon(notification.type)}
-                                </Box>
-                                <Box sx={{ flex: 1 }}>
-                                    <Typography sx={{
-                                        fontFamily: '"Inter", sans-serif',
-                                        fontWeight: notification.is_read ? 500 : 700,
-                                        fontSize: '0.85rem',
-                                        color: '#1a1a1a',
-                                        mb: 0.5,
-                                    }}>
-                                        {notification.title}
-                                    </Typography>
-                                    <Typography sx={{
-                                        fontFamily: '"Inter", sans-serif',
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                            {notifications.length > 0 && unreadCount > 0 && (
+                                <Button
+                                    size="small"
+                                    onClick={handleMarkAllRead}
+                                    sx={{
+                                        textTransform: 'none',
+                                        fontFamily: FONT,
                                         fontSize: '0.75rem',
-                                        color: '#666',
-                                        lineHeight: 1.5,
-                                        mb: 0.75,
+                                        color: C.accent,
+                                        fontWeight: 700,
+                                        '&:active': { transform: 'scale(0.92)' },
+                                    }}
+                                >
+                                    Mark all as read
+                                </Button>
+                            )}
+                            <IconButton
+                                onClick={() => { haptic('tap'); setNotificationDialogOpen(false); }}
+                                size="small"
+                                sx={{ bgcolor: C.surfaceAlt, borderRadius: '10px', '&:active': { transform: 'scale(0.88)' } }}
+                            >
+                                <CloseIcon sx={{ fontSize: '1.2rem', color: C.textMuted }} />
+                            </IconButton>
+                        </Box>
+                    </Box>
+
+                    {/* Search Bar */}
+                    <Fade in={true}>
+                        <TextField
+                            fullWidth
+                            size="small"
+                            placeholder="Search notifications..."
+                            value={searchQuery}
+                            onChange={handleSearchChange}
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: '10px',
+                                    bgcolor: C.surfaceAlt,
+                                    '& fieldset': {
+                                        borderColor: 'transparent',
+                                    },
+                                    '&:hover fieldset': {
+                                        borderColor: C.accentMid,
+                                    },
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: C.accent,
+                                    },
+                                    '& input': {
+                                        fontFamily: FONT,
+                                        fontSize: '0.82rem',
+                                        py: 1,
+                                        '&::placeholder': {
+                                            color: C.textMuted,
+                                            fontWeight: 400,
+                                        }
+                                    }
+                                }
+                            }}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon sx={{ color: C.textMuted, fontSize: '1.1rem' }} />
+                                    </InputAdornment>
+                                ),
+                                endAdornment: searchQuery && (
+                                    <InputAdornment position="end">
+                                        <IconButton
+                                            size="small"
+                                            onClick={handleClearSearch}
+                                            sx={{ p: 0.5 }}
+                                        >
+                                            <ClearIcon sx={{ fontSize: '1rem', color: C.textMuted }} />
+                                        </IconButton>
+                                    </InputAdornment>
+                                ),
+                            }}
+                        />
+                    </Fade>
+                </Box>
+
+                <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
+                    {!isAdmin && cityLoading ? (
+                        <Box sx={{ 
+                            display: 'flex', 
+                            flexDirection: 'column',
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            py: 8,
+                            gap: 2
+                        }}>
+                            <CircularProgress size={32} thickness={4} sx={{ color: C.accent }} />
+                            <Typography sx={{ fontFamily: FONT, fontSize: '0.85rem', color: C.textMuted }}>
+                                Detecting your location...
+                            </Typography>
+                        </Box>
+                    ) : !isAdmin && !userCity ? (
+                        <Box sx={{ 
+                            textAlign: 'center', 
+                            py: 8, 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center', 
+                            gap: 2 
+                        }}>
+                            <Box sx={{
+                                width: 64, height: 64, borderRadius: '50%', 
+                                bgcolor: C.amberLight,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <LocationOnIcon sx={{ fontSize: 28, color: C.amber }} />
+                            </Box>
+                            <Typography sx={{ fontFamily: FONT, fontSize: '0.9rem', color: C.textSub, fontWeight: 600 }}>
+                                Location Not Detected
+                            </Typography>
+                            <Typography sx={{ fontFamily: FONT, fontSize: '0.75rem', color: C.textMuted, maxWidth: 280 }}>
+                                {locationError || 'Please enable location services or set your city in profile to see local notifications.'}
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                size="small"
+                                onClick={() => { haptic('action'); setNotificationDialogOpen(false); navigate('/app/profile'); }}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontFamily: FONT,
+                                    fontWeight: 600,
+                                    bgcolor: C.accent,
+                                    borderRadius: '10px',
+                                    mt: 1,
+                                }}
+                            >
+                                Go to Profile
+                            </Button>
+                        </Box>
+                    ) : notificationsLoading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                            <CircularProgress size={32} thickness={4} sx={{ color: C.accent }} />
+                        </Box>
+                    ) : displayNotifications.length === 0 ? (
+                        <Box sx={{ 
+                            textAlign: 'center', 
+                            py: 8, 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center', 
+                            gap: 2 
+                        }}>
+                            <Box sx={{
+                                width: 64, height: 64, borderRadius: '50%', 
+                                bgcolor: C.accentLight,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <NotificationsIcon sx={{ fontSize: 28, color: C.accent, opacity: 0.7 }} />
+                            </Box>
+                            <Typography sx={{ fontFamily: FONT, fontSize: '0.9rem', color: C.textSub, fontWeight: 600 }}>
+                                {searchQuery.trim() ? 'No matching notifications' :
+                                    isAdmin ? 'No notifications across all cities' : `No notifications in ${userCity}`
+                                }
+                            </Typography>
+                            <Typography sx={{ fontFamily: FONT, fontSize: '0.75rem', color: C.textMuted, maxWidth: 280 }}>
+                                {searchQuery.trim() ? 'Try adjusting your search terms.' :
+                                    isAdmin 
+                                        ? 'When users post shops, houses, or jobs anywhere, you\'ll see them here.'
+                                        : `When someone posts new shops, houses, or jobs in ${userCity}, you'll see them here.`
+                                }
+                            </Typography>
+                        </Box>
+                    ) : (
+                        displayNotifications.map((notification) => (
+                            <Box
+                                key={notification.id}
+                                onClick={() => handleNotificationClick(notification)}
+                                sx={{
+                                    bgcolor: notification.is_read ? C.surface : C.accentLight,
+                                    borderRadius: '14px',
+                                    p: 2,
+                                    mb: 1.5,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    border: '1px solid',
+                                    borderColor: notification.is_read ? C.borderLight : C.accentMid,
+                                    WebkitTapHighlightColor: 'transparent',
+                                    '&:hover': {
+                                        transform: 'translateY(-1px)',
+                                        boxShadow: `0 4px 12px ${C.shadowMd}`,
+                                        borderColor: C.accentMid,
+                                    },
+                                    '&:active': {
+                                        transform: 'scale(0.97)',
+                                        boxShadow: 'none',
+                                    },
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', gap: 1.5 }}>
+                                    <Box sx={{
+                                        width: 40, height: 40, borderRadius: '12px',
+                                        bgcolor: notification.type === 'new_shop' ? C.accentLight :
+                                                 notification.type === 'new_house' ? C.greenLight : C.amberLight,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                                     }}>
-                                        {notification.message}
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        {getNotificationIcon(notification.type)}
+                                    </Box>
+                                    <Box sx={{ flex: 1, minWidth: 0 }}>
                                         <Typography sx={{
-                                            fontFamily: '"Inter", sans-serif',
-                                            fontSize: '0.65rem',
-                                            color: '#aaa',
+                                            fontFamily: FONT, fontWeight: notification.is_read ? 600 : 800,
+                                            fontSize: '0.85rem', color: C.text, mb: 0.5,
                                         }}>
-                                            {formatTimeAgo(notification.created_at)}
+                                            {notification.title}
                                         </Typography>
-                                        {!notification.is_read && (
-                                            <Box sx={{
-                                                width: 6, height: 6,
-                                                borderRadius: '50%',
-                                                bgcolor: '#325fec',
-                                            }} />
-                                        )}
+                                        <Typography sx={{ fontFamily: FONT, fontSize: '0.75rem', color: C.textSub, lineHeight: 1.5, mb: 0.75 }}>
+                                            {notification.message}
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                            <Typography sx={{ fontFamily: FONT, fontSize: '0.65rem', color: C.textMuted, fontWeight: 600 }}>
+                                                {formatTimeAgo(notification.created_at)}
+                                            </Typography>
+                                            {notification.city && (
+                                                <>
+                                                    <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: C.textMuted }} />
+                                                    <Typography sx={{ 
+                                                        fontFamily: FONT, fontSize: '0.65rem', 
+                                                        color: isAdmin ? C.purple : C.accent, 
+                                                        fontWeight: 600,
+                                                        display: 'flex', alignItems: 'center', gap: 0.5
+                                                    }}>
+                                                        <LocationOnIcon sx={{ fontSize: 10 }} />
+                                                        {notification.city}
+                                                    </Typography>
+                                                </>
+                                            )}
+                                            {notification.is_my_notification && (
+                                                <>
+                                                    <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: C.textMuted }} />
+                                                    <Chip
+                                                        label="You"
+                                                        size="small"
+                                                        sx={{
+                                                            height: 16,
+                                                            fontSize: '0.55rem',
+                                                            fontWeight: 700,
+                                                            bgcolor: C.accentLight,
+                                                            color: C.accent,
+                                                            '& .MuiChip-label': { px: 0.8 },
+                                                        }}
+                                                    />
+                                                </>
+                                            )}
+                                            {!notification.is_read && (
+                                                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: C.accent }} />
+                                            )}
+                                        </Box>
                                     </Box>
                                 </Box>
-                                {notification.reference_image && (
-                                    <Box sx={{
-                                        width: 48, height: 48,
-                                        borderRadius: '10px',
-                                        overflow: 'hidden',
-                                        bgcolor: '#f5f5f5',
-                                        flexShrink: 0,
-                                    }}>
-                                        <img
-                                            src={notification.reference_image}
-                                            alt=""
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                            onError={(e) => { e.target.style.display = 'none'; }}
-                                        />
-                                    </Box>
-                                )}
                             </Box>
-                        </Box>
-                    ))
-                )}
-            </Box>
-        </Dialog>
-    );
+                        ))
+                    )}
+                </Box>
+            </Dialog>
+        );
+    };
 
     // ─── LOGOUT DIALOG ──────────────────────────────────────────────────────────
     const renderLogoutDialog = () => (
         <Dialog
             open={logoutDialogOpen}
             onClose={() => { haptic('tap'); setLogoutDialogOpen(false); }}
+            transitionDuration={{ enter: 240, exit: 180 }}
             PaperProps={{
                 sx: {
                     borderRadius: '18px',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.12)',
-                    border: '1px solid #f0f0f0',
+                    boxShadow: `0 20px 60px ${C.shadowLg}`,
+                    border: `1px solid ${C.borderLight}`,
                     p: 0.5,
                     minWidth: 300,
                 }
             }}
         >
-            <DialogTitle sx={{
-                fontFamily: '"Inter", sans-serif',
-                fontWeight: 700,
-                fontSize: '1rem',
-                color: '#1a1a1a',
-                pb: 0.5,
-            }}>
+            <DialogTitle sx={{ fontFamily: FONT, fontWeight: 700, fontSize: '1rem', color: C.text, pb: 0.5 }}>
                 Log out?
             </DialogTitle>
             <DialogContent>
-                <DialogContentText sx={{
-                    fontFamily: '"Inter", sans-serif',
-                    fontSize: '0.85rem',
-                    color: '#888',
-                    lineHeight: 1.6,
-                }}>
+                <DialogContentText sx={{ fontFamily: FONT, fontSize: '0.85rem', color: C.textMuted, lineHeight: 1.6 }}>
                     You'll need to sign in again to access your account.
                 </DialogContentText>
             </DialogContent>
@@ -1044,13 +1521,13 @@ function AppLayout() {
                     sx={{
                         textTransform: 'none',
                         borderRadius: '10px',
-                        color: '#666',
-                        fontFamily: '"Inter", sans-serif',
-                        fontWeight: 500,
+                        color: C.textSub,
+                        fontFamily: FONT,
+                        fontWeight: 600,
                         fontSize: '0.85rem',
                         px: 2,
-                        bgcolor: '#f5f5f5',
-                        '&:hover': { bgcolor: '#eee' },
+                        bgcolor: C.surfaceAlt,
+                        '&:hover': { bgcolor: C.borderLight },
                         '&:active': { transform: 'scale(0.94)' },
                     }}
                 >
@@ -1059,16 +1536,16 @@ function AppLayout() {
                 <Button
                     onClick={handleLogout}
                     variant="contained"
+                    disableElevation
                     sx={{
                         textTransform: 'none',
                         borderRadius: '10px',
-                        fontFamily: '"Inter", sans-serif',
-                        fontWeight: 600,
+                        fontFamily: FONT,
+                        fontWeight: 700,
                         fontSize: '0.85rem',
                         px: 2.5,
-                        bgcolor: '#325fec',
-                        boxShadow: 'none',
-                        '&:hover': { bgcolor: '#1a4bcf', boxShadow: 'none' },
+                        bgcolor: C.accent,
+                        '&:hover': { bgcolor: C.accentDark },
                         '&:active': { transform: 'scale(0.94)' },
                     }}
                 >
@@ -1081,19 +1558,8 @@ function AppLayout() {
     // ─── LOADING ────────────────────────────────────────────────────────────────
     if (loading) {
         return (
-            <Box sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '100vh',
-                bgcolor: '#fff'
-            }}>
-                <Box
-                    component="img"
-                    src={loadingGif}
-                    alt="Loading..."
-                    sx={{ width: 120, height: 'auto', objectFit: 'contain' }}
-                />
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: C.surface }}>
+                <Box component="img" src={loadingGif} alt="Loading..." sx={{ width: 120, height: 'auto', objectFit: 'contain' }} />
             </Box>
         );
     }
@@ -1104,10 +1570,10 @@ function AppLayout() {
     if (isAdmin) {
         return (
             <>
-                <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f8f9fa' }}>
+                <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: C.bg, fontFamily: FONT }}>
                     {renderSidebar()}
 
-                    <Box component="main" sx={{ flexGrow: 1, bgcolor: '#ffffff', minWidth: 0, minHeight: '100vh' }}>
+                    <Box component="main" sx={{ flexGrow: 1, bgcolor: C.surface, minWidth: 0, minHeight: '100vh' }}>
                         <Box
                             sx={{
                                 height: TOP_BAR_HEIGHT,
@@ -1117,7 +1583,7 @@ function AppLayout() {
                                 justifyContent: 'space-between',
                                 bgcolor: 'rgba(255,255,255,0.95)',
                                 backdropFilter: 'blur(12px)',
-                                borderBottom: '1px solid #f0f0f0',
+                                borderBottom: `1px solid ${C.borderLight}`,
                                 position: 'sticky',
                                 top: 0,
                                 zIndex: 1100,
@@ -1128,77 +1594,110 @@ function AppLayout() {
                                     onClick={() => { haptic('tap'); setMobileOpen(!mobileOpen); }}
                                     sx={{
                                         display: { xs: 'flex', md: 'none' },
-                                        color: '#888',
+                                        color: C.textMuted,
                                         width: 36, height: 36,
                                         borderRadius: '10px',
-                                        bgcolor: '#f5f5f5',
+                                        bgcolor: C.surfaceAlt,
                                         '&:active': { transform: 'scale(0.88)' },
                                     }}
                                 >
                                     <MenuIcon sx={{ fontSize: '1.1rem' }} />
                                 </IconButton>
-                                <Typography sx={{
-                                    fontWeight: 700,
-                                    fontFamily: '"Inter", sans-serif',
-                                    color: '#1a1a1a',
-                                    fontSize: '1rem',
-                                    letterSpacing: '-0.02em',
-                                }}>
+                                <Typography sx={{ fontWeight: 700, fontFamily: FONT, color: C.text, fontSize: '1rem', letterSpacing: '-0.02em' }}>
                                     {navItems.find(item => isActivePath(item.path))?.label || 'Dashboard'}
                                 </Typography>
                             </Box>
 
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <IconButton
-                                    size="small"
-                                    onClick={openNotificationsDialog}
-                                    sx={{
-                                        width: 38, height: 38,
-                                        borderRadius: '12px',
-                                        color: '#888',
-                                        bgcolor: '#f7f7f7',
-                                        '&:hover': { bgcolor: '#f0f4ff', color: '#325fec' },
-                                        '&:active': { transform: 'scale(0.88)' },
-                                    }}
-                                >
-                                    <Badge badgeContent={unreadCount} color="error" invisible={unreadCount === 0}>
-                                        <NotificationsIcon sx={{ fontSize: '1.15rem' }} />
-                                    </Badge>
-                                </IconButton>
+                                <Tooltip title="Notifications" arrow>
+                                    <IconButton
+                                        size="small"
+                                        onClick={openNotificationsDialog}
+                                        sx={{
+                                            width: 38, height: 38,
+                                            borderRadius: '12px',
+                                            color: C.textMuted,
+                                            bgcolor: C.surfaceAlt,
+                                            '&:hover': { bgcolor: C.accentLight, color: C.accent },
+                                            '&:active': { transform: 'scale(0.88)' },
+                                        }}
+                                    >
+                                        <Badge badgeContent={unreadCount} color="error" invisible={unreadCount === 0}>
+                                            <NotificationsIcon sx={{ fontSize: '1.15rem' }} />
+                                        </Badge>
+                                    </IconButton>
+                                </Tooltip>
 
                                 <Box
-                                    onClick={() => { haptic('action'); navigate('/app/admin/profile'); }}
+                                    onClick={handleProfileMenuOpen}
                                     sx={{
                                         display: 'flex', alignItems: 'center', gap: 1,
                                         pl: 1, pr: 1.2, py: 0.6,
                                         borderRadius: '12px',
-                                        bgcolor: '#f7f7f7',
+                                        bgcolor: C.surfaceAlt,
                                         cursor: 'pointer',
-                                        '&:hover': { bgcolor: '#f0f4ff' },
+                                        '&:hover': { bgcolor: C.accentLight },
                                         '&:active': { transform: 'scale(0.94)' },
                                         transition: 'all 0.15s ease',
                                     }}
                                 >
-                                    <Avatar sx={{
-                                        width: 26, height: 26,
-                                        bgcolor: '#325fec',
-                                        color: '#fff',
-                                        fontSize: '0.7rem',
-                                        fontWeight: 700,
-                                        fontFamily: '"Inter", sans-serif',
-                                    }}>
-                                        {getUserInitial(role, user)}
+                                    <Avatar
+                                        sx={{
+                                            width: 26,
+                                            height: 26,
+                                            bgcolor: C.accent,
+                                            color: '#fff',
+                                        }}
+                                    >
+                                        <PersonIcon sx={{ fontSize: 16 }} />
                                     </Avatar>
-                                    <Typography sx={{
-                                        fontSize: '0.75rem',
-                                        fontFamily: '"Inter", sans-serif',
-                                        fontWeight: 500,
-                                        color: '#555',
-                                        display: { xs: 'none', sm: 'block' },
-                                    }}>
+                                    <Typography sx={{ fontSize: '0.75rem', fontFamily: FONT, fontWeight: 600, color: C.textSub, display: { xs: 'none', sm: 'block' } }}>
                                         Admin
                                     </Typography>
                                 </Box>
+
+                                <Menu
+                                    anchorEl={profileMenuAnchor}
+                                    open={profileMenuOpen}
+                                    onClose={handleProfileMenuClose}
+                                    onClick={handleProfileMenuClose}
+                                    transitionDuration={{ enter: 220, exit: 160 }}
+                                    PaperProps={{
+                                        elevation: 0,
+                                        sx: {
+                                            mt: 1,
+                                            borderRadius: '14px',
+                                            border: `1px solid ${C.borderLight}`,
+                                            boxShadow: `0 8px 32px ${C.shadowLg}`,
+                                            minWidth: 170,
+                                            overflow: 'hidden',
+                                            '& .MuiMenuItem-root': {
+                                                px: 2, 
+                                                py: 1.2,
+                                                fontSize: '0.82rem',
+                                                fontFamily: FONT,
+                                                fontWeight: 600,
+                                                color: C.text,
+                                                gap: 1.5,
+                                                '&:hover': { bgcolor: C.accentLight },
+                                            },
+                                        },
+                                    }}
+                                    transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                                    anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                                >
+                                    <MenuItem onClick={handleProfileClick}>
+                                        <AccountCircleIcon sx={{ fontSize: '1.1rem', color: C.accent }} />
+                                        Profile
+                                    </MenuItem>
+                                    <Divider sx={{ my: 0.5, borderColor: C.borderLight }} />
+                                    <MenuItem onClick={handleLogoutClick}>
+                                        <LogoutIcon sx={{ fontSize: '1.1rem', color: C.textMuted }} />
+                                        <Typography sx={{ fontFamily: FONT, fontSize: '0.82rem', fontWeight: 600, color: C.textMuted }}>
+                                            Logout
+                                        </Typography>
+                                    </MenuItem>
+                                </Menu>
                             </Box>
                         </Box>
 
@@ -1222,13 +1721,13 @@ function AppLayout() {
                     display: 'flex',
                     flexDirection: 'column',
                     minHeight: '100vh',
-                    bgcolor: '#ffffff',
+                    bgcolor: C.surface,
+                    fontFamily: FONT,
                     pb: `${BOTTOM_NAV_HEIGHT + 32}px`,
                 }}
             >
                 {renderTopBar()}
-                {/* ── Main content: full height + white background ── */}
-                <Box sx={{ flex: 1, minHeight: '100vh', bgcolor: '#ffffff' }}>
+                <Box sx={{ flex: 1, minHeight: '100vh', bgcolor: C.surface }}>
                     <Outlet />
                 </Box>
             </Box>
@@ -1237,7 +1736,6 @@ function AppLayout() {
             {renderNotificationDialog()}
             {renderLogoutDialog()}
 
-            {/* ── PWA install not-supported snackbar ── */}
             <Snackbar
                 open={installSnackbarOpen}
                 autoHideDuration={3500}
@@ -1246,10 +1744,10 @@ function AppLayout() {
                 message="App is already installed or not supported on this browser"
                 ContentProps={{
                     sx: {
-                        fontFamily: '"Inter", sans-serif',
+                        fontFamily: FONT,
                         fontSize: '0.82rem',
                         borderRadius: '12px',
-                        bgcolor: '#1a1a1a',
+                        bgcolor: C.text,
                         mb: `${BOTTOM_NAV_HEIGHT + 16}px`,
                     }
                 }}

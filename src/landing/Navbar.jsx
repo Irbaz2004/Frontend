@@ -38,6 +38,48 @@ const Navbar = () => {
         threshold: 50,
     });
 
+    // State to track if the function is available
+    const [isInstallAvailable, setIsInstallAvailable] = useState(false);
+
+    useEffect(() => {
+        // Check if the global function is available
+        setIsInstallAvailable(typeof window.__triggerPWAInstall === 'function');
+        
+        // Optional: Listen for when the function becomes available
+        const checkInterval = setInterval(() => {
+            if (typeof window.__triggerPWAInstall === 'function') {
+                setIsInstallAvailable(true);
+                clearInterval(checkInterval);
+            }
+        }, 100);
+
+        return () => clearInterval(checkInterval);
+    }, []);
+
+    const handleDownloadClick = async () => {
+        try {
+            if (typeof window.__triggerPWAInstall === 'function') {
+                await window.__triggerPWAInstall();
+            } else {
+                // Fallback: Try to trigger the install directly
+                // This is a direct approach if the global function isn't available
+                const deferredPrompt = window.__deferredPrompt;
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        window.__deferredPrompt = null;
+                    }
+                } else {
+                    alert('To install the app, please select "Add to Home Screen" from your browser menu.');
+                }
+            }
+        } catch (error) {
+            console.error('Installation failed:', error);
+            alert('To install the app, please select "Add to Home Screen" from your browser menu.');
+        }
+    };
+
     return (
         <HideOnScrollDown>
             <AppBar
@@ -68,7 +110,6 @@ const Navbar = () => {
                         transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
                         margin: '0 auto',
                         boxShadow: trigger ? '0 10px 40px rgba(0,0,0,0.1)' : 'none',
-                        // border: trigger ? '1px solid rgba(50, 95, 236, 0.15)' : 'none',
                         borderBottom: !trigger ? '1px solid rgba(0,0,0,0.05)' : 'none',
                         background: trigger ? 'rgba(255, 255, 255, 0.85)' : '#ffffff',
                         backdropFilter: trigger ? 'blur(12px)' : 'none',
@@ -78,7 +119,7 @@ const Navbar = () => {
                         {/* Logo Image */}
                         <Box
                             component="img"
-                            src={nearzologo} // Replace with your actual logo path
+                            src={nearzologo}
                             alt="Logo"
                             sx={{
                                 height: 35,
@@ -102,14 +143,12 @@ const Navbar = () => {
                                 fontFamily: '"Inter", sans-serif',
                                 backgroundColor: '#325fec',
                                 color: 'white',
-                                // boxShadow: '0 8px 20px rgba(50, 95, 236, 0.25)',
                                 '&:hover': {
                                     backgroundColor: '#325fec',
                                     transform: 'translateY(-2px)',
-                                    // boxShadow: '0 12px 28px rgba(50, 95, 236, 0.35)',
                                 },
                             }}
-                            onClick={() => window.__triggerPWAInstall && window.__triggerPWAInstall()}
+                            onClick={handleDownloadClick}
                         >
                             Download Now
                         </Button>

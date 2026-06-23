@@ -115,7 +115,7 @@ const DownloadCTA = () => {
 
     return (
         <>
-            <Box ref={sectionRef} sx={{ pb: 10, bgcolor: '#ffffff', mt: -5 }}>
+            <Box ref={sectionRef} sx={{ pb: 10, bgcolor: '#ffffff', mt: -7 }}>
                 <Container maxWidth="lg">
                     <Box
                         className="cta-box"
@@ -128,7 +128,7 @@ const DownloadCTA = () => {
                             position: 'relative',
                             overflow: 'hidden',
                             boxShadow: '0 20px 40px rgba(50, 95, 236, 0.25)',
-                            height: '300px',
+                            height: '350px',
                         }}
                     >
                         {/* ── All your existing circles & radar markup unchanged ── */}
@@ -165,107 +165,11 @@ const DownloadCTA = () => {
                             </Typography>
 
                             {/* Install Button */}
-                            <Button
-                                onClick={handleInstall}
-                                disabled={isInstalled}
-                                startIcon={getButtonIcon()}
-                                sx={{
-                                    bgcolor: '#ffffff',
-                                    color: '#325fec',
-                                    fontWeight: 700,
-                                    fontFamily: '"Inter", sans-serif',
-                                    fontSize: '1rem',
-                                    px: 4,
-                                    py: 1.5,
-                                    borderRadius: '50px',
-                                    textTransform: 'none',
-                                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                                    '&:hover': {
-                                        bgcolor: '#f0f4ff',
-                                        transform: 'translateY(-2px)',
-                                        boxShadow: '0 12px 32px rgba(0,0,0,0.2)',
-                                    },
-                                    '&:disabled': {
-                                        bgcolor: 'rgba(255,255,255,0.5)',
-                                        color: '#325fec',
-                                    },
-                                    transition: 'all 0.25s ease',
-                                }}
-                            >
-                                {getButtonLabel()}
-                            </Button>
+                        
                         </Box>
                     </Box>
                 </Container>
 
-                {/* iOS Manual Guide Modal */}
-                {showIOSGuide && (
-                    <Box
-                        onClick={() => setShowIOSGuide(false)}
-                        sx={{
-                            position: 'fixed', inset: 0,
-                            bgcolor: 'rgba(0,0,0,0.6)',
-                            zIndex: 9999,
-                            display: 'flex',
-                            alignItems: 'flex-end',
-                            justifyContent: 'center',
-                            pb: 4,
-                        }}
-                    >
-                        <Box
-                            onClick={(e) => e.stopPropagation()}
-                            sx={{
-                                bgcolor: '#fff',
-                                borderRadius: '24px',
-                                p: 4,
-                                maxWidth: '380px',
-                                width: '90%',
-                                textAlign: 'center',
-                                boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-                            }}
-                        >
-                            <Typography variant="h6" fontWeight={700} mb={1} color="#325fec">
-                                Add NearZO to Home Screen
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" mb={3}>
-                                iOS doesn't support automatic install. Follow these steps:
-                            </Typography>
-                            {[
-                                { step: '1', text: 'Tap the Share button (↑) at the bottom of Safari' },
-                                { step: '2', text: 'Scroll down and tap "Add to Home Screen"' },
-                                { step: '3', text: 'Tap "Add" in the top right corner' },
-                            ].map(({ step, text }) => (
-                                <Box key={step} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, textAlign: 'left' }}>
-                                    <Box sx={{
-                                        minWidth: 32, height: 32,
-                                        bgcolor: '#325fec',
-                                        borderRadius: '50%',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        color: '#fff', fontWeight: 700, fontSize: '0.85rem',
-                                    }}>
-                                        {step}
-                                    </Box>
-                                    <Typography variant="body2" color="text.primary">{text}</Typography>
-                                </Box>
-                            ))}
-                            <Button
-                                fullWidth
-                                onClick={() => setShowIOSGuide(false)}
-                                sx={{
-                                    mt: 1,
-                                    bgcolor: '#325fec',
-                                    color: '#fff',
-                                    borderRadius: '50px',
-                                    fontWeight: 700,
-                                    textTransform: 'none',
-                                    '&:hover': { bgcolor: '#1a4ad4' },
-                                }}
-                            >
-                                Got it!
-                            </Button>
-                        </Box>
-                    </Box>
-                )}
 
                 <style>{`
                     @keyframes rotate {

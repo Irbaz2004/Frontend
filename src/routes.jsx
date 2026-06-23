@@ -30,7 +30,6 @@ import UserJobs from './app/user/Jobs';
 
 // Admin pages
 import AdminDashboard from './app/admin/Dashboard';
-import AdminBusinesses from './app/admin/Business';
 import AdminLocations from './app/admin/Location';
 import AdminJobs from './app/admin/Jobs';
 import AdminUsers from './app/admin/Users';
@@ -162,16 +161,16 @@ function RootRedirect() {
         return <LoadingScreen />;
     }
 
-    // If user is authenticated, redirect to app home
-    if (isAuthenticated && user) {
-        const role = user.role || localStorage.getItem('nearzo_role');
-        if (role === 'admin') {
-            return <Navigate to="/app/admin/dashboard" replace />;
-        } else if (role === 'business') {
-            return <Navigate to="/app/business/dashboard" replace />;
-        }
-        return <Navigate to="/app/home" replace />;
-    }
+    // // If user is authenticated, redirect to app home
+    // if (isAuthenticated && user) {
+    //     const role = user.role || localStorage.getItem('nearzo_role');
+    //     if (role === 'admin') {
+    //         return <Navigate to="/app/admin/dashboard" replace />;
+    //     } else if (role === 'business') {
+    //         return <Navigate to="/app/business/dashboard" replace />;
+    //     }
+    //     return <Navigate to="/app/home" replace />;
+    // }
 
     // If running as mobile app and not authenticated, go to login
     if (isApp && !isAuthenticated) {
@@ -294,12 +293,7 @@ function AppRoutes() {
                     </AuthGuard>
                 } />
                 
-                <Route path="admin/businesses" element={
-                    <AuthGuard allowedRoles={['admin']}>
-                        <AdminBusinesses />
-                    </AuthGuard>
-                } />
-                
+            
                 <Route path="admin/locations" element={
                     <AuthGuard allowedRoles={['admin']}>
                         <AdminLocations />

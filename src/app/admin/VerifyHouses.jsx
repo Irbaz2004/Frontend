@@ -53,7 +53,8 @@ import {
     Bed as BedIcon,
     Bathtub as BathtubIcon,
     Kitchen as KitchenIcon,
-    AttachMoney as MoneyIcon
+    AttachMoney as MoneyIcon,
+    Image as ImageIcon
 } from '@mui/icons-material';
 import {
     getAllHouses,
@@ -253,6 +254,62 @@ export default function VerifyHouses() {
         }
     };
 
+    // Helper function to render house image
+    const renderHouseImage = (house) => {
+        if (house.house_image) {
+            // If house_image is a Cloudinary URL
+            return (
+                <Avatar
+                    src={house.house_image}
+                    variant="rounded"
+                    sx={{ width: 48, height: 48 }}
+                    imgProps={{ 
+                        onError: (e) => {
+                            e.target.onerror = null;
+                            e.target.style.display = 'none';
+                        }
+                    }}
+                />
+            );
+        }
+        // Fallback if no image
+        return (
+            <Avatar variant="rounded" sx={{ width: 48, height: 48, bgcolor: '#e8f0fe' }}>
+                <HomeIcon sx={{ color: '#325fec' }} />
+            </Avatar>
+        );
+    };
+
+    // Helper function to render house image in dialog
+    const renderHouseImageDialog = (house) => {
+        if (house.house_image) {
+            return (
+                <img 
+                    src={house.house_image}
+                    alt={house.title || 'House'}
+                    style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8, objectFit: 'cover' }}
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                    }}
+                />
+            );
+        }
+        return (
+            <Box sx={{ 
+                width: '100%', 
+                height: 200, 
+                bgcolor: '#f3f4f6', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                borderRadius: 2
+            }}>
+                <ImageIcon sx={{ fontSize: 60, color: '#9ca3af' }} />
+            </Box>
+        );
+    };
+
     return (
         <Container maxWidth="xl" sx={{ py: 3 }}>
             {/* Header */}
@@ -415,17 +472,7 @@ export default function VerifyHouses() {
                                         </TableCell>
                                         <TableCell>
                                             <Box display="flex" alignItems="center" gap={2}>
-                                                {house.house_image_base64 ? (
-                                                    <Avatar
-                                                        src={`data:image/jpeg;base64,${house.house_image_base64}`}
-                                                        variant="rounded"
-                                                        sx={{ width: 48, height: 48 }}
-                                                    />
-                                                ) : (
-                                                    <Avatar variant="rounded" sx={{ width: 48, height: 48, bgcolor: '#e8f0fe' }}>
-                                                        <HomeIcon sx={{ color: '#325fec' }} />
-                                                    </Avatar>
-                                                )}
+                                                {renderHouseImage(house)}
                                                 <Box>
                                                     <Typography variant="body2" fontWeight={600}>
                                                         {house.title || `${house.rooms} BHK House`}
@@ -528,16 +575,10 @@ export default function VerifyHouses() {
                 <DialogContent dividers>
                     {selectedHouse && (
                         <Box>
-                            {/* House Image */}
-                            {selectedHouse.house_image_base64 && (
-                                <Box sx={{ mb: 3, textAlign: 'center' }}>
-                                    <img 
-                                        src={`data:image/jpeg;base64,${selectedHouse.house_image_base64}`}
-                                        alt={selectedHouse.title || 'House'}
-                                        style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8, objectFit: 'cover' }}
-                                    />
-                                </Box>
-                            )}
+                            {/* House Image - using Cloudinary URL directly */}
+                            <Box sx={{ mb: 3, textAlign: 'center' }}>
+                                {renderHouseImageDialog(selectedHouse)}
+                            </Box>
                             
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
@@ -547,7 +588,7 @@ export default function VerifyHouses() {
                                 
                                 <Grid item xs={12} sm={6}>
                                     <Typography variant="caption" color="#6b7280">Property Details</Typography>
-                                    <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
+                                    <Box sx={{ display: 'flex', gap: 2, mt: 0.5, flexWrap: 'wrap' }}>
                                         <Chip icon={<BedIcon />} label={`${selectedHouse.rooms} Beds`} size="small" />
                                         <Chip icon={<BathtubIcon />} label={`${selectedHouse.bathrooms || 1} Baths`} size="small" />
                                         <Chip icon={<KitchenIcon />} label={`${selectedHouse.kitchens} Kitchens`} size="small" />
@@ -561,7 +602,7 @@ export default function VerifyHouses() {
                                 
                                 <Grid item xs={12} sm={6}>
                                     <Typography variant="caption" color="#6b7280">Floor</Typography>
-                                    <Typography variant="body1">{selectedHouse.floor}</Typography>
+                                    <Typography variant="body1">{selectedHouse.floor || 'N/A'}</Typography>
                                 </Grid>
                                 
                                 <Grid item xs={12} sm={6}>

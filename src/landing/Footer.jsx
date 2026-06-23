@@ -1,17 +1,459 @@
+// Footer.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Box, Container, Typography, Stack, IconButton,
-    Link, Divider, Grid, Snackbar, Alert
+    Link, Divider, Grid, Snackbar, Alert,
+    Dialog, DialogTitle, DialogContent, DialogActions, Button,
+    Accordion, AccordionSummary, AccordionDetails, IconButton as MuiIconButton
 } from '@mui/material';
-import FacebookIcon from '@mui/icons-material/Facebook';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
-import TwitterIcon from '@mui/icons-material/Twitter';
 import GetAppIcon from '@mui/icons-material/GetApp';
 import AppleIcon from '@mui/icons-material/Apple';
+import CloseIcon from '@mui/icons-material/Close';
+import EmailIcon from '@mui/icons-material/Email';
+import PhoneIcon from '@mui/icons-material/Phone';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import WorkIcon from '@mui/icons-material/Work';
+import LocalMallIcon from '@mui/icons-material/LocalMall';
+import ApartmentIcon from '@mui/icons-material/Apartment';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import gsap from 'gsap';
 import nearzologo from '../assets/nearzologo.png';
 import usePWAInstall from '../hooks/usePWAInstall';
+
+// ───────────────────────── About Us Dialog ─────────────────────────
+const AboutDialog = ({ open, onClose }) => (
+    <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '24px', p: { xs: 1, sm: 2 } } }}
+    >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6" fontWeight={900} sx={{ fontFamily: '"Inter", sans-serif', color: '#020402' }}>
+                About <span style={{ color: '#325fec' }}>NearZO</span>
+            </Typography>
+            <MuiIconButton onClick={onClose} size="small">
+                <CloseIcon />
+            </MuiIconButton>
+        </DialogTitle>
+        <DialogContent>
+            <Typography sx={{
+                color: '#5a6e8a', mb: 3, fontSize: '0.95rem', lineHeight: 1.8,
+                fontFamily: '"Inter", sans-serif',
+            }}>
+                NearZO is a hyperlocal discovery platform designed to help people find everything
+                around them in one place. Whether you're looking for nearby shops, local job
+                opportunities, or rental homes, NearZO connects users with what's available around
+                them in real time.
+            </Typography>
+            <Typography sx={{
+                color: '#5a6e8a', mb: 3, fontSize: '0.95rem', lineHeight: 1.8,
+                fontFamily: '"Inter", sans-serif',
+            }}>
+                Our mission is to simplify local discovery and empower communities by making everyday
+                needs easier to access. With a user-friendly experience and location-based search,
+                NearZO helps individuals, businesses, and property owners connect more efficiently
+                and grow together.
+            </Typography>
+
+            <Box sx={{ mb: 1 }}>
+                <Typography sx={{
+                    color: '#325fec', fontWeight: 800, mb: 2, fontSize: '0.8rem',
+                    letterSpacing: '2px', fontFamily: '"Inter", sans-serif',
+                }}>
+                    WHAT WE OFFER
+                </Typography>
+                <Grid container spacing={2}>
+                    {[
+                        { icon: <WorkIcon />, label: 'Local Jobs' },
+                        { icon: <LocalMallIcon />, label: 'Nearby Shops' },
+                        { icon: <ApartmentIcon />, label: 'Rent House' },
+                    ].map((item, i) => (
+                        <Grid item xs={4} key={i}>
+                            <Stack alignItems="center" spacing={1} sx={{
+                                p: 1.5, borderRadius: '14px', bgcolor: 'rgba(50,95,236,0.05)', textAlign: 'center',
+                            }}>
+                                <Box sx={{ color: '#325fec', display: 'flex' }}>{item.icon}</Box>
+                                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, fontFamily: '"Inter", sans-serif', color: '#1a1a1a' }}>
+                                    {item.label}
+                                </Typography>
+                            </Stack>
+                        </Grid>
+                    ))}
+                </Grid>
+            </Box>
+
+            <Typography sx={{
+                mt: 3, fontStyle: 'italic', color: '#aaa', fontSize: '0.8rem',
+                fontFamily: '"Inter", sans-serif', textAlign: 'center',
+            }}>
+                "Everything Around You, In One Place." — A product by{' '}
+                <Link
+                    href="https://ruzix.in"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ color: '#325fec', fontWeight: 800, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                >
+                    Ruzix
+                </Link>
+            </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+            <Button
+                onClick={onClose}
+                fullWidth
+                variant="contained"
+                sx={{
+                    borderRadius: '100px', py: 1.2, bgcolor: '#325fec',
+                    fontWeight: 700, textTransform: 'none', fontFamily: '"Inter", sans-serif',
+                    '&:hover': { bgcolor: '#1a4ad4' },
+                }}
+            >
+                Got it!
+            </Button>
+        </DialogActions>
+    </Dialog>
+);
+
+// ───────────────────────── Contact Support Dialog ─────────────────────────
+const ContactDialog = ({ open, onClose }) => (
+    <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '24px', p: { xs: 1, sm: 2 } } }}
+    >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6" fontWeight={900} sx={{ fontFamily: '"Inter", sans-serif', color: '#020402' }}>
+                Contact <span style={{ color: '#325fec' }}>Support</span>
+            </Typography>
+            <MuiIconButton onClick={onClose} size="small">
+                <CloseIcon />
+            </MuiIconButton>
+        </DialogTitle>
+        <DialogContent>
+            <Typography sx={{
+                color: '#5a6e8a', mb: 3, fontSize: '0.95rem', lineHeight: 1.7,
+                fontFamily: '"Inter", sans-serif',
+            }}>
+                Have a question, issue, or feedback? Reach out to the NearZO team — we're happy to help.
+            </Typography>
+
+            <Stack spacing={2}>
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ p: 2, borderRadius: '14px', bgcolor: 'rgba(50,95,236,0.05)' }}>
+                    <EmailIcon sx={{ color: '#325fec' }} />
+                    <Box>
+                        <Typography sx={{ fontSize: '0.75rem', color: '#999', fontFamily: '"Inter", sans-serif' }}>Email</Typography>
+                        <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, fontFamily: '"Inter", sans-serif', color: '#1a1a1a' }}>
+                            support@nearzo.in
+                        </Typography>
+                    </Box>
+                </Stack>
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ p: 2, borderRadius: '14px', bgcolor: 'rgba(50,95,236,0.05)' }}>
+                    <PhoneIcon sx={{ color: '#325fec' }} />
+                    <Box>
+                        <Typography sx={{ fontSize: '0.75rem', color: '#999', fontFamily: '"Inter", sans-serif' }}>Phone</Typography>
+                        <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, fontFamily: '"Inter", sans-serif', color: '#1a1a1a' }}>
+                            +91 93634 66343
+                        </Typography>
+                    </Box>
+                </Stack>
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ p: 2, borderRadius: '14px', bgcolor: 'rgba(50,95,236,0.05)' }}>
+                    <LocationOnIcon sx={{ color: '#325fec' }} />
+                    <Box>
+                        <Typography sx={{ fontSize: '0.75rem', color: '#999', fontFamily: '"Inter", sans-serif' }}>Address</Typography>
+                        <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, fontFamily: '"Inter", sans-serif', color: '#1a1a1a' }}>
+                            Ambur, Tamil Nadu, India
+                        </Typography>
+                    </Box>
+                </Stack>
+            </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+            <Button
+                onClick={onClose}
+                fullWidth
+                variant="contained"
+                sx={{
+                    borderRadius: '100px', py: 1.2, bgcolor: '#325fec',
+                    fontWeight: 700, textTransform: 'none', fontFamily: '"Inter", sans-serif',
+                    '&:hover': { bgcolor: '#1a4ad4' },
+                }}
+            >
+                Close
+            </Button>
+        </DialogActions>
+    </Dialog>
+);
+
+// ───────────────────────── Privacy Policy Dialog ─────────────────────────
+const PrivacyDialog = ({ open, onClose }) => (
+    <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '24px', p: { xs: 1, sm: 2 } } }}
+    >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6" fontWeight={900} sx={{ fontFamily: '"Inter", sans-serif', color: '#020402' }}>
+                Privacy <span style={{ color: '#325fec' }}>Policy</span>
+            </Typography>
+            <MuiIconButton onClick={onClose} size="small">
+                <CloseIcon />
+            </MuiIconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ maxHeight: '60vh' }}>
+           
+            <Typography sx={{ color: '#5a6e8a', mb: 3, fontSize: '0.92rem', lineHeight: 1.7, fontFamily: '"Inter", sans-serif' }}>
+                NearZO values your privacy and is committed to protecting your personal information.
+            </Typography>
+
+            {[
+                {
+                    title: 'Information We Collect',
+                    items: ['Name', 'Email address', 'Phone number', 'Location information', 'Profile information', 'Device and usage information'],
+                },
+                {
+                    title: 'How We Use Your Information',
+                    items: ['To provide and improve our services', 'To manage user accounts', 'To display relevant local listings', 'To send notifications and updates', 'To respond to support requests'],
+                },
+            ].map((section, i) => (
+                <Box key={i} sx={{ mb: 3 }}>
+                    <Typography sx={{ fontWeight: 800, color: '#1a1a1a', mb: 1, fontSize: '0.95rem', fontFamily: '"Inter", sans-serif' }}>
+                        {section.title}
+                    </Typography>
+                    <Stack component="ul" spacing={0.5} sx={{ pl: 3, m: 0 }}>
+                        {section.items.map((item, j) => (
+                            <Typography component="li" key={j} sx={{ color: '#5a6e8a', fontSize: '0.9rem', fontFamily: '"Inter", sans-serif' }}>
+                                {item}
+                            </Typography>
+                        ))}
+                    </Stack>
+                </Box>
+            ))}
+
+            {[
+                { title: 'Data Sharing', text: 'NearZO does not sell personal information. Information may be shared with service providers when necessary to operate the platform.' },
+                { title: 'Data Security', text: 'We implement reasonable measures to protect your information. However, no method of transmission over the internet is completely secure.' },
+                { title: 'Third-Party Services', text: 'NearZO may use third-party services such as analytics, maps, and notification providers.' },
+                { title: 'Your Rights', text: 'Users may request updates or deletion of their account information, subject to applicable laws.' },
+            ].map((section, i) => (
+                <Box key={i} sx={{ mb: 3 }}>
+                    <Typography sx={{ fontWeight: 800, color: '#1a1a1a', mb: 1, fontSize: '0.95rem', fontFamily: '"Inter", sans-serif' }}>
+                        {section.title}
+                    </Typography>
+                    <Typography sx={{ color: '#5a6e8a', fontSize: '0.9rem', lineHeight: 1.7, fontFamily: '"Inter", sans-serif' }}>
+                        {section.text}
+                    </Typography>
+                </Box>
+            ))}
+
+            <Box>
+                <Typography sx={{ fontWeight: 800, color: '#1a1a1a', mb: 1, fontSize: '0.95rem', fontFamily: '"Inter", sans-serif' }}>
+                    Contact Us
+                </Typography>
+                <Typography sx={{ color: '#5a6e8a', fontSize: '0.9rem', lineHeight: 1.7, fontFamily: '"Inter", sans-serif' }}>
+                    For privacy-related questions, please contact us at:{' '}
+                    <Link href="mailto:support@nearzo.in" sx={{ color: '#325fec', fontWeight: 700 }}>
+                        support@nearzo.in
+                    </Link>
+                </Typography>
+            </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button
+                onClick={onClose}
+                fullWidth
+                variant="contained"
+                sx={{
+                    borderRadius: '100px', py: 1.2, bgcolor: '#325fec',
+                    fontWeight: 700, textTransform: 'none', fontFamily: '"Inter", sans-serif',
+                    '&:hover': { bgcolor: '#1a4ad4' },
+                }}
+            >
+                Close
+            </Button>
+        </DialogActions>
+    </Dialog>
+);
+
+// ───────────────────────── Terms of Service Dialog ─────────────────────────
+const TermsDialog = ({ open, onClose }) => (
+    <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '24px', p: { xs: 1, sm: 2 } } }}
+    >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6" fontWeight={900} sx={{ fontFamily: '"Inter", sans-serif', color: '#020402' }}>
+                Terms <span style={{ color: '#325fec' }}>and Conditions</span>
+            </Typography>
+            <MuiIconButton onClick={onClose} size="small">
+                <CloseIcon />
+            </MuiIconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ maxHeight: '60vh' }}>
+            
+            <Typography sx={{ color: '#5a6e8a', mb: 3, fontSize: '0.92rem', lineHeight: 1.7, fontFamily: '"Inter", sans-serif' }}>
+                By using NearZO, you agree to these Terms and Conditions.
+            </Typography>
+
+            {[
+                { title: 'Use of Services', text: 'NearZO provides a platform for discovering shops, jobs, houses, and local services.' },
+                { title: 'User Responsibilities', text: 'Users are responsible for providing accurate information and complying with applicable laws.' },
+                { title: 'Listings', text: 'Businesses, employers, and property owners are responsible for the content they post.' },
+            ].map((section, i) => (
+                <Box key={i} sx={{ mb: 3 }}>
+                    <Typography sx={{ fontWeight: 800, color: '#1a1a1a', mb: 1, fontSize: '0.95rem', fontFamily: '"Inter", sans-serif' }}>
+                        {section.title}
+                    </Typography>
+                    <Typography sx={{ color: '#5a6e8a', fontSize: '0.9rem', lineHeight: 1.7, fontFamily: '"Inter", sans-serif' }}>
+                        {section.text}
+                    </Typography>
+                </Box>
+            ))}
+
+            <Box sx={{ mb: 3 }}>
+                <Typography sx={{ fontWeight: 800, color: '#1a1a1a', mb: 1, fontSize: '0.95rem', fontFamily: '"Inter", sans-serif' }}>
+                    Prohibited Activities
+                </Typography>
+                <Stack component="ul" spacing={0.5} sx={{ pl: 3, m: 0 }}>
+                    {['Fake listings', 'Fraudulent activities', 'Spam', 'Illegal content', 'Harassment or abusive behavior'].map((item, j) => (
+                        <Typography component="li" key={j} sx={{ color: '#5a6e8a', fontSize: '0.9rem', fontFamily: '"Inter", sans-serif' }}>
+                            {item}
+                        </Typography>
+                    ))}
+                </Stack>
+            </Box>
+
+            {[
+                { title: 'Disclaimer', text: 'NearZO acts only as a platform connecting users with businesses, employers, and property owners. NearZO does not guarantee the accuracy, quality, or availability of listings.' },
+                { title: 'Limitation of Liability', text: 'NearZO shall not be liable for losses, damages, disputes, or transactions arising between users and third parties.' },
+                { title: 'Account Suspension', text: 'NearZO reserves the right to remove content or suspend accounts that violate these Terms and Conditions.' },
+                { title: 'Changes to Terms', text: 'These Terms may be updated from time to time. Continued use of NearZO constitutes acceptance of any updated terms.' },
+            ].map((section, i) => (
+                <Box key={i} sx={{ mb: 3 }}>
+                    <Typography sx={{ fontWeight: 800, color: '#1a1a1a', mb: 1, fontSize: '0.95rem', fontFamily: '"Inter", sans-serif' }}>
+                        {section.title}
+                    </Typography>
+                    <Typography sx={{ color: '#5a6e8a', fontSize: '0.9rem', lineHeight: 1.7, fontFamily: '"Inter", sans-serif' }}>
+                        {section.text}
+                    </Typography>
+                </Box>
+            ))}
+
+            <Box>
+                <Typography sx={{ fontWeight: 800, color: '#1a1a1a', mb: 1, fontSize: '0.95rem', fontFamily: '"Inter", sans-serif' }}>
+                    Contact Us
+                </Typography>
+                <Typography sx={{ color: '#5a6e8a', fontSize: '0.9rem', lineHeight: 1.7, fontFamily: '"Inter", sans-serif' }}>
+                    Email:{' '}
+                    <Link href="mailto:support@nearzo.in" sx={{ color: '#325fec', fontWeight: 700 }}>
+                        support@nearzo.in
+                    </Link>
+                    <br />
+                    Website:{' '}
+                    <Link href="https://www.nearzo.in" target="_blank" rel="noopener noreferrer" sx={{ color: '#325fec', fontWeight: 700 }}>
+                        www.nearzo.in
+                    </Link>
+                </Typography>
+            </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button
+                onClick={onClose}
+                fullWidth
+                variant="contained"
+                sx={{
+                    borderRadius: '100px', py: 1.2, bgcolor: '#325fec',
+                    fontWeight: 700, textTransform: 'none', fontFamily: '"Inter", sans-serif',
+                    '&:hover': { bgcolor: '#1a4ad4' },
+                }}
+            >
+                Close
+            </Button>
+        </DialogActions>
+    </Dialog>
+);
+
+// ───────────────────────── FAQ Dialog ─────────────────────────
+const faqData = [
+    { q: 'What is NearZO?', a: 'NearZO is a hyperlocal platform that helps users discover nearby shops, jobs, rental homes, and essential services.' },
+    { q: 'Is NearZO free to use?', a: 'Yes, NearZO is free for users.' },
+    { q: 'How do I search for shops, jobs, or houses?', a: 'You can browse categories or use the search feature to find listings near your location.' },
+    { q: 'Can I list my business or property on NearZO?', a: 'Yes. Businesses, employers, and property owners can create listings on NearZO.' },
+    { q: 'How can I contact a shop owner or employer?', a: 'You can view the contact details provided in the listing and connect directly.' },
+    { q: 'Does NearZO verify listings?', a: 'NearZO may review listings, but users should independently verify information before making decisions.' },
+    { q: 'How can I report incorrect or inappropriate content?', a: 'You can contact our support team through the Support page.' },
+    { q: 'Is my personal information secure?', a: 'We take reasonable measures to protect user information and privacy.' },
+    { q: 'How can I contact NearZO?', a: 'You can reach us through our Support or Contact Us page.' },
+];
+
+const FaqDialog = ({ open, onClose }) => (
+    <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '24px', p: { xs: 1, sm: 2 } } }}
+    >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6" fontWeight={900} sx={{ fontFamily: '"Inter", sans-serif', color: '#020402' }}>
+                Frequently Asked <span style={{ color: '#325fec' }}>Questions</span>
+            </Typography>
+            <MuiIconButton onClick={onClose} size="small">
+                <CloseIcon />
+            </MuiIconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ maxHeight: '60vh' }}>
+            {faqData.map((item, i) => (
+                <Accordion
+                    key={i}
+                    elevation={0}
+                    sx={{
+                        bgcolor: 'rgba(50,95,236,0.03)',
+                        borderRadius: '14px !important',
+                        mb: 1.2,
+                        '&:before': { display: 'none' },
+                        border: '1px solid rgba(50,95,236,0.08)',
+                    }}
+                >
+                    <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: '#325fec' }} />}>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a1a', fontFamily: '"Inter", sans-serif' }}>
+                            {item.q}
+                        </Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <Typography sx={{ color: '#5a6e8a', fontSize: '0.88rem', lineHeight: 1.6, fontFamily: '"Inter", sans-serif' }}>
+                            {item.a}
+                        </Typography>
+                    </AccordionDetails>
+                </Accordion>
+            ))}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button
+                onClick={onClose}
+                fullWidth
+                variant="contained"
+                sx={{
+                    borderRadius: '100px', py: 1.2, bgcolor: '#325fec',
+                    fontWeight: 700, textTransform: 'none', fontFamily: '"Inter", sans-serif',
+                    '&:hover': { bgcolor: '#1a4ad4' },
+                }}
+            >
+                Close
+            </Button>
+        </DialogActions>
+    </Dialog>
+);
 
 const Footer = () => {
     const radarRef = useRef(null);
@@ -19,6 +461,11 @@ const Footer = () => {
     const { deferredPrompt, isInstalled, isIOS } = usePWAInstall();
     const [showIOSGuide, setShowIOSGuide] = useState(false);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+    const [aboutOpen, setAboutOpen] = useState(false);
+    const [contactOpen, setContactOpen] = useState(false);
+    const [privacyOpen, setPrivacyOpen] = useState(false);
+    const [termsOpen, setTermsOpen] = useState(false);
+    const [faqOpen, setFaqOpen] = useState(false);
 
     useEffect(() => {
         if (radarRef.current) {
@@ -68,10 +515,19 @@ const Footer = () => {
     }, [deferredPrompt, isInstalled, isIOS]);
 
     const socialLinks = [
-        { icon: FacebookIcon, label: 'Facebook' },
         { icon: InstagramIcon, label: 'Instagram' },
         { icon: LinkedInIcon, label: 'LinkedIn' },
-        { icon: TwitterIcon, label: 'Twitter' }
+    ];
+
+    const quickLinks = [
+        { label: 'About Us', action: () => setAboutOpen(true) },
+        { label: 'Contact Support', action: () => setContactOpen(true) },
+        { label: 'FAQ', action: () => setFaqOpen(true) },
+    ];
+
+    const legalLinks = [
+        { label: 'Privacy Policy', action: () => setPrivacyOpen(true) },
+        { label: 'Terms of Service', action: () => setTermsOpen(true) },
     ];
 
     const getDownloadLabel = () => {
@@ -107,8 +563,9 @@ const Footer = () => {
                                     lineHeight: 1.6,
                                     fontFamily: '"Inter", sans-serif',
                                 }}>
-                                    A hyper-local platform connecting job seekers, shops, and services.
-                                    Building stronger communities through instant local discovery.
+                                    A hyperlocal platform connecting job seekers, shop owners, and
+                                    rent house seekers. Building stronger communities through
+                                    instant local discovery.
                                 </Typography>
                                 <Stack direction="row" spacing={1.5}>
                                     {socialLinks.map((social, i) => (
@@ -146,19 +603,26 @@ const Footer = () => {
                                 Quick Links
                             </Typography>
                             <Stack spacing={1.5}>
-                                {['About Us', 'How It Works', 'Contact Support', 'FAQ'].map((link) => (
-                                    <Link key={link} href="#" underline="none" sx={{
-                                        color: '#5a6e8a',
-                                        fontSize: { xs: '0.75rem', sm: '0.9rem' },
-                                        fontFamily: '"Inter", sans-serif',
-                                        transition: 'all 0.2s ease',
-                                        '&:hover': {
-                                            color: '#325fec',
-                                            transform: 'translateX(5px)',
-                                            display: 'inline-block'
-                                        }
-                                    }}>
-                                        {link}
+                                {quickLinks.map((link) => (
+                                    <Link
+                                        key={link.label}
+                                        component="button"
+                                        onClick={link.action}
+                                        underline="none"
+                                        sx={{
+                                            color: '#5a6e8a',
+                                            fontSize: { xs: '0.75rem', sm: '0.9rem' },
+                                            fontFamily: '"Inter", sans-serif',
+                                            transition: 'all 0.2s ease',
+                                            textAlign: 'left',
+                                            '&:hover': {
+                                                color: '#325fec',
+                                                transform: 'translateX(5px)',
+                                                display: 'inline-block'
+                                            }
+                                        }}
+                                    >
+                                        {link.label}
                                     </Link>
                                 ))}
                             </Stack>
@@ -175,19 +639,26 @@ const Footer = () => {
                                 Legal
                             </Typography>
                             <Stack spacing={1.5}>
-                                {['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'GDPR Compliance'].map((link) => (
-                                    <Link key={link} href="#" underline="none" sx={{
-                                        color: '#5a6e8a',
-                                        fontSize: { xs: '0.75rem', sm: '0.9rem' },
-                                        fontFamily: '"Inter", sans-serif',
-                                        transition: 'all 0.2s ease',
-                                        '&:hover': {
-                                            color: '#325fec',
-                                            transform: 'translateX(5px)',
-                                            display: 'inline-block'
-                                        }
-                                    }}>
-                                        {link}
+                                {legalLinks.map((link) => (
+                                    <Link
+                                        key={link.label}
+                                        component="button"
+                                        onClick={link.action}
+                                        underline="none"
+                                        sx={{
+                                            color: '#5a6e8a',
+                                            fontSize: { xs: '0.75rem', sm: '0.9rem' },
+                                            fontFamily: '"Inter", sans-serif',
+                                            transition: 'all 0.2s ease',
+                                            textAlign: 'left',
+                                            '&:hover': {
+                                                color: '#325fec',
+                                                transform: 'translateX(5px)',
+                                                display: 'inline-block'
+                                            }
+                                        }}
+                                    >
+                                        {link.label}
                                     </Link>
                                 ))}
                             </Stack>
@@ -215,9 +686,16 @@ const Footer = () => {
                             fontStyle: 'italic',
                             fontSize: { xs: '0.65rem', sm: '0.75rem' },
                             fontFamily: '"Inter", sans-serif',
-                            '& b': { color: '#325fec', fontWeight: 800 }
                         }}>
-                            A product by <b>Ruzix</b>
+                            A product by{' '}
+                            <Link
+                                href="https://ruzix.in"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                sx={{ color: '#325fec', fontWeight: 800, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                            >
+                                Ruzix
+                            </Link>
                         </Typography>
                     </Stack>
 
@@ -353,6 +831,13 @@ const Footer = () => {
                     }
                 `}</style>
             </Box>
+
+            {/* Dialogs */}
+            <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
+            <ContactDialog open={contactOpen} onClose={() => setContactOpen(false)} />
+            <PrivacyDialog open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
+            <TermsDialog open={termsOpen} onClose={() => setTermsOpen(false)} />
+            <FaqDialog open={faqOpen} onClose={() => setFaqOpen(false)} />
 
             {/* Snackbar */}
             <Snackbar

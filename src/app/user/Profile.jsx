@@ -14,56 +14,79 @@ import {
     updateShop,
     deleteShop,
     getShopByIdForEdit,
-    getTotalViews
+    getTotalViews,
+    getNotifications,
+    getUnreadNotificationCount,
+    markNotificationRead,
+    markAllNotificationsRead,
+    deleteNotification,
+    deleteAllNotifications,
+    createShopNotification,
+    createHouseNotification,
+    createJobNotification
 } from '../../services/profile';
 import { getAllCities, getAreasByCity, verifyLocation, getShopCategories } from '../../services/location';
 import { useAuth } from '../context/AuthContext';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GLOBAL STYLES (Updated with higher z-index for modals)
+// GLOBAL STYLES — accent retuned to the app-wide brand blue (#325fec, matches
+// Shops/Houses/Jobs/AppLayout) instead of the previous one-off #2563EB, plus a
+// real closing animation for the modal sheet (it used to vanish instantly).
+//
+// NOTE on the "font/alignment flash" issue: Material Icons uses ligatures, so
+// until the icon font finishes downloading, the browser briefly renders the
+// literal icon name ("home", "edit"...) in a fallback font. That extra text
+// width is what causes the fraction-of-a-second layout jump on first load.
+// Fixed two ways below: (1) `&display=block` on the Material Icons import so
+// it stays invisible instead of showing raw text while loading, and (2) the
+// component now waits for `document.fonts.ready` before showing real content
+// (see `fontsReady` state further down), so the very first paint already has
+// the right fonts in place.
 // ─────────────────────────────────────────────────────────────────────────────
 const GLOBAL_STYLE = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-  @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+  @import url('https://fonts.googleapis.com/icon?family=Material+Icons&display=block');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --blue: #2563EB;
-    --blue-light: #EFF6FF;
-    --blue-mid: #DBEAFE;
+    --blue: #325fec;
+    --blue-dark: #1A45C2;
+    --blue-light: #EEF4FF;
+    --blue-mid: #BFCFFF;
     --green: #16A34A;
     --green-light: #F0FDF4;
     --green-mid: #DCFCE7;
     --red: #DC2626;
     --red-light: #FEF2F2;
     --red-mid: #FEE2E2;
-    --orange: #EA580C;
+    --orange: #D97706;
     --orange-light: #FFF7ED;
     --orange-mid: #FFEDD5;
     --purple: #7C3AED;
     --purple-light: #F5F3FF;
     --purple-mid: #EDE9FE;
-    --border: #E5E7EB;
-    --border-light: #F3F4F6;
-    --text: #111827;
-    --text-2: #374151;
-    --text-3: #6B7280;
-    --text-4: #9CA3AF;
-    --bg: #F9FAFB;
+    --border: #E2E8F5;
+    --border-light: #EBF0F9;
+    --text: #0F172A;
+    --text-2: #334155;
+    --text-3: #64748B;
+    --text-4: #94A3B8;
+    --bg: #F4F6FB;
     --card: #FFFFFF;
     --radius: 16px;
-    --font: 'Inter', sans-serif;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
-    --shadow: 0 4px 16px rgba(0,0,0,.08);
-    --shadow-lg: 0 10px 40px rgba(0,0,0,.12);
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --shadow-sm: 0 1px 3px rgba(15,23,42,.07), 0 1px 2px rgba(15,23,42,.04);
+    --shadow: 0 4px 16px rgba(15,23,42,.08);
+    --shadow-lg: 0 10px 40px rgba(15,23,42,.14);
+    --shadow-accent: 0 4px 14px rgba(50,95,236,.16);
     --bottom-nav-h: 64px;
     --modal-px: clamp(12px, 4vw, 20px);
     --modal-py: clamp(10px, 2.5vw, 18px);
     --form-gap: clamp(10px, 2.5vw, 14px);
   }
 
-  html, body { font-family: var(--font); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+  html, body { font-family: var(--font); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; font-synthesis: none; }
 
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -77,10 +100,26 @@ const GLOBAL_STYLE = `
     from { opacity: 0; }
     to   { opacity: 1; }
   }
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes slideUp {
     from { transform: translateY(60px); opacity: 0; }
     to   { transform: translateY(0);    opacity: 1; }
+  }
+  @keyframes slideDown {
+    from { transform: translateY(0);    opacity: 1; }
+    to   { transform: translateY(60px); opacity: 0; }
+  }
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slideOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to   { transform: translateX(100%); opacity: 0; }
   }
 
   .mi {
@@ -94,6 +133,7 @@ const GLOBAL_STYLE = `
     justify-content: center;
     flex-shrink: 0;
     user-select: none;
+    overflow: hidden;
   }
 
   .icon-btn {
@@ -103,20 +143,23 @@ const GLOBAL_STYLE = `
   }
   .icon-btn:hover { background: var(--border-light); }
 
-  /* Modal overlay - higher z-index to appear above bottom nav */
+  /* Modal overlay - higher z-index to appear above bottom nav, smooth in/out */
   .modal-overlay {
     position: fixed;
     inset: 0;
     z-index: 10000 !important;
-    background: rgba(0,0,0,.5);
+    background: rgba(15,23,42,.5);
     display: flex;
     align-items: flex-end;
     justify-content: center;
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
-    animation: fadeIn .2s ease;
+    animation: fadeIn .22s cubic-bezier(0.16, 1, 0.3, 1);
     padding: 0;
     overscroll-behavior: contain;
+  }
+  .modal-overlay.closing {
+    animation: fadeOut .22s cubic-bezier(0.7, 0, 0.84, 0) forwards;
   }
 
   .modal-sheet {
@@ -127,11 +170,14 @@ const GLOBAL_STYLE = `
     border-radius: 20px 20px 0 0;
     display: flex;
     flex-direction: column;
-    animation: slideUp .28s cubic-bezier(.32,.72,0,1);
+    animation: slideUp .32s cubic-bezier(0.16, 1, 0.3, 1);
     overflow: hidden;
     margin-bottom: 0;
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    margin-top: 60px; /* Added margin top to show close icon clearly */
+    margin-top: 60px;
+  }
+  .modal-sheet.closing {
+    animation: slideDown .24s cubic-bezier(0.7, 0, 0.84, 0) forwards;
   }
 
   @media (min-width: 640px) {
@@ -150,7 +196,7 @@ const GLOBAL_STYLE = `
     align-items: center;
     justify-content: space-between;
     padding: var(--modal-py) var(--modal-px) calc(var(--modal-py) - 4px);
-    border-bottom: 1px solid #F3F4F6;
+    border-bottom: 1px solid var(--border-light);
     flex-shrink: 0;
   }
 
@@ -165,7 +211,7 @@ const GLOBAL_STYLE = `
 
   .modal-footer {
     padding: clamp(10px, 2vw, 14px) var(--modal-px) clamp(12px, 3vw, 18px);
-    border-top: 1px solid #F3F4F6;
+    border-top: 1px solid var(--border-light);
     display: flex;
     gap: clamp(8px, 2vw, 10px);
     justify-content: flex-end;
@@ -176,7 +222,7 @@ const GLOBAL_STYLE = `
   .modal-handle {
     width: 36px;
     height: 4px;
-    background: #E5E7EB;
+    background: var(--border);
     border-radius: 99px;
     margin: 0 auto 0;
     flex-shrink: 0;
@@ -207,11 +253,54 @@ const GLOBAL_STYLE = `
   @media (min-width: 1100px) {
     .profile-layout { grid-template-columns: 330px 1fr; gap: 24px; }
   }
+
+  /* ── Notification drawer — opens full-height / full-screen ── */
+  .notification-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(15,23,42,.5);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    animation: fadeIn .2s ease;
+    overscroll-behavior: contain;
+  }
+  .notification-overlay.closing { animation: fadeOut .2s ease forwards; }
+
+  .notification-panel {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    background: #fff;
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    animation: slideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    overscroll-behavior: contain;
+  }
+  .notification-panel.closing {
+    animation: slideOutRight 0.22s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+  }
+
+  @media (min-width: 640px) {
+    .notification-panel {
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: auto;
+      width: 100%;
+      max-width: 420px;
+      height: 100dvh;
+      box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+    }
+  }
 `;
 
-if (!document.getElementById('profile-styles-v4')) {
+if (!document.getElementById('profile-styles-v5')) {
     const s = document.createElement('style');
-    s.id = 'profile-styles-v4';
+    s.id = 'profile-styles-v5';
     s.textContent = GLOBAL_STYLE;
     document.head.appendChild(s);
 }
@@ -297,11 +386,11 @@ const locationService = new LocationService();
 // ICON
 // ─────────────────────────────────────────────────────────────────────────────
 const Icon = ({ name, size = 20, color, style = {} }) => (
-    <span className="mi" style={{ fontSize: size, color, ...style }}>{name}</span>
+    <span className="mi" style={{ fontSize: size, width: size, height: size, color, ...style }}>{name}</span>
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRIMITIVES (same as before)
+// PRIMITIVES
 // ─────────────────────────────────────────────────────────────────────────────
 const Spinner = ({ size = 18, color = '#fff' }) => (
     <span style={{
@@ -311,7 +400,7 @@ const Spinner = ({ size = 18, color = '#fff' }) => (
     }} />
 );
 
-const Badge = ({ label, color = '#2563EB', bg = '#EFF6FF', dot }) => (
+const Badge = ({ label, color = '#325fec', bg = '#EEF4FF', dot }) => (
     <span style={{
         display: 'inline-flex', alignItems: 'center', gap: 4,
         padding: '3px 10px', borderRadius: 99,
@@ -325,7 +414,7 @@ const Badge = ({ label, color = '#2563EB', bg = '#EFF6FF', dot }) => (
 const FieldLabel = ({ children }) => (
     <label style={{
         display: 'block', fontSize: 11, fontWeight: 700,
-        color: '#6B7280', marginBottom: 6,
+        color: '#64748B', marginBottom: 6,
         textTransform: 'uppercase', letterSpacing: '.5px'
     }}>
         {children}
@@ -334,9 +423,9 @@ const FieldLabel = ({ children }) => (
 
 const inputBase = {
     width: '100%', padding: '10px 14px',
-    border: '1.5px solid #E5E7EB', borderRadius: 10,
-    fontSize: 14, fontWeight: 400, color: '#111827',
-    background: '#FAFAFA', outline: 'none',
+    border: '1.5px solid #E2E8F5', borderRadius: 10,
+    fontSize: 14, fontWeight: 400, color: '#0F172A',
+    background: '#FAFBFE', outline: 'none',
     transition: 'border-color .15s, box-shadow .15s',
     fontFamily: 'var(--font)',
 };
@@ -351,11 +440,11 @@ const Input = memo(({ label, value, onChange, style = {}, wrapStyle = {}, type =
     }, [value]);
 
     const handleFocus = (e) => {
-        e.target.style.borderColor = '#2563EB';
-        e.target.style.boxShadow = '0 0 0 3px #DBEAFE';
+        e.target.style.borderColor = '#325fec';
+        e.target.style.boxShadow = '0 0 0 3px #BFCFFF';
     };
     const handleBlur = (e) => {
-        e.target.style.borderColor = '#E5E7EB';
+        e.target.style.borderColor = '#E2E8F5';
         e.target.style.boxShadow = 'none';
     };
 
@@ -396,8 +485,8 @@ const Textarea = memo(({ label, value, onChange, wrapStyle = {} }) => {
                 onChange={onChange}
                 rows={3}
                 style={{ ...inputBase, resize: 'vertical' }}
-                onFocus={e => { e.target.style.borderColor = '#2563EB'; }}
-                onBlur={e => { e.target.style.borderColor = '#E5E7EB'; }}
+                onFocus={e => { e.target.style.borderColor = '#325fec'; }}
+                onBlur={e => { e.target.style.borderColor = '#E2E8F5'; }}
             />
         </div>
     );
@@ -413,7 +502,7 @@ const SelectField = ({ label, options = [], wrapStyle = {}, value, onChange, dis
             style={{
                 ...inputBase,
                 appearance: 'none',
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
                 backgroundRepeat: 'no-repeat', backgroundPosition: 'calc(100% - 12px) center', paddingRight: 36,
                 opacity: disabled ? 0.5 : 1,
             }}>
@@ -435,17 +524,17 @@ const Btn = ({ children, onClick, variant = 'primary', size = 'md', loading, dis
         lg: { padding: '14px 28px', fontSize: 15 },
     };
     const variants = {
-        primary: { background: '#2563EB', color: '#fff' },
-        secondary: { background: '#F3F4F6', color: '#374151', border: '1.5px solid #E5E7EB' },
+        primary: { background: '#325fec', color: '#fff', boxShadow: '0 4px 14px rgba(50,95,236,.16)' },
+        secondary: { background: '#F0F3FA', color: '#334155', border: '1.5px solid #E2E8F5' },
         danger: { background: '#FEE2E2', color: '#DC2626' },
-        ghost: { background: 'transparent', color: '#2563EB', border: '1.5px solid #2563EB' },
+        ghost: { background: 'transparent', color: '#325fec', border: '1.5px solid #325fec' },
         success: { background: '#DCFCE7', color: '#16A34A' },
     };
     return (
         <button
             onClick={!disabled && !loading ? onClick : undefined}
             style={{ ...base, ...sizes[size], ...variants[variant], ...style }}>
-            {loading ? <Spinner size={14} color={variant === 'secondary' ? '#374151' : '#fff'} /> : icon}
+            {loading ? <Spinner size={14} color={variant === 'secondary' ? '#334155' : '#fff'} /> : icon}
             {children}
         </button>
     );
@@ -455,7 +544,7 @@ const Toggle = ({ checked, onChange, label }) => (
     <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
         <div onClick={() => onChange(!checked)} style={{
             width: 44, height: 24, borderRadius: 99,
-            background: checked ? '#2563EB' : '#D1D5DB',
+            background: checked ? '#325fec' : '#D1D5DB',
             position: 'relative', transition: 'background .2s', flexShrink: 0
         }}>
             <div style={{
@@ -464,25 +553,42 @@ const Toggle = ({ checked, onChange, label }) => (
                 boxShadow: '0 1px 3px rgba(0,0,0,.2)', transition: 'left .2s'
             }} />
         </div>
-        {label && <span style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>{label}</span>}
+        {label && <span style={{ fontSize: 14, fontWeight: 500, color: '#334155' }}>{label}</span>}
     </label>
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODAL (Updated with higher z-index)
+// MODAL
 // ─────────────────────────────────────────────────────────────────────────────
 const Modal = ({ open, onClose, title, children, footer }) => {
+    const [rendered, setRendered] = useState(open);
+    const [closing, setClosing] = useState(false);
+    const closeTimer = useRef(null);
+
     useEffect(() => {
-        if (open) document.body.style.overflow = 'hidden';
-        else document.body.style.overflow = '';
-        return () => { document.body.style.overflow = ''; };
+        if (open) {
+            if (closeTimer.current) clearTimeout(closeTimer.current);
+            setRendered(true);
+            setClosing(false);
+            document.body.style.overflow = 'hidden';
+        } else if (rendered) {
+            setClosing(true);
+            document.body.style.overflow = '';
+            closeTimer.current = setTimeout(() => {
+                setRendered(false);
+                setClosing(false);
+            }, 240);
+        }
+        return () => { if (closeTimer.current) clearTimeout(closeTimer.current); };
     }, [open]);
 
-    if (!open) return null;
+    useEffect(() => () => { document.body.style.overflow = ''; }, []);
+
+    if (!rendered) return null;
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className={`modal-overlay${closing ? ' closing' : ''}`} onClick={onClose}>
             <div
-                className="modal-sheet"
+                className={`modal-sheet${closing ? ' closing' : ''}`}
                 onClick={e => e.stopPropagation()}
                 style={{
                     marginBottom: window.innerWidth <= 768 ? '0' : 0,
@@ -494,13 +600,13 @@ const Modal = ({ open, onClose, title, children, footer }) => {
                     <div className="modal-handle" />
                 </div>
                 <div className="modal-header">
-                    <span style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>{title}</span>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>{title}</span>
                     <button onClick={onClose} style={{
-                        background: '#F3F4F6', border: 'none', borderRadius: '50%',
+                        background: '#F0F3FA', border: 'none', borderRadius: '50%',
                         width: 32, height: 32, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                     }}>
-                        <Icon name="close" size={18} color="#374151" />
+                        <Icon name="close" size={18} color="#334155" />
                     </button>
                 </div>
                 <div className="modal-body">
@@ -521,14 +627,14 @@ const Toast = ({ msg, type = 'success' }) => {
     const colors = { success: { bg: '#DCFCE7', color: '#16A34A' }, error: { bg: '#FEE2E2', color: '#DC2626' } };
     return (
         <div style={{
-            position: 'fixed', top: 16, left: 0, right: 0, zIndex: 10001,
+            position: 'fixed', top: 16, left: 0, right: 0, zIndex: 10002,
             display: 'flex', justifyContent: 'center', padding: '0 16px',
             animation: 'fadeUp .25s ease', pointerEvents: 'none'
         }}>
             <div style={{
                 background: colors[type].bg, color: colors[type].color,
                 padding: '12px 20px', borderRadius: 12, fontWeight: 600,
-                fontSize: 14, boxShadow: '0 4px 20px rgba(0,0,0,.12)', maxWidth: 380,
+                fontSize: 14, boxShadow: '0 4px 20px rgba(15,23,42,.14)', maxWidth: 380,
                 display: 'flex', alignItems: 'center', gap: 8
             }}>
                 <Icon name={type === 'success' ? 'check_circle' : 'error'} size={16} color={colors[type].color} />
@@ -539,7 +645,446 @@ const Toast = ({ msg, type = 'success' }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FORM HELPERS (same as before)
+// NOTIFICATIONS PANEL — now opens as a true full-height / full-screen drawer
+// with a dimmed backdrop, matching the Modal's open/close animation pattern.
+// ─────────────────────────────────────────────────────────────────────────────
+const NotificationsPanel = ({ isOpen, onClose, onUnreadCountChange }) => {
+    const [notifications, setNotifications] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [totalCount, setTotalCount] = useState(0);
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const containerRef = useRef(null);
+    const limit = 20;
+
+    // Mount/close-animation handling, same pattern as Modal
+    const [rendered, setRendered] = useState(isOpen);
+    const [closing, setClosing] = useState(false);
+    const closeTimer = useRef(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            if (closeTimer.current) clearTimeout(closeTimer.current);
+            setRendered(true);
+            setClosing(false);
+            document.body.style.overflow = 'hidden';
+        } else if (rendered) {
+            setClosing(true);
+            document.body.style.overflow = '';
+            closeTimer.current = setTimeout(() => {
+                setRendered(false);
+                setClosing(false);
+            }, 260);
+        }
+        return () => { if (closeTimer.current) clearTimeout(closeTimer.current); };
+    }, [isOpen]);
+
+    useEffect(() => () => { document.body.style.overflow = ''; }, []);
+
+    const loadNotifications = useCallback(async (reset = false) => {
+        try {
+            setLoading(true);
+            const offset = reset ? 0 : page * limit;
+            const data = await getNotifications(limit, offset);
+
+            if (reset) {
+                setNotifications(data.notifications);
+            } else {
+                setNotifications(prev => [...prev, ...data.notifications]);
+            }
+
+            const unread = data.unread || 0;
+            setUnreadCount(unread);
+            setTotalCount(data.total || 0);
+            setHasMore(data.notifications.length === limit);
+            if (reset) setPage(0);
+
+            if (onUnreadCountChange) {
+                onUnreadCountChange(unread);
+            }
+        } catch (error) {
+            console.error('Failed to load notifications:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [page, onUnreadCountChange]);
+
+    useEffect(() => {
+        if (isOpen) {
+            loadNotifications(true);
+        }
+    }, [isOpen]);
+
+    const handleMarkRead = async (id) => {
+        try {
+            await markNotificationRead(id);
+            setNotifications(prev =>
+                prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+            );
+            const newUnread = Math.max(0, unreadCount - 1);
+            setUnreadCount(newUnread);
+            if (onUnreadCountChange) {
+                onUnreadCountChange(newUnread);
+            }
+        } catch (error) {
+            console.error('Failed to mark notification as read:', error);
+        }
+    };
+
+    const handleMarkAllRead = async () => {
+        try {
+            await markAllNotificationsRead();
+            setNotifications(prev =>
+                prev.map(n => ({ ...n, is_read: true }))
+            );
+            setUnreadCount(0);
+            if (onUnreadCountChange) {
+                onUnreadCountChange(0);
+            }
+        } catch (error) {
+            console.error('Failed to mark all notifications as read:', error);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        try {
+            await deleteNotification(id);
+            const deleted = notifications.find(n => n.id === id);
+            setNotifications(prev => prev.filter(n => n.id !== id));
+            setTotalCount(prev => prev - 1);
+            if (deleted && !deleted.is_read) {
+                const newUnread = Math.max(0, unreadCount - 1);
+                setUnreadCount(newUnread);
+                if (onUnreadCountChange) {
+                    onUnreadCountChange(newUnread);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to delete notification:', error);
+        }
+    };
+
+    const handleDeleteAll = async () => {
+        try {
+            await deleteAllNotifications();
+            setNotifications([]);
+            setTotalCount(0);
+            setUnreadCount(0);
+            if (onUnreadCountChange) {
+                onUnreadCountChange(0);
+            }
+        } catch (error) {
+            console.error('Failed to delete all notifications:', error);
+        }
+    };
+
+    const getNotificationIcon = (type) => {
+        switch (type) {
+            case 'new_shop': return '🏪';
+            case 'new_house': return '🏠';
+            case 'new_job': return '💼';
+            default: return '📢';
+        }
+    };
+
+    const getNotificationColor = (type) => {
+        switch (type) {
+            case 'new_shop': return '#325fec';
+            case 'new_house': return '#16A34A';
+            case 'new_job': return '#D97706';
+            default: return '#64748B';
+        }
+    };
+
+    const formatTime = (dateString) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+
+        if (diff < 60000) return 'Just now';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+        if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+        return date.toLocaleDateString();
+    };
+
+    const handleLoadMore = () => {
+        if (hasMore && !loading) {
+            setPage(prev => prev + 1);
+            loadNotifications(false);
+        }
+    };
+
+    if (!rendered) return null;
+
+    return (
+        <div className={`notification-overlay${closing ? ' closing' : ''}`} onClick={onClose}>
+            <div
+                className={`notification-panel${closing ? ' closing' : ''}`}
+                onClick={e => e.stopPropagation()}
+            >
+                {/* Header */}
+                <div style={{
+                    padding: 'clamp(14px, 4vw, 18px) clamp(14px, 4vw, 20px)',
+                    paddingTop: 'calc(env(safe-area-inset-top, 0px) + clamp(14px, 4vw, 18px))',
+                    borderBottom: '1px solid #EBF0F9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexShrink: 0,
+                    background: '#fff'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>
+                            Notifications
+                        </h2>
+                        {unreadCount > 0 && (
+                            <span style={{
+                                background: '#325fec',
+                                color: '#fff',
+                                fontSize: 11,
+                                fontWeight: 700,
+                                padding: '2px 10px',
+                                borderRadius: 99
+                            }}>
+                                {unreadCount} new
+                            </span>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        {unreadCount > 0 && (
+                            <button
+                                onClick={handleMarkAllRead}
+                                style={{
+                                    background: '#EEF4FF',
+                                    border: 'none',
+                                    borderRadius: 8,
+                                    padding: '6px 12px',
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    color: '#325fec',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Mark all read
+                            </button>
+                        )}
+
+                        <button
+                            onClick={onClose}
+                            style={{
+                                background: '#F0F3FA',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: 36,
+                                height: 36,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                            }}
+                        >
+                            <Icon name="close" size={20} color="#334155" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Body */}
+                <div
+                    ref={containerRef}
+                    style={{
+                        flex: 1,
+                        overflowY: 'auto',
+                        padding: '8px 0',
+                        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+                        WebkitOverflowScrolling: 'touch',
+                        overscrollBehavior: 'contain'
+                    }}
+                    onScroll={(e) => {
+                        const { scrollTop, scrollHeight, clientHeight } = e.target;
+                        if (scrollTop + clientHeight >= scrollHeight - 50 && hasMore && !loading) {
+                            handleLoadMore();
+                        }
+                    }}
+                >
+                    {loading && notifications.length === 0 ? (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '60px 20px',
+                            color: '#94A3B8'
+                        }}>
+                            <Spinner size={24} color="#325fec" />
+                            <span style={{ marginLeft: 12 }}>Loading...</span>
+                        </div>
+                    ) : notifications.length === 0 ? (
+                        <div style={{
+                            textAlign: 'center',
+                            padding: '60px 20px',
+                            color: '#94A3B8'
+                        }}>
+                            <div style={{ fontSize: 48, marginBottom: 12 }}>🔔</div>
+                            <div style={{ fontSize: 16, fontWeight: 600, color: '#0F172A' }}>
+                                No notifications
+                            </div>
+                            <div style={{ fontSize: 13, marginTop: 4 }}>
+                                You'll see notifications here when something new happens in your area.
+                            </div>
+                        </div>
+                    ) : (
+                        notifications.map((notification) => (
+                            <div
+                                key={notification.id}
+                                onClick={() => !notification.is_read && handleMarkRead(notification.id)}
+                                style={{
+                                    padding: '14px 20px',
+                                    borderBottom: '1px solid #EBF0F9',
+                                    cursor: 'pointer',
+                                    background: notification.is_read ? '#fff' : '#F4F9FF',
+                                    transition: 'background 0.2s',
+                                    display: 'flex',
+                                    gap: 12
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!notification.is_read) {
+                                        e.currentTarget.style.background = '#E8F0FE';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!notification.is_read) {
+                                        e.currentTarget.style.background = '#F4F9FF';
+                                    }
+                                }}
+                            >
+                                {/* Icon */}
+                                <div style={{
+                                    width: 44,
+                                    height: 44,
+                                    borderRadius: 12,
+                                    background: `${getNotificationColor(notification.type)}15`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                    fontSize: 22
+                                }}>
+                                    {getNotificationIcon(notification.type)}
+                                </div>
+
+                                {/* Content */}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        justifyContent: 'space-between',
+                                        gap: 8
+                                    }}>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{
+                                                fontSize: 13,
+                                                fontWeight: 600,
+                                                color: '#0F172A',
+                                                marginBottom: 2
+                                            }}>
+                                                {notification.title}
+                                            </div>
+                                            <div style={{
+                                                fontSize: 13,
+                                                color: '#64748B',
+                                                lineHeight: 1.5,
+                                                wordBreak: 'break-word'
+                                            }}>
+                                                {notification.message}
+                                            </div>
+                                            <div style={{
+                                                fontSize: 11,
+                                                color: '#94A3B8',
+                                                marginTop: 4,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 6,
+                                                flexWrap: 'wrap'
+                                            }}>
+                                                <span>{formatTime(notification.created_at)}</span>
+                                                {notification.city && (
+                                                    <>
+                                                        <span>•</span>
+                                                        <span>📍 {notification.city}</span>
+                                                    </>
+                                                )}
+                                                {notification.reference_image && (
+                                                    <>
+                                                        <span>•</span>
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                            <img
+                                                                src={notification.reference_image}
+                                                                alt=""
+                                                                style={{
+                                                                    width: 20,
+                                                                    height: 20,
+                                                                    borderRadius: 4,
+                                                                    objectFit: 'cover',
+                                                                    border: '1px solid #EBF0F9'
+                                                                }}
+                                                                onError={(e) => e.target.style.display = 'none'}
+                                                            />
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                {!notification.is_read && (
+                                    <div style={{
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: '50%',
+                                        background: '#325fec',
+                                        flexShrink: 0,
+                                        marginTop: 6
+                                    }} />
+                                )}
+                            </div>
+                        ))
+                    )}
+
+                    {loading && notifications.length > 0 && (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '20px',
+                            color: '#94A3B8'
+                        }}>
+                            <Spinner size={20} color="#325fec" />
+                            <span style={{ marginLeft: 10 }}>Loading more...</span>
+                        </div>
+                    )}
+
+                    {!hasMore && notifications.length > 0 && (
+                        <div style={{
+                            textAlign: 'center',
+                            padding: '16px',
+                            color: '#94A3B8',
+                            fontSize: 12
+                        }}>
+                            You've seen all notifications
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FORM HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 const FormGrid = ({ children }) => <div className="form-grid">{children}</div>;
 const FormItem = ({ half, full, children }) => (
@@ -548,81 +1093,81 @@ const FormItem = ({ half, full, children }) => (
 
 const SectionDivider = ({ label }) => (
     <div className="form-item-full" style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 2px' }}>
-        <div style={{ flex: 1, height: 1, background: '#F3F4F6' }} />
-        {label && <span style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.5px', whiteSpace: 'nowrap' }}>{label}</span>}
-        <div style={{ flex: 1, height: 1, background: '#F3F4F6' }} />
+        <div style={{ flex: 1, height: 1, background: '#EBF0F9' }} />
+        {label && <span style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.5px', whiteSpace: 'nowrap' }}>{label}</span>}
+        <div style={{ flex: 1, height: 1, background: '#EBF0F9' }} />
     </div>
 );
 
-const DetailRow = ({ iconName, iconColor = '#2563EB', iconBg = '#EFF6FF', label, rightText, onClick, danger, last }) => (
+const DetailRow = ({ iconName, iconColor = '#325fec', iconBg = '#EEF4FF', label, rightText, onClick, danger, last }) => (
     <button onClick={onClick} style={{
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer',
         width: '100%', textAlign: 'left',
-        borderBottom: last ? 'none' : '1px solid #F3F4F6',
+        borderBottom: last ? 'none' : '1px solid #EBF0F9',
     }}>
         <div style={{ width: 34, height: 34, borderRadius: 10, background: danger ? '#FEE2E2' : iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Icon name={iconName} size={17} color={danger ? '#DC2626' : iconColor} />
         </div>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: danger ? '#DC2626' : '#111827' }}>{label}</span>
-        {rightText && <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{rightText}</span>}
-        <Icon name="chevron_right" size={17} color={danger ? '#DC2626' : '#9CA3AF'} />
+        <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: danger ? '#DC2626' : '#0F172A' }}>{label}</span>
+        {rightText && <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{rightText}</span>}
+        <Icon name="chevron_right" size={17} color={danger ? '#DC2626' : '#94A3AF'} />
     </button>
 );
 
 const StatCard = ({ iconName, count, label, iconColor, iconBg }) => (
-    <div style={{ flex: '1 1 0', minWidth: 60, background: '#F8FAFF', borderRadius: 14, padding: '12px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, border: '1px solid #E8EFFE' }}>
+    <div style={{ flex: '1 1 0', minWidth: 60, background: '#F7F9FF', borderRadius: 14, padding: '12px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, border: '1px solid #E8EFFE' }}>
         <div style={{ width: 38, height: 38, borderRadius: '50%', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name={iconName} size={19} color={iconColor} />
         </div>
-        <div style={{ fontSize: 18, fontWeight: 800, color: '#111827', lineHeight: 1 }}>{count ?? '—'}</div>
-        <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 500, textAlign: 'center', lineHeight: 1.3 }}>{label}</div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{count ?? '—'}</div>
+        <div style={{ fontSize: 11, color: '#64748B', fontWeight: 500, textAlign: 'center', lineHeight: 1.3 }}>{label}</div>
     </div>
 );
 
 const MiniStat = ({ iconName, color, count, label }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <Icon name={iconName} size={15} color={color} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{count ?? 0}</span>
-        <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>{label}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{count ?? 0}</span>
+        <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 500 }}>{label}</span>
     </div>
 );
 
 const ListingSection = ({ iconName, iconColor, iconBg, title, subtitle, badgeCount, badgeColor, badgeBg, onAdd, addLabel, liveCount, verifiedCount, unverifiedCount, onManage, viewCount }) => (
-    <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-        <button onClick={onManage} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', width: '100%', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #F3F4F6', textAlign: 'left' }}>
+    <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F5', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+        <button onClick={onManage} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', width: '100%', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #EBF0F9', textAlign: 'left' }}>
             <div style={{ width: 44, height: 44, borderRadius: 13, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name={iconName} size={21} color={iconColor} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{title}</div>
-                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subtitle}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{title}</div>
+                <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subtitle}</div>
                 {viewCount !== undefined && (
-                    <div style={{ fontSize: 11, color: '#2563EB', marginTop: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <Icon name="visibility" size={11} color="#2563EB" /> {viewCount} views
+                    <div style={{ fontSize: 11, color: '#325fec', marginTop: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <Icon name="visibility" size={11} color="#325fec" /> {viewCount} views
                     </div>
                 )}
             </div>
             <Badge label={`${badgeCount} Active`} color={badgeColor} bg={badgeBg} />
-            <Icon name="chevron_right" size={18} color="#9CA3AF" />
+            <Icon name="chevron_right" size={18} color="#94A3B8" />
         </button>
         <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', gap: 8, flexWrap: 'wrap' }}>
-            <MiniStat iconName="check_circle" color="#2563EB" count={liveCount} label="Live" />
-            <div style={{ width: 1, height: 26, background: '#E5E7EB' }} />
+            <MiniStat iconName="check_circle" color="#325fec" count={liveCount} label="Live" />
+            <div style={{ width: 1, height: 26, background: '#E2E8F5' }} />
             <MiniStat iconName="verified" color="#16A34A" count={verifiedCount} label="Verified" />
-            <div style={{ width: 1, height: 26, background: '#E5E7EB' }} />
+            <div style={{ width: 1, height: 26, background: '#E2E8F5' }} />
             <MiniStat iconName="cancel" color="#DC2626" count={unverifiedCount} label="Unverified" />
             <div style={{ flex: 1 }} />
-            <button onClick={onAdd} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #2563EB', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
-                <Icon name="add" size={15} color="#2563EB" /> {addLabel}
+            <button onClick={onAdd} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #325fec', background: '#EEF4FF', color: '#325fec', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+                <Icon name="add" size={15} color="#325fec" /> {addLabel}
             </button>
         </div>
     </div>
 );
 
 const Empty = ({ label }) => (
-    <div style={{ textAlign: 'center', padding: '28px 12px', color: '#9CA3AF', fontSize: 14, fontWeight: 500 }}>
-        <Icon name="inbox" size={38} color="#D1D5DB" style={{ display: 'block', margin: '0 auto 10px' }} />
+    <div style={{ textAlign: 'center', padding: '28px 12px', color: '#94A3B8', fontSize: 14, fontWeight: 500 }}>
+        <Icon name="inbox" size={38} color="#CBD5E1" style={{ display: 'block', margin: '0 auto 10px' }} />
         {label}
     </div>
 );
@@ -630,7 +1175,7 @@ const Empty = ({ label }) => (
 const AlertBox = ({ type = 'danger', icon = 'warning', children }) => {
     const map = {
         danger: { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA' },
-        info: { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE' },
+        info: { bg: '#EEF4FF', color: '#325fec', border: '#BFCFFF' },
     };
     const t = map[type];
     return (
@@ -644,7 +1189,7 @@ const AlertBox = ({ type = 'danger', icon = 'warning', children }) => {
 const ImageUpload = ({ preview, isNew, onPick, label = 'Upload Image' }) => (
     <div>
         {preview && (
-            <div style={{ marginBottom: 10, borderRadius: 10, overflow: 'hidden', background: '#F3F4F6' }}>
+            <div style={{ marginBottom: 10, borderRadius: 10, overflow: 'hidden', background: '#F0F3FA' }}>
                 <div style={{ width: '100%', paddingTop: '56.25%', position: 'relative' }}>
                     <img
                         src={preview}
@@ -652,7 +1197,7 @@ const ImageUpload = ({ preview, isNew, onPick, label = 'Upload Image' }) => (
                         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                         onError={e => { e.target.src = 'https://placehold.co/560x315?text=No+Image'; }}
                     />
-                    <div style={{ position: 'absolute', bottom: 8, left: 8, background: isNew ? 'rgba(37,99,235,.88)' : 'rgba(0,0,0,.55)', color: '#fff', fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 6, backdropFilter: 'blur(4px)', letterSpacing: '.3px' }}>
+                    <div style={{ position: 'absolute', bottom: 8, left: 8, background: isNew ? 'rgba(50,95,236,.88)' : 'rgba(15,23,42,.55)', color: '#fff', fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 6, backdropFilter: 'blur(4px)', letterSpacing: '.3px' }}>
                         {isNew ? '✓ New Image' : 'Current Image'}
                     </div>
                 </div>
@@ -661,11 +1206,11 @@ const ImageUpload = ({ preview, isNew, onPick, label = 'Upload Image' }) => (
         <button
             type="button"
             onClick={onPick}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px', border: '1.5px dashed #D1D5DB', borderRadius: 10, cursor: 'pointer', color: '#6B7280', fontSize: 13, fontWeight: 500, background: '#FAFAFA', transition: 'border-color .15s', width: '100%', fontFamily: 'var(--font)' }}
-            onMouseOver={e => e.currentTarget.style.borderColor = '#2563EB'}
-            onMouseOut={e => e.currentTarget.style.borderColor = '#D1D5DB'}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px', border: '1.5px dashed #CBD5E1', borderRadius: 10, cursor: 'pointer', color: '#64748B', fontSize: 13, fontWeight: 500, background: '#FAFBFE', transition: 'border-color .15s', width: '100%', fontFamily: 'var(--font)' }}
+            onMouseOver={e => e.currentTarget.style.borderColor = '#325fec'}
+            onMouseOut={e => e.currentTarget.style.borderColor = '#CBD5E1'}
         >
-            <Icon name="photo_camera" size={17} color="#6B7280" />
+            <Icon name="photo_camera" size={17} color="#64748B" />
             {preview ? 'Change Image' : label}
         </button>
     </div>
@@ -678,18 +1223,11 @@ const LocationSection = ({ lat, lng, city, area, state, cities, areas, locating,
         <SectionDivider label="Location" />
         <div className="form-item-full">
             <Btn variant="ghost" onClick={onGetLocation} loading={locating} fullWidth
-                icon={<Icon name="my_location" size={15} color="#2563EB" />} size="sm">
+                icon={<Icon name="my_location" size={15} color="#325fec" />} size="sm">
                 {locating ? 'Detecting…' : 'Use Current Location'}
             </Btn>
         </div>
-        {lat && (
-            <div className="form-item-full">
-                <div style={{ display: 'flex', gap: 6, fontSize: 12, color: '#6B7280', background: '#F9FAFB', borderRadius: 8, padding: '8px 12px', border: '1px solid #E5E7EB', alignItems: 'center' }}>
-                    <Icon name="location_on" size={13} color="#2563EB" />
-                    <span style={{ fontWeight: 500 }}>{lat?.toFixed?.(5) ?? lat}, {lng?.toFixed?.(5) ?? lng}</span>
-                </div>
-            </div>
-        )}
+
         <div className="form-item-half">
             <SelectField label="City *" value={city}
                 onChange={e => onCityChange(e.target.value)}
@@ -716,95 +1254,168 @@ const LocationSection = ({ lat, lng, city, area, state, cities, areas, locating,
     </>
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ABOUT — clean, single-column layout built around the real product
+// definition. No filler stats, no duplicated copy — one clear story:
+// what NearZO is, what it does, and the line that sums it up.
+// ─────────────────────────────────────────────────────────────────────────────
 const AboutNearZOContent = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <div style={{ background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)', borderRadius: 16, padding: '20px', textAlign: 'center', color: '#fff' }}>
-            <div style={{ fontSize: 32, marginBottom: 6 }}>📍</div>
-            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>NearZO</div>
-            <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.5 }}>Your local discovery platform — connecting communities, one neighborhood at a time.</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+
+        {/* Hero */}
+        <div style={{
+            background: 'linear-gradient(135deg, #325fec 0%, #5B7CF2 55%, #7C3AED 100%)',
+            borderRadius: 18, padding: '26px 22px', textAlign: 'center', color: '#fff'
+        }}>
+            <div style={{
+                width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,.16)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 12px'
+            }}>
+                <Icon name="location_on" size={26} color="#fff" />
+            </div>
+            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-.2px', marginBottom: 6 }}>NearZO</div>
+            <div style={{ fontSize: 14, fontWeight: 600, opacity: 0.95 }}>
+                "Everything Around You, In One Place."
+            </div>
         </div>
+
+        {/* What it is */}
         <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>What We Do</div>
-            {[
-                { icon: 'storefront', color: '#2563EB', bg: '#EFF6FF', title: 'Discover Local Shops', desc: 'Find shops, restaurants, and businesses right in your neighborhood with real-time location data.' },
-                { icon: 'home', color: '#16A34A', bg: '#DCFCE7', title: 'Find Rental Houses', desc: 'Browse verified house and flat listings near you — no brokers, no hidden charges.' },
-                { icon: 'work', color: '#EA580C', bg: '#FFEDD5', title: 'Local Job Listings', desc: 'Discover job opportunities posted by businesses in your area — apply directly.' },
-                { icon: 'location_on', color: '#7C3AED', bg: '#EDE9FE', title: 'Location-Verified Listings', desc: 'Every shop and house is GPS-verified so you know exactly where it is before you visit.' },
-            ].map(item => (
-                <div key={item.title} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 10, background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name={item.icon} size={18} color={item.color} />
-                    </div>
-                    <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{item.title}</div>
-                        <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.5 }}>{item.desc}</div>
-                    </div>
-                </div>
-            ))}
-        </div>
-        <div style={{ background: '#F9FAFB', borderRadius: 12, padding: '14px', border: '1px solid #E5E7EB' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="favorite" size={14} color="#DC2626" /> Our Mission
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 8 }}>
+                What NearZO Is
             </div>
-            <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>
-                NearZO is built to bridge the gap between local businesses and the people around them. We believe every shop owner, landlord, and job provider in small towns and cities deserves a digital presence — and every resident deserves easy access to what's available nearby.
+            <p style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.7 }}>
+                NearZO is a hyperlocal discovery platform built to help people find everything around them in one place — nearby shops, local job opportunities, rental homes, and everyday essential services, all connected in real time.
+            </p>
+            <p style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.7, marginTop: 10 }}>
+                It brings users, local businesses, and property owners onto one fast, reliable, location-based platform — making it easier for communities to discover, connect, and grow together.
+            </p>
+        </div>
+
+        {/* What we offer */}
+        <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 10 }}>
+                What You Can Find
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {[
+                    { icon: 'storefront', color: '#325fec', bg: '#EEF4FF', title: 'Local Shops', desc: 'Discover shops and businesses right in your neighborhood, with real-time location data.' },
+                    { icon: 'home', color: '#16A34A', bg: '#DCFCE7', title: 'Rental Homes', desc: 'Browse verified house and flat listings near you — no brokers, no hidden charges.' },
+                    { icon: 'work', color: '#D97706', bg: '#FFEDD5', title: 'Local Jobs', desc: 'Find job opportunities posted by businesses in your area and apply directly.' },
+                    { icon: 'verified', color: '#7C3AED', bg: '#EDE9FE', title: 'Verified Listings', desc: 'Every shop and house is GPS-verified, so you know exactly where it is before you visit.' },
+                ].map(item => (
+                    <div key={item.title} style={{ display: 'flex', gap: 12, padding: '11px 0', borderBottom: '1px solid #EBF0F9' }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <Icon name={item.icon} size={18} color={item.color} />
+                        </div>
+                        <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 2 }}>{item.title}</div>
+                            <div style={{ fontSize: 12.5, color: '#64748B', lineHeight: 1.55 }}>{item.desc}</div>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
-        <div style={{ textAlign: 'center', fontSize: 11, color: '#9CA3AF' }}>
+
+        {/* Mission */}
+        <div style={{ background: '#F4F6FB', borderRadius: 14, padding: '16px', border: '1px solid #E2E8F5' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon name="flag" size={15} color="#325fec" /> Our Mission
+            </div>
+            <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.65 }}>
+                Our mission is to simplify local discovery and empower communities by making everyday needs easier to access. We aim to bridge the gap between people and local businesses with a fast, reliable, location-based experience that makes everyday life more convenient.
+            </p>
+        </div>
+
+        <div style={{ textAlign: 'center', fontSize: 11, color: '#94A3B8' }}>
             Version 1.0.0 · Made with ❤️ in India
         </div>
     </div>
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SUPPORT — direct contact + a dedicated advertising line, no dead links.
+// ─────────────────────────────────────────────────────────────────────────────
 const SupportContent = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ background: 'linear-gradient(135deg, #0EA5E9 0%, #2563EB 100%)', borderRadius: 16, padding: '18px', textAlign: 'center', color: '#fff' }}>
+        <div style={{ background: 'linear-gradient(135deg, #4F8EF7 0%, #325fec 100%)', borderRadius: 16, padding: '18px', textAlign: 'center', color: '#fff' }}>
             <div style={{ fontSize: 28, marginBottom: 4 }}>🤝</div>
             <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>We're here to help!</div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>Reach out to us through any of these channels</div>
         </div>
         <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Contact Us</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Contact Us</div>
             {[
                 { icon: 'call', color: '#16A34A', bg: '#DCFCE7', label: 'Phone / WhatsApp', value: '+91 98765 43210', sub: 'Mon–Sat, 9 AM – 6 PM', href: 'tel:+919876543210' },
-                { icon: 'email', color: '#2563EB', bg: '#EFF6FF', label: 'Email Support', value: 'support@nearzo.in', sub: 'We reply within 24 hours', href: 'mailto:support@nearzo.in' },
+                { icon: 'email', color: '#325fec', bg: '#EEF4FF', label: 'Email Support', value: 'support@nearzo.in', sub: 'We reply within 24 hours', href: 'mailto:support@nearzo.in' },
                 { icon: 'language', color: '#7C3AED', bg: '#EDE9FE', label: 'Website', value: 'www.nearzo.in', sub: 'Visit our website', href: 'https://nearzo.in' },
             ].map(item => (
-                <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid #F3F4F6', textDecoration: 'none' }}>
+                <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid #EBF0F9', textDecoration: 'none' }}>
                     <div style={{ width: 40, height: 40, borderRadius: 12, background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon name={item.icon} size={19} color={item.color} />
                     </div>
                     <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.3px' }}>{item.label}</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{item.value}</div>
-                        <div style={{ fontSize: 11, color: '#9CA3AF' }}>{item.sub}</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.3px' }}>{item.label}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{item.value}</div>
+                        <div style={{ fontSize: 11, color: '#94A3B8' }}>{item.sub}</div>
                     </div>
-                    <Icon name="open_in_new" size={15} color="#9CA3AF" />
+                    <Icon name="open_in_new" size={15} color="#94A3B8" />
                 </a>
             ))}
         </div>
+
         <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Follow Us</div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {[
-                    { icon: 'photo_camera', label: 'Instagram', handle: '@nearzo.in', color: '#E1306C', bg: '#FDF2F8', href: 'https://instagram.com/nearzo.in' },
-                    { icon: 'chat', label: 'WhatsApp Channel', handle: 'NearZO Official', color: '#25D366', bg: '#F0FDF4', href: 'https://whatsapp.com/channel/nearzo' },
-                    { icon: 'play_circle', label: 'YouTube', handle: 'NearZO', color: '#FF0000', bg: '#FFF0F0', href: 'https://youtube.com/@nearzo' },
-                ].map(s => (
-                    <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" style={{ flex: '1 1 calc(50% - 5px)', minWidth: 120, padding: '10px 12px', background: s.bg, borderRadius: 12, border: `1px solid ${s.color}22`, textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <Icon name={s.icon} size={20} color={s.color} />
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#111827' }}>{s.label}</div>
-                        <div style={{ fontSize: 11, color: '#6B7280' }}>{s.handle}</div>
-                    </a>
-                ))}
-            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Follow Us</div>
+            <a href="https://instagram.com/nearzo.in" target="_blank" rel="noopener noreferrer" style={{ padding: '10px 12px', background: '#FDF2F8', borderRadius: 12, border: '1px solid #E1306C22', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Icon name="photo_camera" size={20} color="#E1306C" />
+                <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>Instagram</div>
+                    <div style={{ fontSize: 11, color: '#64748B' }}>@nearzo.in</div>
+                </div>
+            </a>
         </div>
+
+        {/* Advertise with us */}
+        <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Advertise With Us</div>
+            <a href="tel:+919363466343" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px', background: '#FFF7ED', borderRadius: 12, border: '1px solid #FFEDD5', textDecoration: 'none' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: '#FFEDD5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name="campaign" size={19} color="#D97706" />
+                </div>
+                <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#B45309', textTransform: 'uppercase', letterSpacing: '.3px' }}>Advertisement Enquiries</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>+91 93634 66343</div>
+                    <div style={{ fontSize: 11, color: '#94A3B8' }}>Promote your business on NearZO</div>
+                </div>
+                <Icon name="call" size={16} color="#D97706" />
+            </a>
+        </div>
+
         <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12, padding: '12px 14px', fontSize: 13, color: '#92400E', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <Icon name="tips_and_updates" size={15} color="#D97706" style={{ flexShrink: 0, marginTop: 1 }} />
-            <span>For issues with listings, location verification, or account access — describe your problem and send a WhatsApp message. We typically resolve issues within a few hours.</span>
+            <span>For issues with listings, location verification, or account access — describe your problem and call or WhatsApp us. We typically resolve issues within a few hours.</span>
         </div>
     </div>
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Avatar initial
+// ─────────────────────────────────────────────────────────────────────────────
+const looksLikePhoneNumber = (str) => /^[+\d\s().-]+$/.test(str.trim());
+
+const getAvatarInitial = (profile) => {
+    const candidates = [profile?.full_name, profile?.name, profile?.username];
+    for (const candidate of candidates) {
+        if (candidate && typeof candidate === 'string') {
+            const trimmed = candidate.trim();
+            if (trimmed && !looksLikePhoneNumber(trimmed)) {
+                return trimmed.charAt(0).toUpperCase();
+            }
+        }
+    }
+    return 'U';
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
@@ -812,6 +1423,11 @@ const SupportContent = () => (
 export default function Profile() {
     const { user: authUser, updateUser, logout } = useAuth();
     const [loading, setLoading] = useState(true);
+    // `fontsReady` gates the first real paint until Inter + Material Icons have
+    // finished loading, so text/icons never briefly render in a fallback font
+    // and then jump — this is what was causing the fraction-of-a-second
+    // misalignment when opening the Profile page.
+    const [fontsReady, setFontsReady] = useState(false);
     const [locating, setLocating] = useState(false);
     const [saving, setSaving] = useState(false);
     const [profile, setProfile] = useState(null);
@@ -829,6 +1445,10 @@ export default function Profile() {
     const [selectedCategoryItems, setSelectedCategoryItems] = useState([]);
     const [totalViews, setTotalViews] = useState(0);
     const [viewBreakdown, setViewBreakdown] = useState({ shops: 0, houses: 0, jobs: 0 });
+
+    // Notification states
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     const [modal, setModal] = useState('');
     const [editingShop, setEditingShop] = useState(null);
@@ -888,7 +1508,48 @@ export default function Profile() {
     const jobLive = jobs.filter(j => j.is_open).length, jobVerified = jobs.filter(j => j.is_verified).length, jobUnverified = jobs.filter(j => !j.is_verified).length;
     const totalListings = shops.length + houses.length + jobs.length;
 
-    useEffect(() => { loadProfile(); loadCities(); loadCategories(); loadUserShopsForJob(); loadTotalViews(); }, []);
+    // ── Fetch unread notification count ──
+    const fetchUnreadCount = useCallback(async () => {
+        try {
+            const count = await getUnreadNotificationCount();
+            setUnreadCount(count);
+        } catch (error) {
+            console.error('Failed to fetch unread count:', error);
+        }
+    }, []);
+
+    // ── Wait for web fonts (Inter + Material Icons) before first real paint ──
+    useEffect(() => {
+        let mounted = true;
+        const fallback = setTimeout(() => { if (mounted) setFontsReady(true); }, 1500);
+
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => {
+                if (mounted) {
+                    setFontsReady(true);
+                    clearTimeout(fallback);
+                }
+            }).catch(() => { if (mounted) setFontsReady(true); });
+        } else {
+            setFontsReady(true);
+        }
+
+        return () => { mounted = false; clearTimeout(fallback); };
+    }, []);
+
+    useEffect(() => {
+        loadProfile();
+        loadCities();
+        loadCategories();
+        loadUserShopsForJob();
+        loadTotalViews();
+        fetchUnreadCount();
+
+        // Refresh unread count every 30 seconds
+        const interval = setInterval(fetchUnreadCount, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
     useEffect(() => { if (shopForm.city) loadAreasFor(shopForm.city, setShopAreas); else setShopAreas([]); }, [shopForm.city]);
     useEffect(() => { if (houseForm.city) loadAreasFor(houseForm.city, setHouseAreas); else setHouseAreas([]); }, [houseForm.city]);
     useEffect(() => { if (jobForm.city) loadAreasFor(jobForm.city, setJobAreas); else setJobAreas([]); }, [jobForm.city]);
@@ -908,8 +1569,14 @@ export default function Profile() {
         setLoading(true);
         try {
             const r = await getProfile();
-            setProfile(r.user); setShops(r.shops || []); setHouses(r.houses || []); setJobs(r.jobs || []);
+            setProfile(r.user);
+            setShops(r.shops || []);
+            setHouses(r.houses || []);
+            setJobs(r.jobs || []);
             setFormData({ full_name: r.user.full_name || '', area: r.user.area || '', city: r.user.city || '', state: r.user.state || '' });
+            if (r.unread_notifications !== undefined) {
+                setUnreadCount(r.unread_notifications);
+            }
         } catch (error) {
             showToast(error.message || 'Failed to load profile', 'error');
         } finally { setLoading(false); }
@@ -1043,12 +1710,15 @@ export default function Profile() {
         } catch (err) { showToast(err.message || 'Failed to delete account', 'error'); }
     };
 
+    // ===================== UPDATED CREATE SHOP FUNCTION =====================
     const handleCreateShop = async () => {
         if (!shopForm.business_name?.trim() || !shopForm.category || !shopForm.city || !shopForm.state) {
-            showToast('Please fill all required fields', 'error'); return;
+            showToast('Please fill all required fields', 'error');
+            return;
         }
         if (!shopLocationVerified) {
-            const ok = await verifyShopLoc(); if (!ok) return;
+            const ok = await verifyShopLoc();
+            if (!ok) return;
         }
         setCreatingShop(true);
         try {
@@ -1076,8 +1746,31 @@ export default function Profile() {
             const r = await res.json();
             if (r.success) {
                 showToast('Shop created successfully! 🎉');
-                closeModal(); loadProfile(); loadUserShopsForJob(); loadTotalViews();
-                setShopForm(emptyShop); setShopLocationVerified(false);
+
+                // ========== CREATE NOTIFICATION FOR SHOP ==========
+                try {
+                    await createShopNotification({
+                        id: r.shop.id,
+                        business_name: r.shop.business_name,
+                        category: r.shop.category,
+                        area: r.shop.area || shopForm.area,
+                        city: r.shop.city || shopForm.city,
+                        shop_image: r.shop.shop_image || null
+                    });
+                    console.log('✅ Shop notification created successfully');
+                    // Refresh unread count after notification
+                    fetchUnreadCount();
+                } catch (notifErr) {
+                    console.error('Failed to create shop notification:', notifErr);
+                    // Don't fail the main operation if notification fails
+                }
+
+                closeModal();
+                loadProfile();
+                loadUserShopsForJob();
+                loadTotalViews();
+                setShopForm(emptyShop);
+                setShopLocationVerified(false);
                 if (shopObjUrl) { URL.revokeObjectURL(shopObjUrl); setShopObjUrl(''); }
             } else {
                 showToast(r.message || 'Failed to create shop', 'error');
@@ -1085,7 +1778,9 @@ export default function Profile() {
         } catch (err) {
             console.error('Create shop error:', err);
             showToast(err.message || 'Network error. Please check your connection.', 'error');
-        } finally { setCreatingShop(false); }
+        } finally {
+            setCreatingShop(false);
+        }
     };
 
     const handleUpdateShop = async () => {
@@ -1177,12 +1872,15 @@ export default function Profile() {
 
     const openDeleteShopConfirm = (shop) => { setDeleteConfirm(shop); setModal('deleteShopConfirm'); };
 
+    // ===================== UPDATED CREATE HOUSE FUNCTION =====================
     const handleCreateHouse = async () => {
         if (!houseForm.rooms || !houseForm.rent_per_month) {
-            showToast('Rooms and rent amount are required', 'error'); return;
+            showToast('Rooms and rent amount are required', 'error');
+            return;
         }
         if (!houseLocationVerified) {
-            const ok = await verifyHouseLoc(); if (!ok) return;
+            const ok = await verifyHouseLoc();
+            if (!ok) return;
         }
         setCreatingHouse(true);
         try {
@@ -1208,8 +1906,30 @@ export default function Profile() {
             const r = await res.json();
             if (r.success) {
                 showToast('House listed successfully! 🏠');
-                closeModal(); loadProfile(); loadTotalViews();
-                setHouseForm(emptyHouse); setHouseLocationVerified(false);
+
+                // ========== CREATE NOTIFICATION FOR HOUSE ==========
+                try {
+                    await createHouseNotification({
+                        id: r.house.id,
+                        rooms: r.house.rooms,
+                        rent_per_month: r.house.rent_per_month,
+                        area: r.house.area || houseForm.area,
+                        city: r.house.city || houseForm.city,
+                        house_image: r.house.house_image || null
+                    });
+                    console.log('✅ House notification created successfully');
+                    // Refresh unread count after notification
+                    fetchUnreadCount();
+                } catch (notifErr) {
+                    console.error('Failed to create house notification:', notifErr);
+                    // Don't fail the main operation if notification fails
+                }
+
+                closeModal();
+                loadProfile();
+                loadTotalViews();
+                setHouseForm(emptyHouse);
+                setHouseLocationVerified(false);
                 if (houseObjUrl) { URL.revokeObjectURL(houseObjUrl); setHouseObjUrl(''); }
             } else {
                 showToast(r.message || 'Failed to list house', 'error');
@@ -1217,7 +1937,9 @@ export default function Profile() {
         } catch (err) {
             console.error('Create house error:', err);
             showToast(err.message || 'Network error. Please check your connection.', 'error');
-        } finally { setCreatingHouse(false); }
+        } finally {
+            setCreatingHouse(false);
+        }
     };
 
     const handleUpdateHouse = async () => {
@@ -1258,9 +1980,10 @@ export default function Profile() {
         } finally { setUpdatingHouse(false); }
     };
 
+    // ===================== UPDATED CREATE JOB FUNCTION =====================
     const handleCreateJob = async () => {
         if (!jobForm.company_name?.trim() || !jobForm.job_title?.trim() || !jobForm.salary) {
-            showToast('Company name, job title, and salary are required', 'error'); 
+            showToast('Company name, job title, and salary are required', 'error');
             return;
         }
         if (!jobForm.contact_phone?.trim()) {
@@ -1269,25 +1992,54 @@ export default function Profile() {
         }
         setCreatingJob(true);
         try {
-            const r = await createJob({ 
-                ...jobForm, 
-                salary: +jobForm.salary, 
-                shop_id: jobForm.shop_id || null, 
+            const r = await createJob({
+                ...jobForm,
+                salary: +jobForm.salary,
+                shop_id: jobForm.shop_id || null,
                 contact_phone: jobForm.contact_phone
             });
+
             if (r.success) {
                 showToast('Job posted successfully! 💼');
-                closeModal(); 
-                loadProfile(); 
-                loadTotalViews(); 
+
+                // ========== CREATE NOTIFICATION FOR JOB ==========
+                try {
+                    // Get shop image if shop is linked
+                    let shopImage = null;
+                    if (jobForm.shop_id) {
+                        const shop = userShopsForJob.find(s => s.id === Number(jobForm.shop_id));
+                        shopImage = shop?.shop_image || null;
+                    }
+
+                    await createJobNotification({
+                        id: r.job.id,
+                        job_title: r.job.job_title,
+                        company_name: r.job.company_name,
+                        salary: r.job.salary,
+                        salary_type: r.job.salary_type,
+                        city: r.job.city || jobForm.city,
+                        shop_image: shopImage
+                    });
+                    console.log('✅ Job notification created successfully');
+                    // Refresh unread count after notification
+                    fetchUnreadCount();
+                } catch (notifErr) {
+                    console.error('Failed to create job notification:', notifErr);
+                    // Don't fail the main operation if notification fails
+                }
+
+                closeModal();
+                loadProfile();
+                loadTotalViews();
                 setJobForm(emptyJob);
-            } else { 
-                showToast(r.message || 'Failed to post job', 'error'); 
+            } else {
+                showToast(r.message || 'Failed to post job', 'error');
             }
-        } catch (err) { 
-            showToast(err.message || 'Failed to post job', 'error'); 
-        } finally { 
-            setCreatingJob(false); 
+        } catch (err) {
+            console.error('Create job error:', err);
+            showToast(err.message || 'Failed to post job', 'error');
+        } finally {
+            setCreatingJob(false);
         }
     };
 
@@ -1312,7 +2064,7 @@ export default function Profile() {
             showToast('State is required', 'error');
             return;
         }
-        
+
         setUpdatingJob(true);
         try {
             const updateData = {
@@ -1329,9 +2081,9 @@ export default function Profile() {
                 is_open: jobForm.is_open,
                 contact_phone: jobForm.contact_phone || null
             };
-            
+
             await updateJob(editingJob.id, updateData);
-            
+
             showToast('Job updated successfully! ✓');
             closeModal();
             loadProfile();
@@ -1347,16 +2099,16 @@ export default function Profile() {
     const openEditJob = (j) => {
         setEditingJob(j);
         setJobForm({
-            shop_id: j.shop_id || '', 
-            company_name: j.company_name || '', 
+            shop_id: j.shop_id || '',
+            company_name: j.company_name || '',
             job_title: j.job_title || '',
-            salary: j.salary || '', 
-            salary_type: j.salary_type || 'month', 
+            salary: j.salary || '',
+            salary_type: j.salary_type || 'month',
             qualification: j.qualification || '',
-            job_type: j.job_type || 'full_time', 
-            area: j.area || '', 
-            city: j.city || '', 
-            state: j.state || '', 
+            job_type: j.job_type || 'full_time',
+            area: j.area || '',
+            city: j.city || '',
+            state: j.state || '',
             is_open: j.is_open === true || j.is_open === false ? j.is_open : true,
             contact_phone: j.contact_phone || ''
         });
@@ -1390,7 +2142,7 @@ export default function Profile() {
 
     const handleRemoveKeyword = (kw) => setShopForm(p => ({ ...p, keywords: p.keywords.filter(k => k !== kw) }));
 
-    const ShopFormFields = () => (
+    const shopFormFields = () => (
         <FormGrid>
             <FormItem full>
                 <Input label="Business Name *" value={shopForm.business_name}
@@ -1411,7 +2163,7 @@ export default function Profile() {
                             return (
                                 <span key={item.id}
                                     onClick={() => { if (!sel) setShopForm(p => ({ ...p, keywords: [...p.keywords, item.item_name] })); }}
-                                    style={{ padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${sel ? '#2563EB' : '#E5E7EB'}`, background: sel ? '#EFF6FF' : '#F9FAFB', color: sel ? '#2563EB' : '#374151', fontSize: 12, fontWeight: 500, cursor: 'pointer', transition: 'all .15s' }}>
+                                    style={{ padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${sel ? '#325fec' : '#E2E8F5'}`, background: sel ? '#EEF4FF' : '#F4F6FB', color: sel ? '#325fec' : '#334155', fontSize: 12, fontWeight: 500, cursor: 'pointer', transition: 'all .15s' }}>
                                     {item.item_name}
                                 </span>
                             );
@@ -1424,13 +2176,13 @@ export default function Profile() {
                 <FieldLabel>Custom Keyword</FieldLabel>
                 <div style={{ display: 'flex', gap: 8 }}>
                     <input
-                        style={{ flex: 1, padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 10, fontSize: 14, color: '#111827', background: '#FAFAFA', outline: 'none', fontFamily: 'var(--font)', minWidth: 0 }}
+                        style={{ flex: 1, padding: '10px 14px', border: '1.5px solid #E2E8F5', borderRadius: 10, fontSize: 14, color: '#0F172A', background: '#FAFBFE', outline: 'none', fontFamily: 'var(--font)', minWidth: 0 }}
                         placeholder="e.g. Fresh Juice"
                         value={shopForm.custom_keyword}
                         onChange={e => setShopForm(p => ({ ...p, custom_keyword: e.target.value }))}
                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddCustomKeyword())}
                     />
-                    <button onClick={handleAddCustomKeyword} style={{ padding: '0 14px', borderRadius: 10, border: '1.5px solid #2563EB', background: '#EFF6FF', color: '#2563EB', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0 }}>Add</button>
+                    <button onClick={handleAddCustomKeyword} style={{ padding: '0 14px', borderRadius: 10, border: '1.5px solid #325fec', background: '#EEF4FF', color: '#325fec', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0 }}>Add</button>
                 </div>
             </FormItem>
 
@@ -1439,7 +2191,7 @@ export default function Profile() {
                     <FieldLabel>Selected Keywords</FieldLabel>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                         {shopForm.keywords.map(kw => (
-                            <span key={kw} style={{ padding: '5px 12px', borderRadius: 99, background: '#EFF6FF', border: '1.5px solid #2563EB', color: '#2563EB', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span key={kw} style={{ padding: '5px 12px', borderRadius: 99, background: '#EEF4FF', border: '1.5px solid #325fec', color: '#325fec', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
                                 {kw}
                                 <span onClick={() => handleRemoveKeyword(kw)} style={{ cursor: 'pointer', fontSize: 16, lineHeight: 1, opacity: .7 }}>×</span>
                             </span>
@@ -1475,17 +2227,24 @@ export default function Profile() {
         </FormGrid>
     );
 
-    if (loading) {
+    if (loading || !fontsReady) {
         return (
-            <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB' }}>
-                <Spinner size={36} color="#2563EB" />
+            <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F4F6FB' }}>
+                <Spinner size={36} color="#325fec" />
             </div>
         );
     }
 
     return (
-        <div style={{ minHeight: '100dvh', background: '#F9FAFB', fontFamily: 'var(--font)' }}>
+        <div style={{ minHeight: '100dvh', background: '#F4F6FB', fontFamily: 'var(--font)' }}>
             <Toast msg={toast.msg} type={toast.type} />
+
+            {/* Notifications Panel */}
+            <NotificationsPanel
+                isOpen={notificationsOpen}
+                onClose={() => setNotificationsOpen(false)}
+                onUnreadCountChange={setUnreadCount}
+            />
 
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(14px, 3vw, 20px) clamp(10px, 3vw, 16px) 100px' }}>
                 <div className="profile-layout">
@@ -1493,19 +2252,19 @@ export default function Profile() {
                     {/* ── SIDEBAR ── */}
                     <div className="profile-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         {/* Profile Card */}
-                        <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #E5E7EB', padding: 'clamp(16px,4vw,24px) clamp(14px,4vw,20px) 18px', boxShadow: 'var(--shadow-sm)' }}>
+                        <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #E2E8F5', padding: 'clamp(16px,4vw,24px) clamp(14px,4vw,20px) 18px', boxShadow: 'var(--shadow-sm)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                                <div style={{ width: 66, height: 66, borderRadius: '50%', background: 'linear-gradient(135deg,#2563EB,#7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                                    {profile?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                                <div style={{ width: 66, height: 66, borderRadius: '50%', background: 'linear-gradient(135deg,#325fec,#7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                                    {getAvatarInitial(profile)}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 17, fontWeight: 800, color: '#111827', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.full_name}</div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#6B7280', marginBottom: 2 }}>
-                                        <Icon name="phone" size={13} color="#9CA3AF" /> {profile?.phone}
+                                    <div style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.full_name}</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#64748B', marginBottom: 2 }}>
+                                        <Icon name="phone" size={13} color="#94A3B8" /> {profile?.phone}
                                     </div>
                                     {(profile?.city || profile?.area) && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#6B7280' }}>
-                                            <Icon name="location_on" size={13} color="#9CA3AF" />
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#64748B' }}>
+                                            <Icon name="location_on" size={13} color="#94A3B8" />
                                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                 {[profile.area, profile.city, profile.state].filter(Boolean).join(', ')}
                                             </span>
@@ -1515,30 +2274,44 @@ export default function Profile() {
                             </div>
                             <button
                                 onClick={() => { setFormData({ full_name: profile?.full_name || '', area: profile?.area || '', city: profile?.city || '', state: profile?.state || '' }); setModal('editProfile'); }}
-                                style={{ marginTop: 14, width: '100%', padding: '9px', borderRadius: 10, border: '1.5px solid #E5E7EB', background: '#F9FAFB', color: '#374151', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'var(--font)' }}>
-                                <Icon name="edit" size={14} color="#374151" /> Edit Profile
+                                style={{ marginTop: 14, width: '100%', padding: '9px', borderRadius: 10, border: '1.5px solid #E2E8F5', background: '#F4F6FB', color: '#334155', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'var(--font)' }}>
+                                <Icon name="edit" size={14} color="#334155" /> Edit Profile
                             </button>
                         </div>
 
                         {/* Stats */}
-                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: '14px', boxShadow: 'var(--shadow-sm)' }}>
+                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F5', padding: '14px', boxShadow: 'var(--shadow-sm)' }}>
                             <div style={{ display: 'flex', gap: 10 }}>
-                                <StatCard iconName="store" count={totalListings} label="Total Listings" iconColor="#2563EB" iconBg="#DBEAFE" />
+                                <StatCard iconName="store" count={totalListings} label="Total Listings" iconColor="#325fec" iconBg="#BFCFFF" />
                                 <StatCard iconName="visibility" count={totalViews} label="Total Views" iconColor="#7C3AED" iconBg="#EDE9FE" />
                             </div>
                         </div>
 
+                        {/* Notifications */}
+                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F5', padding: '4px 16px', boxShadow: 'var(--shadow-sm)' }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', padding: '10px 0 2px', textTransform: 'uppercase', letterSpacing: '.6px' }}>Alerts</div>
+                            <DetailRow
+                                iconName="notifications"
+                                iconColor="#325fec"
+                                iconBg="#EEF4FF"
+                                label="Notifications"
+                                rightText={unreadCount > 0 ? `${unreadCount} new` : ''}
+                                onClick={() => setNotificationsOpen(true)}
+                                last
+                            />
+                        </div>
+
                         {/* Other */}
-                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: '4px 16px', boxShadow: 'var(--shadow-sm)' }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', padding: '10px 0 2px', textTransform: 'uppercase', letterSpacing: '.6px' }}>Other</div>
-                            <DetailRow iconName="help_outline" iconColor="#2563EB" iconBg="#EFF6FF" label="Help & Support" onClick={() => setModal('support')} />
+                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F5', padding: '4px 16px', boxShadow: 'var(--shadow-sm)' }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', padding: '10px 0 2px', textTransform: 'uppercase', letterSpacing: '.6px' }}>Other</div>
+                            <DetailRow iconName="help_outline" iconColor="#325fec" iconBg="#EEF4FF" label="Help & Support" onClick={() => setModal('support')} />
                             <DetailRow iconName="info_outline" iconColor="#7C3AED" iconBg="#F5F3FF" label="About NearZO" onClick={() => setModal('about')} last />
                         </div>
 
                         {/* Settings */}
-                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', padding: '4px 16px', boxShadow: 'var(--shadow-sm)' }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', padding: '10px 0 2px', textTransform: 'uppercase', letterSpacing: '.6px' }}>Settings</div>
-                            <DetailRow iconName="person_outline" iconColor="#2563EB" iconBg="#EFF6FF" label="Edit Profile"
+                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F5', padding: '4px 16px', boxShadow: 'var(--shadow-sm)' }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', padding: '10px 0 2px', textTransform: 'uppercase', letterSpacing: '.6px' }}>Settings</div>
+                            <DetailRow iconName="person_outline" iconColor="#325fec" iconBg="#EEF4FF" label="Edit Profile"
                                 onClick={() => { setFormData({ full_name: profile?.full_name || '', area: profile?.area || '', city: profile?.city || '', state: profile?.state || '' }); setModal('editProfile'); }} />
                             <DetailRow iconName="lock_outline" iconColor="#16A34A" iconBg="#DCFCE7" label="Change Password" onClick={() => setModal('password')} />
                             <DetailRow iconName="logout" iconColor="#DC2626" iconBg="#FEE2E2" label="Logout" onClick={logout} danger />
@@ -1549,27 +2322,27 @@ export default function Profile() {
                     {/* ── RIGHT COLUMN ── */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         <div>
-                            <div style={{ fontSize: 15, fontWeight: 800, color: '#111827', marginBottom: 10, marginTop: 20 }}>Manage Your Listings</div>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', marginBottom: 10, marginTop: 20 }}>Manage Your Listings</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                <ListingSection iconName="storefront" iconColor="#2563EB" iconBg="#DBEAFE" title="Manage Shops" subtitle="Add, edit or manage your shop listings" badgeCount={shopLive} badgeColor="#2563EB" badgeBg="#EFF6FF" liveCount={shopLive} verifiedCount={shopVerified} unverifiedCount={shopUnverified} onAdd={() => setModal('shop')} addLabel="Add Shop" onManage={() => {}} viewCount={viewBreakdown.shops} />
+                                <ListingSection iconName="storefront" iconColor="#325fec" iconBg="#BFCFFF" title="Manage Shops" subtitle="Add, edit or manage your shop listings" badgeCount={shopLive} badgeColor="#325fec" badgeBg="#EEF4FF" liveCount={shopLive} verifiedCount={shopVerified} unverifiedCount={shopUnverified} onAdd={() => setModal('shop')} addLabel="Add Shop" onManage={() => {}} viewCount={viewBreakdown.shops} />
                                 <ListingSection iconName="home" iconColor="#16A34A" iconBg="#DCFCE7" title="Manage Houses" subtitle="Add, edit or manage your house listings" badgeCount={houseLive} badgeColor="#16A34A" badgeBg="#F0FDF4" liveCount={houseLive} verifiedCount={houseVerified} unverifiedCount={houseUnverified} onAdd={() => setModal('house')} addLabel="Add House" onManage={() => {}} viewCount={viewBreakdown.houses} />
-                                <ListingSection iconName="work" iconColor="#EA580C" iconBg="#FFEDD5" title="Manage Jobs" subtitle="Add, edit or manage your job listings" badgeCount={jobLive} badgeColor="#EA580C" badgeBg="#FFF7ED" liveCount={jobLive} verifiedCount={jobVerified} unverifiedCount={jobUnverified} onAdd={() => setModal('job')} addLabel="Add Job" onManage={() => {}} viewCount={viewBreakdown.jobs} />
+                                <ListingSection iconName="work" iconColor="#D97706" iconBg="#FFEDD5" title="Manage Jobs" subtitle="Add, edit or manage your job listings" badgeCount={jobLive} badgeColor="#D97706" badgeBg="#FFF7ED" liveCount={jobLive} verifiedCount={jobVerified} unverifiedCount={jobUnverified} onAdd={() => setModal('job')} addLabel="Add Job" onManage={() => {}} viewCount={viewBreakdown.jobs} />
                             </div>
                         </div>
 
                         {/* Tabs */}
-                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                            <div style={{ display: 'flex', borderBottom: '1px solid #F3F4F6' }}>
+                        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F5', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+                            <div style={{ display: 'flex', borderBottom: '1px solid #EBF0F9' }}>
                                 {[
                                     { key: 'shops', label: 'Shops', count: shops.length, icon: 'storefront' },
                                     { key: 'houses', label: 'Houses', count: houses.length, icon: 'home' },
                                     { key: 'jobs', label: 'Jobs', count: jobs.length, icon: 'work' },
                                 ].map(t => (
                                     <button key={t.key} onClick={() => setActiveTab(t.key)}
-                                        style={{ flex: 1, padding: 'clamp(10px,2.5vw,14px) 6px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontSize: 'clamp(12px,3vw,13px)', fontWeight: 600, fontFamily: 'var(--font)', color: activeTab === t.key ? '#2563EB' : '#9CA3AF', borderBottom: activeTab === t.key ? '2.5px solid #2563EB' : '2.5px solid transparent' }}>
-                                        <Icon name={t.icon} size={15} color={activeTab === t.key ? '#2563EB' : '#9CA3AF'} />
+                                        style={{ flex: 1, padding: 'clamp(10px,2.5vw,14px) 6px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontSize: 'clamp(12px,3vw,13px)', fontWeight: 600, fontFamily: 'var(--font)', color: activeTab === t.key ? '#325fec' : '#94A3B8', borderBottom: activeTab === t.key ? '2.5px solid #325fec' : '2.5px solid transparent' }}>
+                                        <Icon name={t.icon} size={15} color={activeTab === t.key ? '#325fec' : '#94A3B8'} />
                                         {t.label}
-                                        <span style={{ padding: '2px 6px', borderRadius: 99, background: activeTab === t.key ? '#EFF6FF' : '#F3F4F6', color: activeTab === t.key ? '#2563EB' : '#9CA3AF', fontSize: 11, fontWeight: 700 }}>{t.count}</span>
+                                        <span style={{ padding: '2px 6px', borderRadius: 99, background: activeTab === t.key ? '#EEF4FF' : '#F0F3FA', color: activeTab === t.key ? '#325fec' : '#94A3B8', fontSize: 11, fontWeight: 700 }}>{t.count}</span>
                                     </button>
                                 ))}
                             </div>
@@ -1581,32 +2354,32 @@ export default function Profile() {
                                         ? <Empty label="No shops yet. Add your first shop!" />
                                         : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(140px, 40vw, 180px), 1fr))', gap: 10 }}>
                                             {shops.map(s => (
-                                                <div key={s.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                                                    <div style={{ width: '100%', height: 90, overflow: 'hidden', background: '#EFF6FF' }}>
+                                                <div key={s.id} style={{ background: '#fff', border: '1px solid #E2E8F5', borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+                                                    <div style={{ width: '100%', height: 90, overflow: 'hidden', background: '#EEF4FF' }}>
                                                         {s.shop_image && s.shop_image.startsWith('http') ? (
                                                             <img src={s.shop_image} alt={s.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                                onError={e => { e.target.style.display = 'none'; const p = e.target.parentElement; if (p) p.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center"><span class="mi" style="font-size:30px;color:#BFDBFE">storefront</span></div>'; }} />
+                                                                onError={e => { e.target.style.display = 'none'; const p = e.target.parentElement; if (p) p.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center"><span class="mi" style="font-size:30px;color:#BFCFFF">storefront</span></div>'; }} />
                                                         ) : (
-                                                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="storefront" size={30} color="#BFDBFE" /></div>
+                                                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="storefront" size={30} color="#BFCFFF" /></div>
                                                         )}
                                                     </div>
                                                     <div style={{ padding: '9px 10px 11px' }}>
                                                         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.business_name}</div>
-                                                        <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 3 }}>{s.category}</div>
+                                                        <div style={{ fontSize: 11, color: '#64748B', marginBottom: 3 }}>{s.category}</div>
                                                         {(s.opening_time || s.closing_time) && (
-                                                            <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
-                                                                <Icon name="schedule" size={10} color="#9CA3AF" />
+                                                            <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                                <Icon name="schedule" size={10} color="#94A3B8" />
                                                                 {s.opening_time?.slice(0, 5)}{s.opening_time && s.closing_time && ' – '}{s.closing_time?.slice(0, 5)}
                                                             </div>
                                                         )}
-                                                        <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 3 }}>
-                                                            <Icon name="visibility" size={11} color="#9CA3AF" /> {s.views_count || 0} views
+                                                        <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                            <Icon name="visibility" size={11} color="#94A3B8" /> {s.views_count || 0} views
                                                         </div>
                                                         <div style={{ marginBottom: 7 }}>
                                                             {s.is_verified ? <Badge label="Verified" color="#16A34A" bg="#DCFCE7" dot /> : <Badge label="Unverified" color="#DC2626" bg="#FEE2E2" dot />}
                                                         </div>
                                                         <div style={{ display: 'flex', gap: 5 }}>
-                                                            <button onClick={() => openEditShop(s)} style={{ flex: 1, padding: '6px', borderRadius: 7, border: '1px solid #2563EB', background: '#EFF6FF', color: '#2563EB', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>Edit</button>
+                                                            <button onClick={() => openEditShop(s)} style={{ flex: 1, padding: '6px', borderRadius: 7, border: '1px solid #325fec', background: '#EEF4FF', color: '#325fec', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>Edit</button>
                                                             <button onClick={() => openDeleteShopConfirm(s)} style={{ flex: 1, padding: '6px', borderRadius: 7, border: '1px solid #DC2626', background: '#FEE2E2', color: '#DC2626', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>Delete</button>
                                                         </div>
                                                     </div>
@@ -1621,7 +2394,7 @@ export default function Profile() {
                                         ? <Empty label="No houses listed yet." />
                                         : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                             {houses.map(h => (
-                                                <div key={h.id} style={{ border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden', background: '#fff', boxShadow: 'var(--shadow-sm)', display: 'flex' }}>
+                                                <div key={h.id} style={{ border: '1px solid #E2E8F5', borderRadius: 14, overflow: 'hidden', background: '#fff', boxShadow: 'var(--shadow-sm)', display: 'flex' }}>
                                                     <div style={{ width: 90, flexShrink: 0 }}>
                                                         {h.house_image && h.house_image.startsWith('http') ? (
                                                             <img src={h.house_image} alt="House" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
@@ -1632,16 +2405,16 @@ export default function Profile() {
                                                     </div>
                                                     <div style={{ padding: '11px 12px', flex: 1, minWidth: 0 }}>
                                                         <div style={{ fontSize: 14, fontWeight: 700 }}>{h.rooms} BHK House</div>
-                                                        <div style={{ fontSize: 13, color: '#2563EB', fontWeight: 700 }}>{formatPrice(h.rent_per_month)}/mo</div>
-                                                        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
-                                                            <Icon name="visibility" size={12} color="#9CA3AF" /> {h.views_count || 0}
+                                                        <div style={{ fontSize: 13, color: '#325fec', fontWeight: 700 }}>{formatPrice(h.rent_per_month)}/mo</div>
+                                                        <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                            <Icon name="visibility" size={12} color="#94A3B8" /> {h.views_count || 0}
                                                         </div>
                                                         <div style={{ marginTop: 5, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                                                             <Badge label={h.is_available ? 'Available' : 'Booked'} color={h.is_available ? '#16A34A' : '#DC2626'} bg={h.is_available ? '#DCFCE7' : '#FEE2E2'} dot />
                                                             {h.is_verified ? <Badge label="Verified" color="#16A34A" bg="#DCFCE7" dot /> : <Badge label="Unverified" color="#DC2626" bg="#FEE2E2" dot />}
                                                         </div>
                                                         <div style={{ marginTop: 7 }}>
-                                                            <Btn size="sm" variant="secondary" onClick={() => openEditHouse(h)} icon={<Icon name="edit" size={13} color="#374151" />}>Edit</Btn>
+                                                            <Btn size="sm" variant="secondary" onClick={() => openEditHouse(h)} icon={<Icon name="edit" size={13} color="#334155" />}>Edit</Btn>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1655,22 +2428,22 @@ export default function Profile() {
                                         ? <Empty label="No jobs posted yet." />
                                         : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                             {jobs.map(j => (
-                                                <div key={j.id} style={{ border: '1px solid #E5E7EB', borderRadius: 14, padding: '12px 14px', background: '#fff', boxShadow: 'var(--shadow-sm)' }}>
+                                                <div key={j.id} style={{ border: '1px solid #E2E8F5', borderRadius: 14, padding: '12px 14px', background: '#fff', boxShadow: 'var(--shadow-sm)' }}>
                                                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                                                         <div style={{ flex: 1, minWidth: 0 }}>
                                                             <div style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.job_title}</div>
-                                                            <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 3 }}>{j.shop_name || j.company_name}</div>
-                                                            <div style={{ fontSize: 14, fontWeight: 700, color: '#2563EB' }}>{formatPrice(j.salary)}/{j.salary_type === 'month' ? 'mo' : 'day'}</div>
-                                                            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
-                                                                <Icon name="visibility" size={12} color="#9CA3AF" /> {j.views_count || 0}
+                                                            <div style={{ fontSize: 13, color: '#64748B', marginBottom: 3 }}>{j.shop_name || j.company_name}</div>
+                                                            <div style={{ fontSize: 14, fontWeight: 700, color: '#325fec' }}>{formatPrice(j.salary)}/{j.salary_type === 'month' ? 'mo' : 'day'}</div>
+                                                            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                                <Icon name="visibility" size={12} color="#94A3B8" /> {j.views_count || 0}
                                                             </div>
                                                             <div style={{ display: 'flex', gap: 5, marginTop: 7, flexWrap: 'wrap' }}>
                                                                 <Badge label={j.is_open ? 'Open' : 'Closed'} color={j.is_open ? '#16A34A' : '#DC2626'} bg={j.is_open ? '#DCFCE7' : '#FEE2E2'} dot />
-                                                                <Badge label={j.job_type === 'full_time' ? 'Full Time' : 'Part Time'} color="#6B7280" bg="#F3F4F6" />
+                                                                <Badge label={j.job_type === 'full_time' ? 'Full Time' : 'Part Time'} color="#64748B" bg="#F0F3FA" />
                                                                 {j.is_verified ? <Badge label="Verified" color="#16A34A" bg="#DCFCE7" dot /> : <Badge label="Unverified" color="#DC2626" bg="#FEE2E2" dot />}
                                                             </div>
                                                         </div>
-                                                        <Btn size="sm" variant="secondary" onClick={() => openEditJob(j)} icon={<Icon name="edit" size={13} color="#374151" />}>Edit</Btn>
+                                                        <Btn size="sm" variant="secondary" onClick={() => openEditJob(j)} icon={<Icon name="edit" size={13} color="#334155" />}>Edit</Btn>
                                                     </div>
                                                 </div>
                                             ))}
@@ -1742,7 +2515,7 @@ export default function Profile() {
             {/* Add Shop */}
             <Modal open={modal === 'shop'} onClose={closeModal} title="Add New Shop"
                 footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleCreateShop} loading={creatingShop} icon={<Icon name="storefront" size={15} color="#fff" />}>Create Shop</Btn></>}>
-                <ShopFormFields />
+                {shopFormFields()}
                 <div style={{ height: 12 }} />
                 <div className="form-grid">
                     <LocationSection
@@ -1762,7 +2535,7 @@ export default function Profile() {
             {/* Edit Shop */}
             <Modal open={modal === 'editShop'} onClose={closeModal} title="Edit Shop"
                 footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleUpdateShop} loading={updatingShop}>Save Changes</Btn></>}>
-                <ShopFormFields />
+                {shopFormFields()}
                 <div style={{ height: 12 }} />
                 <div className="form-grid">
                     <SectionDivider label="Location" />
@@ -1837,8 +2610,8 @@ export default function Profile() {
                     <FormItem full><Textarea label="Description" value={houseForm.description} onChange={e => setHouseForm(p => ({ ...p, description: e.target.value }))} /></FormItem>
                     <FormItem full><Toggle checked={houseForm.is_available} onChange={v => setHouseForm(p => ({ ...p, is_available: v }))} label="Available for Rent" /></FormItem>
                     <FormItem full>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#9CA3AF', padding: '8px 12px', background: '#F9FAFB', borderRadius: 8, border: '1px solid #E5E7EB' }}>
-                            <Icon name="location_on" size={13} color="#2563EB" />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#94A3B8', padding: '8px 12px', background: '#F4F6FB', borderRadius: 8, border: '1px solid #E2E8F5' }}>
+                            <Icon name="location_on" size={13} color="#325fec" />
                             {[houseForm.area, houseForm.city, houseForm.state].filter(Boolean).join(', ') || 'Location not set'}
                         </div>
                     </FormItem>
@@ -1876,8 +2649,8 @@ export default function Profile() {
                             options={[{ value: 'full_time', label: 'Full Time' }, { value: 'part_time', label: 'Part Time' }]} />
                     </FormItem>
                     <FormItem half>
-                        <Input label="Contact Phone *" value={jobForm.contact_phone} 
-                            onChange={e => setJobForm(p => ({ ...p, contact_phone: e.target.value }))} 
+                        <Input label="Contact Phone *" value={jobForm.contact_phone}
+                            onChange={e => setJobForm(p => ({ ...p, contact_phone: e.target.value }))}
                             placeholder="Phone number for candidates to call" />
                     </FormItem>
                     <FormItem full><Textarea label="Qualification Required" value={jobForm.qualification} onChange={e => setJobForm(p => ({ ...p, qualification: e.target.value }))} /></FormItem>
@@ -1921,7 +2694,7 @@ export default function Profile() {
                             options={[{ value: 'full_time', label: 'Full Time' }, { value: 'part_time', label: 'Part Time' }]} />
                     </FormItem>
                     <FormItem half>
-                        <Input label="Contact Phone" value={jobForm.contact_phone} 
+                        <Input label="Contact Phone" value={jobForm.contact_phone}
                             onChange={e => setJobForm(p => ({ ...p, contact_phone: e.target.value }))} />
                     </FormItem>
                     <FormItem full><Textarea label="Qualification" value={jobForm.qualification} onChange={e => setJobForm(p => ({ ...p, qualification: e.target.value }))} /></FormItem>

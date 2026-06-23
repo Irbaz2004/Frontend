@@ -1,5 +1,5 @@
 // app/admin/ShopAds.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Box,
     Container,
@@ -40,7 +40,7 @@ import {
     Switch,
     Radio,
     RadioGroup,
-    
+    Skeleton
 } from '@mui/material';
 import {
     Search as SearchIcon,
@@ -69,6 +69,7 @@ import {
 
 export default function ShopAds() {
     const [loading, setLoading] = useState(false);
+    const [loadingAction, setLoadingAction] = useState(false);
     const [ads, setAds] = useState([]);
     const [shops, setShops] = useState([]);
     const [stats, setStats] = useState(null);
@@ -87,6 +88,7 @@ export default function ShopAds() {
     const [editingAd, setEditingAd] = useState(null);
     const [selectedAd, setSelectedAd] = useState(null);
     const [adToDelete, setAdToDelete] = useState(null);
+    const [dialogLoading, setDialogLoading] = useState(false);
     
     // Form state
     const [formData, setFormData] = useState({
@@ -100,15 +102,22 @@ export default function ShopAds() {
     });
     
     const [imageFile, setImageFile] = useState(null);
+    const [imageChanged, setImageChanged] = useState(false);
+    
+    // Refs for abort controllers
+    const abortControllerRef = useRef(null);
 
-    useEffect(() => {
-        loadAds();
-        loadShops();
-        loadStats();
-    }, [page, rowsPerPage, statusFilter, priorityFilter]);
-
-    const loadAds = async () => {
-        setLoading(true);
+    // Load data with cleanup
+    const loadAds = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true);
+        
+        // Cancel previous request if any
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        
+        abortControllerRef.current = new AbortController();
+        
         try {
             const result = await getAllShopAds({
                 page: page + 1,
@@ -116,43 +125,78 @@ export default function ShopAds() {
                 search,
                 status: statusFilter,
                 priority: priorityFilter
-            });
+            }, { signal: abortControllerRef.current.signal });
+            
             setAds(result.ads || []);
             setTotal(result.total || 0);
         } catch (error) {
-            showSnackbar('Failed to load ads', 'error');
+            if (error.name !== 'AbortError') {
+                console.error('Failed to load ads:', error);
+                if (!silent) showSnackbar('Failed to load ads', 'error');
+            }
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
-    };
+    }, [page, rowsPerPage, search, statusFilter, priorityFilter]);
 
-    const loadShops = async () => {
+    const loadShops = useCallback(async () => {
         try {
             const result = await getShopsForAds();
             setShops(result.shops || []);
         } catch (error) {
             console.error('Failed to load shops:', error);
         }
-    };
+    }, []);
 
-    const loadStats = async () => {
+    const loadStats = useCallback(async () => {
         try {
             const result = await getAdsStatistics();
             setStats(result.stats);
         } catch (error) {
             console.error('Failed to load stats:', error);
         }
-    };
+    }, []);
 
-    const handleSearch = () => {
+    // Initial load
+    useEffect(() => {
+        loadAds();
+        loadShops();
+        loadStats();
+        
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, [loadAds, loadShops, loadStats]);
+
+    // Reload when filters change
+    useEffect(() => {
+        loadAds(true);
+    }, [page, rowsPerPage, statusFilter, priorityFilter, loadAds]);
+
+    const handleSearch = useCallback(() => {
         setPage(0);
         loadAds();
-    };
+    }, [loadAds]);
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showSnackbar('Image size should be less than 5MB', 'error');
+                return;
+            }
+            
+            // Validate file type
+            if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+                showSnackbar('Please upload a valid image (JPEG, PNG, WEBP, GIF)', 'error');
+                return;
+            }
+            
             setImageFile(file);
+            setImageChanged(true);
             setFormData({
                 ...formData,
                 image: file,
@@ -162,18 +206,36 @@ export default function ShopAds() {
     };
 
     const handleCreateAd = async () => {
-        if (!formData.shop_id || !formData.title || !imageFile) {
-            showSnackbar('Please fill all required fields and upload image', 'error');
+        // Validate required fields
+        if (!formData.shop_id) {
+            showSnackbar('Please select a shop', 'error');
+            return;
+        }
+        if (!formData.title.trim()) {
+            showSnackbar('Please enter a title', 'error');
+            return;
+        }
+        if (!imageFile && !editingAd) {
+            showSnackbar('Please upload an image', 'error');
+            return;
+        }
+        if (editingAd && !imageFile && !imageChanged && !formData.image_preview) {
+            showSnackbar('Please upload an image', 'error');
             return;
         }
 
+        setDialogLoading(true);
+
         const formDataToSend = new FormData();
         formDataToSend.append('shop_id', formData.shop_id);
-        formDataToSend.append('title', formData.title);
-        formDataToSend.append('description', formData.description);
+        formDataToSend.append('title', formData.title.trim());
+        formDataToSend.append('description', formData.description.trim() || '');
         formDataToSend.append('duration', formData.duration);
         formDataToSend.append('priority', formData.priority);
-        formDataToSend.append('image', imageFile);
+        
+        if (imageFile) {
+            formDataToSend.append('image', imageFile);
+        }
 
         try {
             if (editingAd) {
@@ -184,36 +246,42 @@ export default function ShopAds() {
                 showSnackbar('Ad created successfully');
             }
             handleCloseDialog();
-            loadAds();
-            loadStats();
+            // Reload all data
+            await Promise.all([loadAds(), loadStats()]);
         } catch (error) {
-            showSnackbar(error.message, 'error');
+            showSnackbar(error.message || 'Failed to save ad', 'error');
+        } finally {
+            setDialogLoading(false);
         }
     };
 
     const handleDelete = async () => {
         if (!adToDelete) return;
         
+        setDialogLoading(true);
         try {
             await deleteShopAd(adToDelete.id);
             showSnackbar('Ad deleted successfully');
             setOpenDeleteDialog(false);
             setAdToDelete(null);
-            loadAds();
-            loadStats();
+            await Promise.all([loadAds(), loadStats()]);
         } catch (error) {
-            showSnackbar(error.message, 'error');
+            showSnackbar(error.message || 'Failed to delete ad', 'error');
+        } finally {
+            setDialogLoading(false);
         }
     };
 
     const handleToggleStatus = async (id, isActive) => {
+        setLoadingAction(true);
         try {
             await toggleAdStatus(id, !isActive);
             showSnackbar(`Ad ${!isActive ? 'activated' : 'deactivated'} successfully`);
-            loadAds();
-            loadStats();
+            await Promise.all([loadAds(true), loadStats()]);
         } catch (error) {
-            showSnackbar(error.message, 'error');
+            showSnackbar(error.message || 'Failed to toggle status', 'error');
+        } finally {
+            setLoadingAction(false);
         }
     };
 
@@ -224,12 +292,13 @@ export default function ShopAds() {
                 shop_id: ad.shop_id,
                 title: ad.title,
                 description: ad.description || '',
-                duration: ad.duration,
-                priority: ad.priority,
+                duration: ad.duration || '30days',
+                priority: ad.priority || 'normal',
                 image: null,
                 image_preview: ad.image_url
             });
             setImageFile(null);
+            setImageChanged(false);
         } else {
             setEditingAd(null);
             setFormData({
@@ -242,11 +311,16 @@ export default function ShopAds() {
                 image_preview: ''
             });
             setImageFile(null);
+            setImageChanged(false);
         }
         setOpenDialog(true);
     };
 
     const handleCloseDialog = () => {
+        // Clean up object URLs
+        if (formData.image_preview && formData.image_preview.startsWith('blob:')) {
+            URL.revokeObjectURL(formData.image_preview);
+        }
         setOpenDialog(false);
         setEditingAd(null);
         setFormData({
@@ -259,6 +333,8 @@ export default function ShopAds() {
             image_preview: ''
         });
         setImageFile(null);
+        setImageChanged(false);
+        setDialogLoading(false);
     };
 
     const showSnackbar = (message, severity = 'success') => {
@@ -273,26 +349,30 @@ export default function ShopAds() {
             low: { color: '#6b7280', bg: '#f3f4f6', label: 'Low' }
         };
         const c = config[priority] || config.normal;
-        return <Chip label={c.label} size="small" sx={{ bgcolor: c.bg, color: c.color, borderRadius: 1 }} />;
+        return <Chip label={c.label} size="small" sx={{ bgcolor: c.bg, color: c.color, borderRadius: 1, fontWeight: 600 }} />;
     };
 
     const getStatusChip = (ad) => {
         const isExpired = new Date(ad.end_date) < new Date();
         if (!ad.is_active || isExpired) {
-            return <Chip label="Expired" size="small" sx={{ bgcolor: '#fee2e2', color: '#dc2626', borderRadius: 1 }} />;
+            return <Chip label="Expired" size="small" sx={{ bgcolor: '#fee2e2', color: '#dc2626', borderRadius: 1, fontWeight: 600 }} />;
         }
-        return <Chip label="Active" size="small" sx={{ bgcolor: '#dcfce7', color: '#16a34a', borderRadius: 1 }} />;
+        return <Chip label="Active" size="small" sx={{ bgcolor: '#dcfce7', color: '#16a34a', borderRadius: 1, fontWeight: 600 }} />;
     };
 
-    const StatCard = ({ title, value, icon, color }) => (
+    const StatCard = ({ title, value, icon, color, loading: statLoading }) => (
         <Card sx={{ borderRadius: 2, border: '1px solid #e8ecef', boxShadow: 'none', height: '100%' }}>
             <CardContent>
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                     <Box>
                         <Typography variant="caption" color="#5a6e8a"> {title}</Typography>
-                        <Typography variant="h4" fontWeight="bold" sx={{ fontFamily: '"Alumni Sans", sans-serif', color: '#020402' }}>
-                            {value || 0}
-                        </Typography>
+                        {statLoading ? (
+                            <Skeleton width={60} height={40} />
+                        ) : (
+                            <Typography variant="h4" fontWeight="bold" sx={{ fontFamily: '"Alumni Sans", sans-serif', color: '#020402' }}>
+                                {value || 0}
+                            </Typography>
+                        )}
                     </Box>
                     <Avatar sx={{ bgcolor: `${color}10`, color: color }}>{icon}</Avatar>
                 </Box>
@@ -338,6 +418,7 @@ export default function ShopAds() {
                                 </InputAdornment>
                             ),
                         }}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                     />
                     
                     <FormControl size="small" sx={{ minWidth: 130 }}>
@@ -360,15 +441,38 @@ export default function ShopAds() {
                         </Select>
                     </FormControl>
                     
-                    <Button variant="contained" onClick={handleSearch} startIcon={<SearchIcon />} sx={{ textTransform: 'none', borderRadius: 2 }}>
+                    <Button 
+                        variant="contained" 
+                        onClick={handleSearch} 
+                        startIcon={<SearchIcon />} 
+                        sx={{ textTransform: 'none', borderRadius: 2 }}
+                        disabled={loading}
+                    >
                         Search
                     </Button>
                     
-                    <Button variant="outlined" onClick={() => { setSearch(''); setStatusFilter('all'); setPriorityFilter(''); setPage(0); loadAds(); }} startIcon={<RefreshIcon />} sx={{ textTransform: 'none', borderRadius: 2 }}>
+                    <Button 
+                        variant="outlined" 
+                        onClick={() => { 
+                            setSearch(''); 
+                            setStatusFilter('all'); 
+                            setPriorityFilter(''); 
+                            setPage(0); 
+                            loadAds(); 
+                        }} 
+                        startIcon={<RefreshIcon />} 
+                        sx={{ textTransform: 'none', borderRadius: 2 }}
+                        disabled={loading}
+                    >
                         Reset
                     </Button>
                     
-                    <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()} sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#325fec' }}>
+                    <Button 
+                        variant="contained" 
+                        startIcon={<AddIcon />} 
+                        onClick={() => handleOpenDialog()} 
+                        sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#325fec' }}
+                    >
                         Create Ad
                     </Button>
                 </Box>
@@ -391,11 +495,18 @@ export default function ShopAds() {
                         </TableHead>
                         <TableBody>
                             {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                                        <CircularProgress sx={{ color: '#325fec' }} />
-                                    </TableCell>
-                                </TableRow>
+                                // Loading skeletons
+                                Array.from({ length: rowsPerPage }).map((_, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell><Skeleton variant="rounded" width={50} height={50} /></TableCell>
+                                        <TableCell><Skeleton variant="text" width={150} /><Skeleton variant="text" width={100} /></TableCell>
+                                        <TableCell><Skeleton variant="rectangular" width={70} height={24} /></TableCell>
+                                        <TableCell><Skeleton variant="text" width={70} /></TableCell>
+                                        <TableCell><Skeleton variant="rectangular" width={70} height={24} /></TableCell>
+                                        <TableCell><Skeleton variant="text" width={120} /></TableCell>
+                                        <TableCell><Skeleton variant="rectangular" width={120} height={36} /></TableCell>
+                                    </TableRow>
+                                ))
                             ) : ads.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
@@ -406,7 +517,17 @@ export default function ShopAds() {
                                 ads.map((ad) => (
                                     <TableRow key={ad.id} hover>
                                         <TableCell>
-                                            <Avatar src={ad.image_url} variant="rounded" sx={{ width: 50, height: 50 }} />
+                                            <Avatar 
+                                                src={ad.image_url} 
+                                                variant="rounded" 
+                                                sx={{ width: 50, height: 50 }}
+                                                imgProps={{ 
+                                                    onError: (e) => {
+                                                        e.target.onerror = null;
+                                                        e.target.src = '';
+                                                    }
+                                                }}
+                                            />
                                         </TableCell>
                                         <TableCell>
                                             <Typography variant="body2" fontWeight={600}>{ad.title}</Typography>
@@ -425,22 +546,48 @@ export default function ShopAds() {
                                         <TableCell align="center">
                                             <Box display="flex" gap={1} justifyContent="center">
                                                 <Tooltip title="View">
-                                                    <IconButton size="small" onClick={() => { setSelectedAd(ad); setOpenViewDialog(true); }} sx={{ color: '#325fec' }}>
+                                                    <IconButton 
+                                                        size="small" 
+                                                        onClick={() => { setSelectedAd(ad); setOpenViewDialog(true); }} 
+                                                        sx={{ color: '#325fec' }}
+                                                        disabled={loadingAction}
+                                                    >
                                                         <VisibilityIcon fontSize="small" />
                                                     </IconButton>
                                                 </Tooltip>
                                                 <Tooltip title="Edit">
-                                                    <IconButton size="small" onClick={() => handleOpenDialog(ad)} sx={{ color: '#f59e0b' }}>
+                                                    <IconButton 
+                                                        size="small" 
+                                                        onClick={() => handleOpenDialog(ad)} 
+                                                        sx={{ color: '#f59e0b' }}
+                                                        disabled={loadingAction}
+                                                    >
                                                         <EditIcon fontSize="small" />
                                                     </IconButton>
                                                 </Tooltip>
                                                 <Tooltip title={ad.is_active && new Date(ad.end_date) > new Date() ? "Deactivate" : "Activate"}>
-                                                    <IconButton size="small" onClick={() => handleToggleStatus(ad.id, ad.is_active)} sx={{ color: ad.is_active ? '#ef4444' : '#10b981' }}>
-                                                        {ad.is_active && new Date(ad.end_date) > new Date() ? <CancelIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
+                                                    <IconButton 
+                                                        size="small" 
+                                                        onClick={() => handleToggleStatus(ad.id, ad.is_active)} 
+                                                        sx={{ color: ad.is_active && new Date(ad.end_date) > new Date() ? '#ef4444' : '#10b981' }}
+                                                        disabled={loadingAction}
+                                                    >
+                                                        {loadingAction ? 
+                                                            <CircularProgress size={20} /> :
+                                                            (ad.is_active && new Date(ad.end_date) > new Date() ? 
+                                                                <CancelIcon fontSize="small" /> : 
+                                                                <CheckCircleIcon fontSize="small" />
+                                                            )
+                                                        }
                                                     </IconButton>
                                                 </Tooltip>
                                                 <Tooltip title="Delete">
-                                                    <IconButton size="small" onClick={() => { setAdToDelete(ad); setOpenDeleteDialog(true); }} sx={{ color: '#ef4444' }}>
+                                                    <IconButton 
+                                                        size="small" 
+                                                        onClick={() => { setAdToDelete(ad); setOpenDeleteDialog(true); }} 
+                                                        sx={{ color: '#ef4444' }}
+                                                        disabled={loadingAction}
+                                                    >
                                                         <DeleteIcon fontSize="small" />
                                                     </IconButton>
                                                 </Tooltip>
@@ -460,30 +607,65 @@ export default function ShopAds() {
                     rowsPerPage={rowsPerPage}
                     page={page}
                     onPageChange={(e, newPage) => setPage(newPage)}
-                    onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                    onRowsPerPageChange={(e) => { 
+                        setRowsPerPage(parseInt(e.target.value, 10)); 
+                        setPage(0); 
+                    }}
                 />
             </Paper>
 
             {/* Create/Edit Ad Dialog */}
             <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-                <DialogTitle>{editingAd ? 'Edit Shop Ad' : 'Create New Shop Ad'}</DialogTitle>
+                <DialogTitle>
+                    {editingAd ? 'Edit Shop Ad' : 'Create New Shop Ad'}
+                    {dialogLoading && <CircularProgress size={24} sx={{ ml: 2 }} />}
+                </DialogTitle>
                 <DialogContent>
                     <FormControl fullWidth sx={{ mt: 1, mb: 2 }}>
                         <InputLabel>Select Shop *</InputLabel>
-                        <Select value={formData.shop_id} onChange={(e) => setFormData({ ...formData, shop_id: e.target.value })} label="Select Shop *">
+                        <Select 
+                            value={formData.shop_id} 
+                            onChange={(e) => setFormData({ ...formData, shop_id: e.target.value })} 
+                            label="Select Shop *"
+                            disabled={dialogLoading}
+                        >
                             {shops.map((shop) => (
-                                <MenuItem key={shop.id} value={shop.id}>{shop.business_name} - {shop.city}</MenuItem>
+                                <MenuItem key={shop.id} value={shop.id}>
+                                    {shop.business_name} - {shop.city}
+                                </MenuItem>
                             ))}
                         </Select>
                     </FormControl>
                     
-                    <TextField fullWidth label="Ad Title *" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} sx={{ mb: 2 }} />
+                    <TextField 
+                        fullWidth 
+                        label="Ad Title *" 
+                        value={formData.title} 
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
+                        sx={{ mb: 2 }}
+                        disabled={dialogLoading}
+                        required
+                    />
                     
-                    <TextField fullWidth multiline rows={3} label="Description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} sx={{ mb: 2 }} />
+                    <TextField 
+                        fullWidth 
+                        multiline 
+                        rows={3} 
+                        label="Description" 
+                        value={formData.description} 
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
+                        sx={{ mb: 2 }}
+                        disabled={dialogLoading}
+                    />
                     
                     <FormControl fullWidth sx={{ mb: 2 }}>
                         <InputLabel>Duration *</InputLabel>
-                        <Select value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} label="Duration *">
+                        <Select 
+                            value={formData.duration} 
+                            onChange={(e) => setFormData({ ...formData, duration: e.target.value })} 
+                            label="Duration *"
+                            disabled={dialogLoading}
+                        >
                             <MenuItem value="30days">30 Days</MenuItem>
                             <MenuItem value="3months">3 Months</MenuItem>
                         </Select>
@@ -491,7 +673,12 @@ export default function ShopAds() {
                     
                     <FormControl fullWidth sx={{ mb: 2 }}>
                         <InputLabel>Priority</InputLabel>
-                        <Select value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: e.target.value })} label="Priority">
+                        <Select 
+                            value={formData.priority} 
+                            onChange={(e) => setFormData({ ...formData, priority: e.target.value })} 
+                            label="Priority"
+                            disabled={dialogLoading}
+                        >
                             <MenuItem value="low">Low</MenuItem>
                             <MenuItem value="normal">Normal</MenuItem>
                             <MenuItem value="high">High</MenuItem>
@@ -499,20 +686,48 @@ export default function ShopAds() {
                         </Select>
                     </FormControl>
                     
-                    <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} fullWidth sx={{ mb: 2, py: 1.5 }}>
-                        Upload Ad Image *
-                        <input type="file" hidden accept="image/*" onChange={handleImageChange} />
+                    <Button 
+                        variant="outlined" 
+                        component="label" 
+                        startIcon={<CloudUploadIcon />} 
+                        fullWidth 
+                        sx={{ mb: 2, py: 1.5 }}
+                        disabled={dialogLoading}
+                    >
+                        {editingAd && !imageFile ? 'Change Ad Image' : 'Upload Ad Image *'}
+                        <input 
+                            type="file" 
+                            hidden 
+                            accept="image/*" 
+                            onChange={handleImageChange} 
+                        />
                     </Button>
                     
                     {formData.image_preview && (
                         <Box sx={{ mt: 1, textAlign: 'center' }}>
-                            <img src={formData.image_preview} alt="Preview" style={{ maxWidth: '100%', maxHeight: 150, borderRadius: 8 }} />
+                            <img 
+                                src={formData.image_preview} 
+                                alt="Preview" 
+                                style={{ maxWidth: '100%', maxHeight: 150, borderRadius: 8, objectFit: 'cover' }} 
+                            />
+                            {imageFile && (
+                                <Typography variant="caption" display="block" color="#6b7280">
+                                    New image selected: {imageFile.name}
+                                </Typography>
+                            )}
                         </Box>
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleCloseDialog}>Cancel</Button>
-                    <Button onClick={handleCreateAd} variant="contained">{editingAd ? 'Update' : 'Create'}</Button>
+                    <Button onClick={handleCloseDialog} disabled={dialogLoading}>Cancel</Button>
+                    <Button 
+                        onClick={handleCreateAd} 
+                        variant="contained" 
+                        disabled={dialogLoading}
+                        startIcon={dialogLoading && <CircularProgress size={20} />}
+                    >
+                        {dialogLoading ? 'Saving...' : (editingAd ? 'Update' : 'Create')}
+                    </Button>
                 </DialogActions>
             </Dialog>
 
@@ -525,16 +740,42 @@ export default function ShopAds() {
                 <DialogContent dividers>
                     {selectedAd && (
                         <Box>
-                            <img src={selectedAd.image_url} alt={selectedAd.title} style={{ width: '100%', borderRadius: 8, marginBottom: 16 }} />
+                            <img 
+                                src={selectedAd.image_url} 
+                                alt={selectedAd.title} 
+                                style={{ width: '100%', borderRadius: 8, marginBottom: 16, maxHeight: 300, objectFit: 'cover' }} 
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.style.display = 'none';
+                                }}
+                            />
                             <Typography variant="h6" fontWeight={600}>{selectedAd.title}</Typography>
                             <Typography variant="body2" color="#5a6e8a" sx={{ mb: 1 }}>{selectedAd.shop_name}</Typography>
-                            <Typography variant="body2" sx={{ mb: 2 }}>{selectedAd.description}</Typography>
+                            {selectedAd.description && (
+                                <Typography variant="body2" sx={{ mb: 2 }}>{selectedAd.description}</Typography>
+                            )}
                             <Divider sx={{ my: 1 }} />
                             <Grid container spacing={1}>
-                                <Grid item xs={6}><Typography variant="caption" color="#6b7280">Priority</Typography><Typography variant="body2">{selectedAd.priority}</Typography></Grid>
-                                <Grid item xs={6}><Typography variant="caption" color="#6b7280">Duration</Typography><Typography variant="body2">{selectedAd.duration === '30days' ? '30 Days' : '3 Months'}</Typography></Grid>
-                                <Grid item xs={6}><Typography variant="caption" color="#6b7280">Start Date</Typography><Typography variant="body2">{new Date(selectedAd.start_date).toLocaleDateString()}</Typography></Grid>
-                                <Grid item xs={6}><Typography variant="caption" color="#6b7280">End Date</Typography><Typography variant="body2">{new Date(selectedAd.end_date).toLocaleDateString()}</Typography></Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="caption" color="#6b7280">Priority</Typography>
+                                    <Typography variant="body2">{selectedAd.priority}</Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="caption" color="#6b7280">Duration</Typography>
+                                    <Typography variant="body2">{selectedAd.duration === '30days' ? '30 Days' : '3 Months'}</Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="caption" color="#6b7280">Start Date</Typography>
+                                    <Typography variant="body2">{new Date(selectedAd.start_date).toLocaleDateString()}</Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="caption" color="#6b7280">End Date</Typography>
+                                    <Typography variant="body2">{new Date(selectedAd.end_date).toLocaleDateString()}</Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="caption" color="#6b7280">Status</Typography>
+                                    <Box mt={0.5}>{getStatusChip(selectedAd)}</Box>
+                                </Grid>
                             </Grid>
                         </Box>
                     )}
@@ -545,17 +786,35 @@ export default function ShopAds() {
             <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} maxWidth="sm" fullWidth>
                 <DialogTitle>Confirm Delete</DialogTitle>
                 <DialogContent>
-                    <Typography>Are you sure you want to delete the ad "<strong>{adToDelete?.title}</strong>"? This action cannot be undone.</Typography>
+                    <Typography>
+                        Are you sure you want to delete the ad "<strong>{adToDelete?.title}</strong>"? 
+                        This action cannot be undone.
+                    </Typography>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-                    <Button onClick={handleDelete} variant="contained" color="error">Delete</Button>
+                    <Button onClick={() => setOpenDeleteDialog(false)} disabled={dialogLoading}>Cancel</Button>
+                    <Button 
+                        onClick={handleDelete} 
+                        variant="contained" 
+                        color="error"
+                        disabled={dialogLoading}
+                        startIcon={dialogLoading && <CircularProgress size={20} />}
+                    >
+                        {dialogLoading ? 'Deleting...' : 'Delete'}
+                    </Button>
                 </DialogActions>
             </Dialog>
 
             {/* Snackbar */}
-            <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-                <Alert severity={snackbar.severity} sx={{ borderRadius: 2 }}>{snackbar.message}</Alert>
+            <Snackbar 
+                open={snackbar.open} 
+                autoHideDuration={6000} 
+                onClose={() => setSnackbar({ ...snackbar, open: false })} 
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+                <Alert severity={snackbar.severity} sx={{ borderRadius: 2 }} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+                    {snackbar.message}
+                </Alert>
             </Snackbar>
         </Container>
     );

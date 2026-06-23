@@ -48,7 +48,8 @@ import {
     Store as StoreIcon,
     LocationOn as LocationOnIcon,
     Phone as PhoneIcon,
-    Close as CloseIcon
+    Close as CloseIcon,
+    Image as ImageIcon
 } from '@mui/icons-material';
 import {
     getAllShops,
@@ -229,6 +230,62 @@ export default function VerifyShops() {
         );
     };
 
+    // Helper function to render shop image
+    const renderShopImage = (shop) => {
+        if (shop.shop_image) {
+            // If shop_image is a Cloudinary URL
+            return (
+                <Avatar
+                    src={shop.shop_image}
+                    variant="rounded"
+                    sx={{ width: 48, height: 48 }}
+                    imgProps={{ 
+                        onError: (e) => {
+                            e.target.onerror = null;
+                            e.target.style.display = 'none';
+                        }
+                    }}
+                />
+            );
+        }
+        // Fallback if no image
+        return (
+            <Avatar variant="rounded" sx={{ width: 48, height: 48, bgcolor: '#e8f0fe' }}>
+                <StoreIcon sx={{ color: '#325fec' }} />
+            </Avatar>
+        );
+    };
+
+    // Helper function to render shop image in dialog
+    const renderShopImageDialog = (shop) => {
+        if (shop.shop_image) {
+            return (
+                <img 
+                    src={shop.shop_image}
+                    alt={shop.business_name}
+                    style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8, objectFit: 'cover' }}
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                    }}
+                />
+            );
+        }
+        return (
+            <Box sx={{ 
+                width: '100%', 
+                height: 200, 
+                bgcolor: '#f3f4f6', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                borderRadius: 2
+            }}>
+                <ImageIcon sx={{ fontSize: 60, color: '#9ca3af' }} />
+            </Box>
+        );
+    };
+
     return (
         <Container maxWidth="xl" sx={{ py: 3 }}>
             {/* Header */}
@@ -377,17 +434,7 @@ export default function VerifyShops() {
                                         </TableCell>
                                         <TableCell>
                                             <Box display="flex" alignItems="center" gap={2}>
-                                                {shop.shop_image_base64 ? (
-                                                    <Avatar
-                                                        src={`data:image/jpeg;base64,${shop.shop_image_base64}`}
-                                                        variant="rounded"
-                                                        sx={{ width: 48, height: 48 }}
-                                                    />
-                                                ) : (
-                                                    <Avatar variant="rounded" sx={{ width: 48, height: 48, bgcolor: '#e8f0fe' }}>
-                                                        <StoreIcon sx={{ color: '#325fec' }} />
-                                                    </Avatar>
-                                                )}
+                                                {renderShopImage(shop)}
                                                 <Box>
                                                     <Typography variant="body2" fontWeight={600}>
                                                         {shop.business_name}
@@ -485,16 +532,10 @@ export default function VerifyShops() {
                 <DialogContent dividers>
                     {selectedShop && (
                         <Box>
-                            {/* Shop Image */}
-                            {selectedShop.shop_image_base64 && (
-                                <Box sx={{ mb: 3, textAlign: 'center' }}>
-                                    <img 
-                                        src={`data:image/jpeg;base64,${selectedShop.shop_image_base64}`}
-                                        alt={selectedShop.business_name}
-                                        style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8, objectFit: 'cover' }}
-                                    />
-                                </Box>
-                            )}
+                            {/* Shop Image - using Cloudinary URL directly */}
+                            <Box sx={{ mb: 3, textAlign: 'center' }}>
+                                {renderShopImageDialog(selectedShop)}
+                            </Box>
                             
                             <Grid container spacing={2}>
                                 <Grid item xs={12} sm={6}>
