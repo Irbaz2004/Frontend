@@ -19,7 +19,7 @@ const problems = [
         icon: <SearchOffIcon />,
     },
     {
-        title: 'Hard to find local services',
+        title: 'Hard to find local shops & services',
         desc: 'Finding a mechanic, nurse, or even an egg sandwich nearby takes unnecessary effort.',
         icon: <StorefrontIcon />,
     },
@@ -33,9 +33,9 @@ const problems = [
 const solutions = [
     {
         id: 1,
-        title: 'Jobs, Shops & Services',
+        title: 'Jobs, Shops & Houses in One App',
         subtitle: 'One platform',
-        desc: 'Find local jobs, nearby shops, and daily services in one single app.',
+        desc: 'Find local jobs, nearby shops, and house in one single app.',
         icon: <CheckCircleOutlineIcon />,
         color: '#4CAF50',
         stats: '3-in-1',

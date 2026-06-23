@@ -265,7 +265,7 @@ const Hero = () => {
                                         fontFamily: '"Inter", sans-serif',
                                     }}>
                                         NearZO is your all-in-one hyperlocal platform to find nearby jobs, hire local workers, and discover small shops around you.
-                                        Whether you're a job seeker, shop owner, or someone looking for daily needs like food, services, or repairs — NearZO connects you with real people in your neighborhood.
+                                        Whether you're a job seeker, shop owner, or someone looking for daily needs like food, jobs, or house — NearZO connects you with real people in your neighborhood.
                                     </Typography>
                                 </Box>
 

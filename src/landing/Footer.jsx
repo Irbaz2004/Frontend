@@ -385,7 +385,7 @@ const TermsDialog = ({ open, onClose }) => (
 
 // ───────────────────────── FAQ Dialog ─────────────────────────
 const faqData = [
-    { q: 'What is NearZO?', a: 'NearZO is a hyperlocal platform that helps users discover nearby shops, jobs, rental homes, and essential services.' },
+    { q: 'What is NearZO?', a: 'NearZO is a hyperlocal platform that helps users discover nearby shops, jobs, and rental homes' },
     { q: 'Is NearZO free to use?', a: 'Yes, NearZO is free for users.' },
     { q: 'How do I search for shops, jobs, or houses?', a: 'You can browse categories or use the search feature to find listings near your location.' },
     { q: 'Can I list my business or property on NearZO?', a: 'Yes. Businesses, employers, and property owners can create listings on NearZO.' },

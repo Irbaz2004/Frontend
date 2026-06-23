@@ -42,7 +42,7 @@ const features = [
         icon: <RoomServiceIcon sx={{ fontSize: 60 }} />,
         color: '#4CAF50',
         gradient: 'linear-gradient(135deg, #4CAF50 0%, #8bc34a 100%)',
-        highlight: 'Services at your doorstep',
+        highlight: 'Easy To Search Services',
     },
     {
         title: 'GPS-based Results',

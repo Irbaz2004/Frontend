@@ -14,7 +14,7 @@ const steps = [
     },
     {
         title: 'Search & Explore',
-        desc: 'Browse local jobs, nearby services, or filter by category to find exactly what you need.',
+        desc: 'Browse local jobs, nearby shops, or filter by category to find exactly what you need.',
         color: '#325fec',
         icon: '🔍',
     },
