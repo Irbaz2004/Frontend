@@ -9,12 +9,12 @@ import { getFirestore } from 'firebase/firestore';
 
 // Put these in a .env file (Vite: VITE_*, CRA: REACT_APP_*) — never hardcode keys.
 const firebaseConfig = {
-  apiKey: "AIzaSyD_noM41_xlx_QG3dUPrwslxSu4VhUpNFk",
-  authDomain: "ruzix-410b1.firebaseapp.com",
-  projectId: "ruzix-410b1",
-  storageBucket: "ruzix-410b1.firebasestorage.app",
-  messagingSenderId: "140041657763",
-  appId: "1:140041657763:web:816301ffd20beda225ce16"
+  apiKey: "AIzaSyDwn0K3scp_8IrL9K8Iy_-XAVxDKIq2UuQ",
+  authDomain: "nearzo-f778f.firebaseapp.com",
+  projectId: "nearzo-f778f",
+  storageBucket: "nearzo-f778f.firebasestorage.app",
+  messagingSenderId: "155581311852",
+  appId: "1:155581311852:web:aafbb80744fc282e7c2149"
 };
 
 

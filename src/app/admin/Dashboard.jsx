@@ -13,6 +13,9 @@ import {
     ButtonGroup,
     Alert,
     Divider,
+    Switch,
+    Stack,
+    LinearProgress,
 } from '@mui/material';
 import {
     Visibility as VisibilityIcon,
@@ -28,16 +31,17 @@ import {
     Download as DownloadIcon,
     SwapHoriz as ConversionIcon,
     AccessTime as TimeIcon,
-    FiberManualRecord as DotIcon,
 } from '@mui/icons-material';
 import {
+    ComposedChart,
     AreaChart,
     Area,
+    Line,
     BarChart,
     Bar,
+    Cell,
     PieChart,
     Pie,
-    Cell,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -71,10 +75,15 @@ const C = {
     textSub:     '#475569',
     textMuted:   '#94A3B8',
     shadowMd:    'rgba(15,23,42,0.07)',
+    shadowLg:    'rgba(15,23,42,0.10)',
 };
 const FONT = '"Inter", sans-serif';
 
 const PIE_COLORS = [C.accent, C.purple, C.amber, C.green, C.red, '#0EA5E9'];
+
+// Max content width — wide enough to breathe on large monitors, but capped
+// so charts don't stretch into illegibility on ultra-wide displays.
+const MAX_WIDTH = 1680;
 
 // How far back we pull raw events for. Everything (daily / monthly / hourly /
 // sources / device split) is derived client-side from this one fetch.
@@ -126,10 +135,11 @@ function deviceIcon(device) {
 }
 
 /* ─── Build a continuous list of last N days (so empty days show as 0) ──── */
-function lastNDayKeys(n) {
+function lastNDayKeys(n, offsetDays = 0) {
     const out = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    today.setDate(today.getDate() - offsetDays);
     for (let i = n - 1; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
@@ -148,10 +158,11 @@ function lastNMonthKeys(n) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Stat Card
+   Stat Card — now with a small inline sparkline so trend has visual context
 ═══════════════════════════════════════════════════════════════════════════ */
-function StatCard({ icon, label, value, trend, trendLabel, color, loading }) {
+function StatCard({ icon, label, value, trend, trendLabel, color, loading, sparkline }) {
     const isUp = trend != null && trend >= 0;
+    const gradId = `spark-${label.replace(/\s+/g, '-').toLowerCase()}`;
     return (
         <Paper
             elevation={0}
@@ -161,6 +172,8 @@ function StatCard({ icon, label, value, trend, trendLabel, color, loading }) {
                 border: `1px solid ${C.border}`,
                 background: C.surface,
                 height: '100%',
+                transition: 'box-shadow .2s ease, transform .2s ease',
+                '&:hover': { boxShadow: `0 10px 28px ${C.shadowMd}`, transform: 'translateY(-1px)' },
             }}
         >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
@@ -178,20 +191,22 @@ function StatCard({ icon, label, value, trend, trendLabel, color, loading }) {
                     {React.cloneElement(icon, { sx: { fontSize: 20, color } })}
                 </Box>
                 {trend != null && !loading && (
-                    <Chip
-                        size="small"
-                        icon={isUp ? <TrendingUpIcon sx={{ fontSize: '14px !important' }} /> : <TrendingDownIcon sx={{ fontSize: '14px !important' }} />}
-                        label={`${Math.abs(trend).toFixed(0)}%`}
-                        sx={{
-                            height: 22,
-                            fontFamily: FONT,
-                            fontWeight: 700,
-                            fontSize: 11,
-                            bgcolor: isUp ? C.greenLight : C.redLight,
-                            color: isUp ? C.green : C.red,
-                            '& .MuiChip-icon': { color: isUp ? C.green : C.red },
-                        }}
-                    />
+                    <Tooltip title="vs. the same length period immediately before this range" arrow>
+                        <Chip
+                            size="small"
+                            icon={isUp ? <TrendingUpIcon sx={{ fontSize: '14px !important' }} /> : <TrendingDownIcon sx={{ fontSize: '14px !important' }} />}
+                            label={`${Math.abs(trend).toFixed(0)}%`}
+                            sx={{
+                                height: 22,
+                                fontFamily: FONT,
+                                fontWeight: 700,
+                                fontSize: 11,
+                                bgcolor: isUp ? C.greenLight : C.redLight,
+                                color: isUp ? C.green : C.red,
+                                '& .MuiChip-icon': { color: isUp ? C.green : C.red },
+                            }}
+                        />
+                    </Tooltip>
                 )}
             </Box>
             {loading ? (
@@ -200,19 +215,36 @@ function StatCard({ icon, label, value, trend, trendLabel, color, loading }) {
                     <Skeleton variant="text" width="80%" height={18} />
                 </>
             ) : (
-                <>
-                    <Typography sx={{ fontFamily: FONT, fontWeight: 800, fontSize: 26, color: C.text, letterSpacing: '-0.5px', lineHeight: 1.2 }}>
-                        {value}
-                    </Typography>
-                    <Typography sx={{ fontFamily: FONT, fontSize: 12.5, color: C.textMuted, fontWeight: 500, mt: 0.3 }}>
-                        {label}
-                    </Typography>
-                    {trendLabel && (
-                        <Typography sx={{ fontFamily: FONT, fontSize: 11, color: C.textMuted, mt: 0.5 }}>
-                            {trendLabel}
+                <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 1 }}>
+                    <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ fontFamily: FONT, fontWeight: 800, fontSize: 26, color: C.text, letterSpacing: '-0.5px', lineHeight: 1.2 }}>
+                            {value}
                         </Typography>
+                        <Typography sx={{ fontFamily: FONT, fontSize: 12.5, color: C.textMuted, fontWeight: 500, mt: 0.3 }}>
+                            {label}
+                        </Typography>
+                        {trendLabel && (
+                            <Typography sx={{ fontFamily: FONT, fontSize: 11, color: C.textMuted, mt: 0.5 }}>
+                                {trendLabel}
+                            </Typography>
+                        )}
+                    </Box>
+                    {sparkline && sparkline.length > 1 && (
+                        <Box sx={{ width: 72, height: 36, flexShrink: 0, display: { xs: 'none', sm: 'block' } }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={sparkline} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+                                            <stop offset="100%" stopColor={color} stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.75} fill={`url(#${gradId})`} isAnimationActive={false} />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </Box>
                     )}
-                </>
+                </Box>
             )}
         </Paper>
     );
@@ -233,10 +265,12 @@ function Card({ title, subtitle, action, children, sx }) {
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
+                transition: 'box-shadow .2s ease',
+                '&:hover': { boxShadow: `0 10px 28px ${C.shadowMd}` },
                 ...sx,
             }}
         >
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
                 <Box>
                     <Typography sx={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.text }}>{title}</Typography>
                     {subtitle && (
@@ -270,7 +304,7 @@ function ChartTip({ active, payload, label }) {
         >
             <Typography sx={{ fontFamily: FONT, fontSize: 11, opacity: 0.7, mb: 0.4 }}>{label}</Typography>
             {payload.map((p) => (
-                <Box key={p.dataKey} sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                <Box key={`${p.dataKey}-${p.name}`} sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
                     <Box sx={{ width: 7, height: 7, borderRadius: '50%', background: p.color }} />
                     <Typography sx={{ fontFamily: FONT, fontSize: 12, fontWeight: 700 }}>{p.value}</Typography>
                     <Typography sx={{ fontFamily: FONT, fontSize: 11, opacity: 0.7 }}>{p.name}</Typography>
@@ -293,11 +327,13 @@ export default function Dashboard() {
     const [loading, setLoading]     = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError]         = useState('');
+    const [lastUpdated, setLastUpdated] = useState(null);
 
     const [summary, setSummary]     = useState({ totalVisits: 0, totalInstalls: 0 });
     const [visits, setVisits]       = useState([]);   // raw docs, last FETCH_DAYS_BACK days
     const [installs, setInstalls]   = useState([]);   // raw docs, last FETCH_DAYS_BACK days
     const [rangeDays, setRangeDays] = useState(30);
+    const [compareEnabled, setCompareEnabled] = useState(false);
 
     const fetchData = useCallback(async (isRefresh = false) => {
         isRefresh ? setRefreshing(true) : setLoading(true);
@@ -316,6 +352,7 @@ export default function Dashboard() {
             setSummary(summarySnap.exists() ? summarySnap.data() : { totalVisits: 0, totalInstalls: 0 });
             setVisits(visitsSnap.docs.map((d) => d.data()));
             setInstalls(installsSnap.docs.map((d) => d.data()));
+            setLastUpdated(new Date());
         } catch (err) {
             console.error('Dashboard: failed to load analytics', err);
             setError('Could not load analytics data. Check your Firestore rules / connection.');
@@ -355,6 +392,55 @@ export default function Dashboard() {
             };
         });
     }, [visits, installs, rangeDays]);
+
+    /* ── Derived: the equal-length period immediately before the selected
+         range — used both for the trend % on stat cards and as a dashed
+         overlay on the daily chart when "compare" is switched on. ───────── */
+    const prevPeriodDaily = useMemo(() => {
+        const keys = lastNDayKeys(rangeDays, rangeDays); // shifted back by rangeDays
+        const keySet = new Set(keys);
+        const visitMap = {};
+        const installMap = {};
+        visits.forEach((v) => {
+            const d = toDate(v.timestamp);
+            if (!d) return;
+            const k = dayKey(d);
+            if (!keySet.has(k)) return;
+            visitMap[k] = (visitMap[k] || 0) + 1;
+        });
+        installs.forEach((i) => {
+            if (i.outcome !== 'accepted') return;
+            const d = toDate(i.timestamp);
+            if (!d) return;
+            const k = dayKey(d);
+            if (!keySet.has(k)) return;
+            installMap[k] = (installMap[k] || 0) + 1;
+        });
+        return keys.map((k) => ({ key: k, visits: visitMap[k] || 0, installs: installMap[k] || 0 }));
+    }, [visits, installs, rangeDays]);
+
+    const periodComparison = useMemo(() => {
+        const curVisits = dailySeries.reduce((s, d) => s + d.visits, 0);
+        const curInstalls = dailySeries.reduce((s, d) => s + d.installs, 0);
+        const prevVisits = prevPeriodDaily.reduce((s, d) => s + d.visits, 0);
+        const prevInstalls = prevPeriodDaily.reduce((s, d) => s + d.installs, 0);
+        const pct = (cur, prev) => (prev > 0 ? ((cur - prev) / prev) * 100 : (cur > 0 ? 100 : 0));
+        return {
+            visitTrend: pct(curVisits, prevVisits),
+            installTrend: pct(curInstalls, prevInstalls),
+            curVisits, curInstalls, prevVisits, prevInstalls,
+        };
+    }, [dailySeries, prevPeriodDaily]);
+
+    /* ── Merge current + previous period for the overlay chart, aligned by
+         relative day position rather than calendar date. ──────────────────── */
+    const dailySeriesWithCompare = useMemo(() => {
+        return dailySeries.map((d, i) => ({
+            ...d,
+            prevVisits: prevPeriodDaily[i]?.visits ?? null,
+            prevInstalls: prevPeriodDaily[i]?.installs ?? null,
+        }));
+    }, [dailySeries, prevPeriodDaily]);
 
     /* ── Derived: monthly series, last 12 months ──────────────────────────── */
     const monthlySeries = useMemo(() => {
@@ -416,6 +502,8 @@ export default function Dashboard() {
             .map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }));
     }, [visits, rangeDays]);
 
+    const deviceTotal = useMemo(() => deviceBreakdown.reduce((s, d) => s + d.value, 0), [deviceBreakdown]);
+
     /* ── Derived: traffic by hour of day (all fetched data) ────────────────── */
     const hourlyTraffic = useMemo(() => {
         const counts = Array.from({ length: 24 }, () => 0);
@@ -441,16 +529,14 @@ export default function Dashboard() {
             .slice(0, 10);
     }, [visits, installs]);
 
-    /* ── Derived: today vs yesterday trend, conversion rate ────────────────── */
+    /* ── Derived: quick today vs yesterday read-out (kept as a small caption,
+         the headline trend % now reflects the full selected period) ─────── */
     const todayKey = dayKey(new Date());
     const yestKey  = dayKey(new Date(Date.now() - 86400000));
     const todayVisits     = dailySeries.find((d) => d.key === todayKey)?.visits || 0;
     const yesterdayVisits = dailySeries.find((d) => d.key === yestKey)?.visits || 0;
-    const visitTrend = yesterdayVisits > 0 ? ((todayVisits - yesterdayVisits) / yesterdayVisits) * 100 : (todayVisits > 0 ? 100 : 0);
-
     const todayInstalls     = dailySeries.find((d) => d.key === todayKey)?.installs || 0;
     const yesterdayInstalls = dailySeries.find((d) => d.key === yestKey)?.installs || 0;
-    const installTrend = yesterdayInstalls > 0 ? ((todayInstalls - yesterdayInstalls) / yesterdayInstalls) * 100 : (todayInstalls > 0 ? 100 : 0);
 
     const acceptedInstallsInRange = installs.filter((i) => i.outcome === 'accepted').length;
     const conversionRate = visits.length > 0 ? (acceptedInstallsInRange / visits.length) * 100 : 0;
@@ -459,6 +545,10 @@ export default function Dashboard() {
         if (!hourlyTraffic.some((h) => h.value > 0)) return null;
         return hourlyTraffic.reduce((max, h) => (h.value > max.value ? h : max), hourlyTraffic[0]);
     }, [hourlyTraffic]);
+
+    /* ── Sparkline slices for stat cards (last 14 points of selected range) ── */
+    const visitSparkline = useMemo(() => dailySeries.slice(-14).map((d) => ({ v: d.visits })), [dailySeries]);
+    const installSparkline = useMemo(() => dailySeries.slice(-14).map((d) => ({ v: d.installs })), [dailySeries]);
 
     /* ── CSV export of the raw events currently loaded ─────────────────────── */
     const exportCSV = () => {
@@ -482,300 +572,375 @@ export default function Dashboard() {
     };
 
     return (
-        <Box sx={{ p: { xs: 2, md: 3 }, background: C.bg, minHeight: '100%', fontFamily: FONT }}>
-            {/* ── Header ───────────────────────────────────────────────────── */}
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 1.5 }}>
-                <Box>
-                    <Typography sx={{ fontFamily: FONT, fontWeight: 800, fontSize: 22, color: C.text, letterSpacing: '-0.4px' }}>
-                        Analytics Dashboard
-                    </Typography>
-                    <Typography sx={{ fontFamily: FONT, fontSize: 13, color: C.textMuted, mt: 0.3 }}>
-                        Website traffic & app installs, last {FETCH_DAYS_BACK} days
-                    </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                    <ButtonGroup size="small" sx={{ borderRadius: '10px', overflow: 'hidden' }}>
-                        {RANGE_OPTIONS.map((r) => (
-                            <Button
-                                key={r.label}
-                                onClick={() => setRangeDays(r.days)}
-                                sx={{
-                                    fontFamily: FONT,
-                                    fontWeight: 700,
-                                    fontSize: 12.5,
-                                    px: 1.8,
-                                    textTransform: 'none',
-                                    border: `1px solid ${C.border} !important`,
-                                    background: rangeDays === r.days ? C.accent : C.surface,
-                                    color: rangeDays === r.days ? '#fff' : C.textSub,
-                                    '&:hover': { background: rangeDays === r.days ? C.accentDark : C.accentLight },
-                                }}
-                            >
-                                {r.label}
-                            </Button>
-                        ))}
-                    </ButtonGroup>
-                    <Tooltip title="Export CSV" arrow>
-                        <IconButton
-                            onClick={exportCSV}
-                            sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: C.surfaceAlt, '&:hover': { bgcolor: C.accentLight, color: C.accent } }}
-                        >
-                            <DownloadIcon sx={{ fontSize: 18 }} />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Refresh" arrow>
-                        <IconButton
-                            onClick={() => fetchData(true)}
-                            sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: C.surfaceAlt, '&:hover': { bgcolor: C.accentLight, color: C.accent } }}
-                        >
-                            <RefreshIcon sx={{ fontSize: 18, animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
-                        </IconButton>
-                    </Tooltip>
+        <Box sx={{ background: C.bg, minHeight: '100%', fontFamily: FONT }}>
+            {/* ── Sticky header / toolbar ──────────────────────────────────── */}
+            <Box
+                sx={{
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 5,
+                    background: 'rgba(244,246,251,0.85)',
+                    backdropFilter: 'blur(8px)',
+                    borderBottom: `1px solid ${C.border}`,
+                }}
+            >
+                <Box sx={{ maxWidth: MAX_WIDTH, mx: 'auto', px: { xs: 2, md: 3, xl: 4 }, py: { xs: 1.5, md: 2 } }}>
+                    {(loading || refreshing) && (
+                        <LinearProgress
+                            sx={{
+                                position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                                '& .MuiLinearProgress-bar': { background: C.accent },
+                                bgcolor: 'transparent',
+                            }}
+                        />
+                    )}
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5 }}>
+                        <Box>
+                            <Typography sx={{ fontFamily: FONT, fontWeight: 800, fontSize: 22, color: C.text, letterSpacing: '-0.4px' }}>
+                                Analytics Dashboard
+                            </Typography>
+                            <Typography sx={{ fontFamily: FONT, fontSize: 13, color: C.textMuted, mt: 0.3 }}>
+                                Website traffic & app installs
+                                {lastUpdated && (
+                                    <Box component="span" sx={{ color: C.textMuted }}>
+                                        {' · '}updated {formatRelativeTime(lastUpdated)}
+                                    </Box>
+                                )}
+                            </Typography>
+                        </Box>
+                        <Stack direction="row" spacing={1.2} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                            <Stack direction="row" spacing={0.6} alignItems="center" sx={{ mr: 0.5 }}>
+                                <Switch
+                                    size="small"
+                                    checked={compareEnabled}
+                                    onChange={(e) => setCompareEnabled(e.target.checked)}
+                                    sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: C.accent }, '& .Mui-checked + .MuiSwitch-track': { backgroundColor: `${C.accent} !important` } }}
+                                />
+                                <Typography sx={{ fontFamily: FONT, fontSize: 12.5, color: C.textSub, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                    Compare to previous period
+                                </Typography>
+                            </Stack>
+                            <ButtonGroup size="small" sx={{ borderRadius: '10px', overflow: 'hidden' }}>
+                                {RANGE_OPTIONS.map((r) => (
+                                    <Button
+                                        key={r.label}
+                                        onClick={() => setRangeDays(r.days)}
+                                        sx={{
+                                            fontFamily: FONT,
+                                            fontWeight: 700,
+                                            fontSize: 12.5,
+                                            px: 1.8,
+                                            textTransform: 'none',
+                                            border: `1px solid ${C.border} !important`,
+                                            background: rangeDays === r.days ? C.accent : C.surface,
+                                            color: rangeDays === r.days ? '#fff' : C.textSub,
+                                            '&:hover': { background: rangeDays === r.days ? C.accentDark : C.accentLight },
+                                            '&:focus-visible': { outline: `2px solid ${C.accentDark}`, outlineOffset: '1px' },
+                                        }}
+                                    >
+                                        {r.label}
+                                    </Button>
+                                ))}
+                            </ButtonGroup>
+                            <Tooltip title="Export CSV" arrow>
+                                <IconButton
+                                    onClick={exportCSV}
+                                    sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: C.surfaceAlt, '&:hover': { bgcolor: C.accentLight, color: C.accent }, '&:focus-visible': { outline: `2px solid ${C.accentDark}` } }}
+                                >
+                                    <DownloadIcon sx={{ fontSize: 18 }} />
+                                </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Refresh" arrow>
+                                <IconButton
+                                    onClick={() => fetchData(true)}
+                                    sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: C.surfaceAlt, '&:hover': { bgcolor: C.accentLight, color: C.accent }, '&:focus-visible': { outline: `2px solid ${C.accentDark}` } }}
+                                >
+                                    <RefreshIcon sx={{ fontSize: 18, animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+                                </IconButton>
+                            </Tooltip>
+                        </Stack>
+                    </Box>
                 </Box>
             </Box>
 
-            {error && (
-                <Alert severity="error" sx={{ mb: 2.5, borderRadius: '10px', fontFamily: FONT }} onClose={() => setError('')}>
-                    {error}
-                </Alert>
-            )}
+            {/* ── Body ─────────────────────────────────────────────────────── */}
+            <Box sx={{ maxWidth: MAX_WIDTH, mx: 'auto', px: { xs: 2, md: 3, xl: 4 }, py: { xs: 2, md: 3 } }}>
+                {error && (
+                    <Alert severity="error" sx={{ mb: 2.5, borderRadius: '10px', fontFamily: FONT }} onClose={() => setError('')}>
+                        {error}
+                    </Alert>
+                )}
 
-            {/* ── Stat cards ───────────────────────────────────────────────── */}
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        icon={<VisibilityIcon />}
-                        color={C.accent}
-                        loading={loading}
-                        value={formatNumber(summary.totalVisits)}
-                        label="Total website visits"
-                        trend={visitTrend}
-                        trendLabel={`${formatNumber(todayVisits)} today vs ${formatNumber(yesterdayVisits)} yesterday`}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        icon={<InstallIcon />}
-                        color={C.purple}
-                        loading={loading}
-                        value={formatNumber(summary.totalInstalls)}
-                        label="Total app installs"
-                        trend={installTrend}
-                        trendLabel={`${formatNumber(todayInstalls)} today vs ${formatNumber(yesterdayInstalls)} yesterday`}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        icon={<ConversionIcon />}
-                        color={C.green}
-                        loading={loading}
-                        value={`${conversionRate.toFixed(1)}%`}
-                        label={`Visit → install rate (last ${rangeDays}d)`}
-                    />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        icon={<TimeIcon />}
-                        color={C.amber}
-                        loading={loading}
-                        value={busiestHour ? busiestHour.label : '—'}
-                        label="Busiest hour for traffic"
-                    />
-                </Grid>
-            </Grid>
-
-            {/* ── Daily traffic chart ─────────────────────────────────────── */}
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={12} lg={8}>
-                    <Card title="Daily traffic" subtitle={`Visits vs. installs — last ${rangeDays} days`}>
-                        {loading ? (
-                            <Skeleton variant="rounded" width="100%" height={260} />
-                        ) : (
-                            <ResponsiveContainer width="100%" height={260}>
-                                <AreaChart data={dailySeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="visitsGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor={C.accent} stopOpacity={0.3} />
-                                            <stop offset="100%" stopColor={C.accent} stopOpacity={0} />
-                                        </linearGradient>
-                                        <linearGradient id="installsGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor={C.purple} stopOpacity={0.3} />
-                                            <stop offset="100%" stopColor={C.purple} stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid stroke={C.borderLight} vertical={false} />
-                                    <XAxis
-                                        dataKey="label"
-                                        tick={{ fontFamily: FONT, fontSize: 11, fill: C.textMuted }}
-                                        axisLine={false} tickLine={false}
-                                        interval={rangeDays > 30 ? Math.floor(rangeDays / 10) : 'preserveStartEnd'}
-                                    />
-                                    <YAxis tick={{ fontFamily: FONT, fontSize: 11, fill: C.textMuted }} axisLine={false} tickLine={false} allowDecimals={false} />
-                                    <ChartTooltip content={<ChartTip />} />
-                                    <Legend wrapperStyle={{ fontFamily: FONT, fontSize: 12 }} />
-                                    <Area type="monotone" dataKey="visits" name="Visits" stroke={C.accent} strokeWidth={2.5} fill="url(#visitsGrad)" />
-                                    <Area type="monotone" dataKey="installs" name="Installs" stroke={C.purple} strokeWidth={2.5} fill="url(#installsGrad)" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        )}
-                    </Card>
+                {/* ── Stat cards ───────────────────────────────────────────── */}
+                <Grid container spacing={2} sx={{ mb: 3 }}>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <StatCard
+                            icon={<VisibilityIcon />}
+                            color={C.accent}
+                            loading={loading}
+                            value={formatNumber(periodComparison.curVisits)}
+                            label={`Visits — last ${rangeDays}d`}
+                            trend={periodComparison.visitTrend}
+                            trendLabel={`${formatNumber(todayVisits)} today vs ${formatNumber(yesterdayVisits)} yesterday`}
+                            sparkline={visitSparkline}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <StatCard
+                            icon={<InstallIcon />}
+                            color={C.purple}
+                            loading={loading}
+                            value={formatNumber(periodComparison.curInstalls)}
+                            label={`Installs — last ${rangeDays}d`}
+                            trend={periodComparison.installTrend}
+                            trendLabel={`${formatNumber(todayInstalls)} today vs ${formatNumber(yesterdayInstalls)} yesterday`}
+                            sparkline={installSparkline}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <StatCard
+                            icon={<ConversionIcon />}
+                            color={C.green}
+                            loading={loading}
+                            value={`${conversionRate.toFixed(1)}%`}
+                            label={`Visit → install rate (last ${rangeDays}d)`}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                        <StatCard
+                            icon={<TimeIcon />}
+                            color={C.amber}
+                            loading={loading}
+                            value={busiestHour ? busiestHour.label : '—'}
+                            label="Busiest hour for traffic"
+                        />
+                    </Grid>
                 </Grid>
 
-                <Grid item xs={12} lg={4}>
-                    <Card title="Device breakdown" subtitle={`Last ${rangeDays} days`}>
-                        {loading ? (
-                            <Skeleton variant="circular" width={180} height={180} sx={{ mx: 'auto' }} />
-                        ) : deviceBreakdown.length === 0 ? (
-                            <EmptyMini icon={<DevicesIcon sx={{ fontSize: 28, color: C.textMuted }} />} text="No visits yet" />
-                        ) : (
-                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <ResponsiveContainer width="100%" height={180}>
-                                    <PieChart>
-                                        <Pie data={deviceBreakdown} dataKey="value" nameKey="name" innerRadius={50} outerRadius={75} paddingAngle={3}>
-                                            {deviceBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                                        </Pie>
+                {/* ── Daily traffic chart ─────────────────────────────────── */}
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                    <Grid item xs={12} lg={8}>
+                        <Card title="Daily traffic" subtitle={`Visits vs. installs — last ${rangeDays} days${compareEnabled ? ' (dashed = previous period)' : ''}`}>
+                            {loading ? (
+                                <Skeleton variant="rounded" width="100%" height={300} />
+                            ) : (
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <ComposedChart data={dailySeriesWithCompare} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="visitsGrad" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor={C.accent} stopOpacity={0.3} />
+                                                <stop offset="100%" stopColor={C.accent} stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="installsGrad" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor={C.purple} stopOpacity={0.3} />
+                                                <stop offset="100%" stopColor={C.purple} stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid stroke={C.borderLight} vertical={false} />
+                                        <XAxis
+                                            dataKey="label"
+                                            tick={{ fontFamily: FONT, fontSize: 11, fill: C.textMuted }}
+                                            axisLine={false} tickLine={false}
+                                            interval={rangeDays > 30 ? Math.floor(rangeDays / 10) : 'preserveStartEnd'}
+                                        />
+                                        <YAxis tick={{ fontFamily: FONT, fontSize: 11, fill: C.textMuted }} axisLine={false} tickLine={false} allowDecimals={false} />
                                         <ChartTooltip content={<ChartTip />} />
-                                    </PieChart>
+                                        <Legend wrapperStyle={{ fontFamily: FONT, fontSize: 12 }} />
+                                        <Area type="monotone" dataKey="visits" name="Visits" stroke={C.accent} strokeWidth={2.5} fill="url(#visitsGrad)" />
+                                        <Area type="monotone" dataKey="installs" name="Installs" stroke={C.purple} strokeWidth={2.5} fill="url(#installsGrad)" />
+                                        {compareEnabled && (
+                                            <Line type="monotone" dataKey="prevVisits" name="Visits (prev.)" stroke={C.accent} strokeWidth={1.5} strokeDasharray="4 4" dot={false} connectNulls />
+                                        )}
+                                        {compareEnabled && (
+                                            <Line type="monotone" dataKey="prevInstalls" name="Installs (prev.)" stroke={C.purple} strokeWidth={1.5} strokeDasharray="4 4" dot={false} connectNulls />
+                                        )}
+                                    </ComposedChart>
                                 </ResponsiveContainer>
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', mt: 1 }}>
-                                    {deviceBreakdown.map((d, i) => (
-                                        <Box key={d.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-                                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                                            <Typography sx={{ fontFamily: FONT, fontSize: 12, color: C.textSub, fontWeight: 600 }}>
-                                                {d.name} ({d.value})
+                            )}
+                        </Card>
+                    </Grid>
+
+                    <Grid item xs={12} lg={4}>
+                        <Card title="Device breakdown" subtitle={`Last ${rangeDays} days`}>
+                            {loading ? (
+                                <Skeleton variant="circular" width={180} height={180} sx={{ mx: 'auto' }} />
+                            ) : deviceBreakdown.length === 0 ? (
+                                <EmptyMini icon={<DevicesIcon sx={{ fontSize: 28, color: C.textMuted }} />} text="No visits yet" />
+                            ) : (
+                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <Box sx={{ position: 'relative', width: '100%', height: 200 }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie data={deviceBreakdown} dataKey="value" nameKey="name" innerRadius={58} outerRadius={85} paddingAngle={3}>
+                                                    {deviceBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                                                </Pie>
+                                                <ChartTooltip content={<ChartTip />} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                        <Box
+                                            sx={{
+                                                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                                                display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none',
+                                            }}
+                                        >
+                                            <Typography sx={{ fontFamily: FONT, fontWeight: 800, fontSize: 22, color: C.text, lineHeight: 1 }}>
+                                                {formatNumber(deviceTotal)}
                                             </Typography>
+                                            <Typography sx={{ fontFamily: FONT, fontSize: 11, color: C.textMuted, fontWeight: 600 }}>
+                                                visits
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', mt: 1 }}>
+                                        {deviceBreakdown.map((d, i) => (
+                                            <Box key={d.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                                                <Box sx={{ width: 8, height: 8, borderRadius: '50%', background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                                                <Typography sx={{ fontFamily: FONT, fontSize: 12, color: C.textSub, fontWeight: 600 }}>
+                                                    {d.name} ({d.value})
+                                                </Typography>
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                </Box>
+                            )}
+                        </Card>
+                    </Grid>
+                </Grid>
+
+                {/* ── Monthly progress + Traffic sources ──────────────────── */}
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                    <Grid item xs={12} lg={7}>
+                        <Card title="Monthly progress" subtitle="Visits vs. installs — last 12 months">
+                            {loading ? (
+                                <Skeleton variant="rounded" width="100%" height={280} />
+                            ) : (
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <BarChart data={monthlySeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                                        <CartesianGrid stroke={C.borderLight} vertical={false} />
+                                        <XAxis dataKey="label" tick={{ fontFamily: FONT, fontSize: 11, fill: C.textMuted }} axisLine={false} tickLine={false} />
+                                        <YAxis tick={{ fontFamily: FONT, fontSize: 11, fill: C.textMuted }} axisLine={false} tickLine={false} allowDecimals={false} />
+                                        <ChartTooltip content={<ChartTip />} />
+                                        <Legend wrapperStyle={{ fontFamily: FONT, fontSize: 12 }} />
+                                        <Bar dataKey="visits" name="Visits" fill={C.accent} radius={[6, 6, 0, 0]} />
+                                        <Bar dataKey="installs" name="Installs" fill={C.purple} radius={[6, 6, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
+                        </Card>
+                    </Grid>
+
+                    <Grid item xs={12} lg={5}>
+                        <Card title="Traffic sources" subtitle={`Top referrers — last ${rangeDays} days`}>
+                            {loading ? (
+                                <Skeleton variant="rounded" width="100%" height={220} />
+                            ) : trafficSources.length === 0 ? (
+                                <EmptyMini icon={<PublicIcon sx={{ fontSize: 28, color: C.textMuted }} />} text="No traffic data yet" />
+                            ) : (
+                                <Box>
+                                    {trafficSources.map((s, i) => {
+                                        const total = trafficSources.reduce((sum, x) => sum + x.value, 0);
+                                        const pct = total > 0 ? (s.value / total) * 100 : 0;
+                                        return (
+                                            <Box key={s.name} sx={{ mb: 1.4 }}>
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                                    <Typography sx={{ fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: C.text, display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                                                        <Box sx={{ width: 7, height: 7, borderRadius: '50%', background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                                                        {s.name}
+                                                    </Typography>
+                                                    <Typography sx={{ fontFamily: FONT, fontSize: 12, color: C.textMuted, fontWeight: 600 }}>
+                                                        {s.value} · {pct.toFixed(0)}%
+                                                    </Typography>
+                                                </Box>
+                                                <Box sx={{ height: 6, borderRadius: 3, background: C.surfaceAlt, overflow: 'hidden' }}>
+                                                    <Box sx={{ height: '100%', width: `${pct}%`, borderRadius: 3, background: PIE_COLORS[i % PIE_COLORS.length], transition: 'width .4s ease' }} />
+                                                </Box>
+                                            </Box>
+                                        );
+                                    })}
+                                </Box>
+                            )}
+                        </Card>
+                    </Grid>
+                </Grid>
+
+                {/* ── Hourly pattern + Recent activity ────────────────────── */}
+                <Grid container spacing={2}>
+                    <Grid item xs={12} lg={7}>
+                        <Card title="Traffic by hour" subtitle="When your visitors are browsing (all-time)">
+                            {loading ? (
+                                <Skeleton variant="rounded" width="100%" height={240} />
+                            ) : (
+                                <ResponsiveContainer width="100%" height={240}>
+                                    <BarChart data={hourlyTraffic} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                                        <CartesianGrid stroke={C.borderLight} vertical={false} />
+                                        <XAxis dataKey="label" tick={{ fontFamily: FONT, fontSize: 10, fill: C.textMuted }} axisLine={false} tickLine={false} interval={2} />
+                                        <YAxis tick={{ fontFamily: FONT, fontSize: 11, fill: C.textMuted }} axisLine={false} tickLine={false} allowDecimals={false} />
+                                        <ChartTooltip content={<ChartTip />} />
+                                        <Bar dataKey="value" name="Visits" radius={[4, 4, 0, 0]}>
+                                            {hourlyTraffic.map((h) => (
+                                                <Cell key={h.hour} fill={busiestHour && h.hour === busiestHour.hour ? C.accent : C.accentMid} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
+                        </Card>
+                    </Grid>
+
+                    <Grid item xs={12} lg={5}>
+                        <Card title="Recent activity" subtitle="Latest visits & installs">
+                            {loading ? (
+                                Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} variant="text" height={36} />)
+                            ) : recentActivity.length === 0 ? (
+                                <EmptyMini icon={<TimeIcon sx={{ fontSize: 28, color: C.textMuted }} />} text="No activity yet" />
+                            ) : (
+                                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                    {recentActivity.map((e, i) => (
+                                        <Box key={i}>
+                                            <Box
+                                                sx={{
+                                                    display: 'flex', alignItems: 'center', gap: 1.2, py: 1, px: 1, mx: -1,
+                                                    borderRadius: '10px', transition: 'background .15s ease',
+                                                    '&:hover': { background: C.surfaceAlt },
+                                                }}
+                                            >
+                                                <Box
+                                                    sx={{
+                                                        width: 30, height: 30, borderRadius: '9px', flexShrink: 0,
+                                                        background: e.type === 'install' ? C.purpleLight : C.accentLight,
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    }}
+                                                >
+                                                    {e.type === 'install'
+                                                        ? <InstallIcon sx={{ fontSize: 15, color: C.purple }} />
+                                                        : <VisibilityIcon sx={{ fontSize: 15, color: C.accent }} />}
+                                                </Box>
+                                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                    <Typography sx={{ fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: C.text }}>
+                                                        {e.type === 'install'
+                                                            ? `App install ${e.outcome === 'accepted' ? 'completed' : 'dismissed'}`
+                                                            : `Website visit`}
+                                                    </Typography>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mt: 0.2 }}>
+                                                        {deviceIcon(e.device)}
+                                                        <Typography sx={{ fontFamily: FONT, fontSize: 11, color: C.textMuted }}>
+                                                            {e.type === 'install' ? (e.source || 'unknown source') : extractDomain(e.referrer)}
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
+                                                <Typography sx={{ fontFamily: FONT, fontSize: 11, color: C.textMuted, flexShrink: 0 }}>
+                                                    {formatRelativeTime(e.ts)}
+                                                </Typography>
+                                            </Box>
+                                            {i < recentActivity.length - 1 && <Divider sx={{ borderColor: C.borderLight }} />}
                                         </Box>
                                     ))}
                                 </Box>
-                            </Box>
-                        )}
-                    </Card>
+                            )}
+                        </Card>
+                    </Grid>
                 </Grid>
-            </Grid>
-
-            {/* ── Monthly progress + Traffic sources ──────────────────────── */}
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={12} lg={7}>
-                    <Card title="Monthly progress" subtitle="Visits vs. installs — last 12 months">
-                        {loading ? (
-                            <Skeleton variant="rounded" width="100%" height={260} />
-                        ) : (
-                            <ResponsiveContainer width="100%" height={260}>
-                                <BarChart data={monthlySeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                                    <CartesianGrid stroke={C.borderLight} vertical={false} />
-                                    <XAxis dataKey="label" tick={{ fontFamily: FONT, fontSize: 11, fill: C.textMuted }} axisLine={false} tickLine={false} />
-                                    <YAxis tick={{ fontFamily: FONT, fontSize: 11, fill: C.textMuted }} axisLine={false} tickLine={false} allowDecimals={false} />
-                                    <ChartTooltip content={<ChartTip />} />
-                                    <Legend wrapperStyle={{ fontFamily: FONT, fontSize: 12 }} />
-                                    <Bar dataKey="visits" name="Visits" fill={C.accent} radius={[6, 6, 0, 0]} />
-                                    <Bar dataKey="installs" name="Installs" fill={C.purple} radius={[6, 6, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
-                    </Card>
-                </Grid>
-
-                <Grid item xs={12} lg={5}>
-                    <Card title="Traffic sources" subtitle={`Top referrers — last ${rangeDays} days`}>
-                        {loading ? (
-                            <Skeleton variant="rounded" width="100%" height={220} />
-                        ) : trafficSources.length === 0 ? (
-                            <EmptyMini icon={<PublicIcon sx={{ fontSize: 28, color: C.textMuted }} />} text="No traffic data yet" />
-                        ) : (
-                            <Box>
-                                {trafficSources.map((s, i) => {
-                                    const total = trafficSources.reduce((sum, x) => sum + x.value, 0);
-                                    const pct = total > 0 ? (s.value / total) * 100 : 0;
-                                    return (
-                                        <Box key={s.name} sx={{ mb: 1.4 }}>
-                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                                                <Typography sx={{ fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: C.text, display: 'flex', alignItems: 'center', gap: 0.6 }}>
-                                                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                                                    {s.name}
-                                                </Typography>
-                                                <Typography sx={{ fontFamily: FONT, fontSize: 12, color: C.textMuted, fontWeight: 600 }}>
-                                                    {s.value} · {pct.toFixed(0)}%
-                                                </Typography>
-                                            </Box>
-                                            <Box sx={{ height: 6, borderRadius: 3, background: C.surfaceAlt, overflow: 'hidden' }}>
-                                                <Box sx={{ height: '100%', width: `${pct}%`, borderRadius: 3, background: PIE_COLORS[i % PIE_COLORS.length], transition: 'width .4s ease' }} />
-                                            </Box>
-                                        </Box>
-                                    );
-                                })}
-                            </Box>
-                        )}
-                    </Card>
-                </Grid>
-            </Grid>
-
-            {/* ── Hourly pattern + Recent activity ────────────────────────── */}
-            <Grid container spacing={2}>
-                <Grid item xs={12} lg={7}>
-                    <Card title="Traffic by hour" subtitle="When your visitors are browsing (all-time)">
-                        {loading ? (
-                            <Skeleton variant="rounded" width="100%" height={220} />
-                        ) : (
-                            <ResponsiveContainer width="100%" height={220}>
-                                <BarChart data={hourlyTraffic} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                                    <CartesianGrid stroke={C.borderLight} vertical={false} />
-                                    <XAxis dataKey="label" tick={{ fontFamily: FONT, fontSize: 10, fill: C.textMuted }} axisLine={false} tickLine={false} interval={2} />
-                                    <YAxis tick={{ fontFamily: FONT, fontSize: 11, fill: C.textMuted }} axisLine={false} tickLine={false} allowDecimals={false} />
-                                    <ChartTooltip content={<ChartTip />} />
-                                    <Bar dataKey="value" name="Visits" fill={C.accentMid} radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
-                    </Card>
-                </Grid>
-
-                <Grid item xs={12} lg={5}>
-                    <Card title="Recent activity" subtitle="Latest visits & installs">
-                        {loading ? (
-                            Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} variant="text" height={36} />)
-                        ) : recentActivity.length === 0 ? (
-                            <EmptyMini icon={<TimeIcon sx={{ fontSize: 28, color: C.textMuted }} />} text="No activity yet" />
-                        ) : (
-                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                {recentActivity.map((e, i) => (
-                                    <Box key={i}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, py: 1 }}>
-                                            <Box
-                                                sx={{
-                                                    width: 30, height: 30, borderRadius: '9px', flexShrink: 0,
-                                                    background: e.type === 'install' ? C.purpleLight : C.accentLight,
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                }}
-                                            >
-                                                {e.type === 'install'
-                                                    ? <InstallIcon sx={{ fontSize: 15, color: C.purple }} />
-                                                    : <VisibilityIcon sx={{ fontSize: 15, color: C.accent }} />}
-                                            </Box>
-                                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                <Typography sx={{ fontFamily: FONT, fontSize: 12.5, fontWeight: 600, color: C.text }}>
-                                                    {e.type === 'install'
-                                                        ? `App install ${e.outcome === 'accepted' ? 'completed' : 'dismissed'}`
-                                                        : `Website visit`}
-                                                </Typography>
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mt: 0.2 }}>
-                                                    {deviceIcon(e.device)}
-                                                    <Typography sx={{ fontFamily: FONT, fontSize: 11, color: C.textMuted }}>
-                                                        {e.type === 'install' ? (e.source || 'unknown source') : extractDomain(e.referrer)}
-                                                    </Typography>
-                                                </Box>
-                                            </Box>
-                                            <Typography sx={{ fontFamily: FONT, fontSize: 11, color: C.textMuted, flexShrink: 0 }}>
-                                                {formatRelativeTime(e.ts)}
-                                            </Typography>
-                                        </Box>
-                                        {i < recentActivity.length - 1 && <Divider sx={{ borderColor: C.borderLight }} />}
-                                    </Box>
-                                ))}
-                            </Box>
-                        )}
-                    </Card>
-                </Grid>
-            </Grid>
+            </Box>
 
             <style>{`
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
