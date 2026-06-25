@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppBar, Toolbar, Typography, Button, Slide, useScrollTrigger, Box } from '@mui/material';
 import nearzologo from '../assets/nearzologo.png';
+import { trackAppInstall } from '../services/Analytics';
 
 function HideOnScrollDown({ children }) {
     const [show, setShow] = useState(true);
@@ -59,6 +60,7 @@ const Navbar = () => {
     const handleDownloadClick = async () => {
         try {
             if (typeof window.__triggerPWAInstall === 'function') {
+                // LandingPage's trigger already logs the install outcome
                 await window.__triggerPWAInstall();
             } else {
                 // Fallback: Try to trigger the install directly
@@ -67,6 +69,7 @@ const Navbar = () => {
                 if (deferredPrompt) {
                     deferredPrompt.prompt();
                     const { outcome } = await deferredPrompt.userChoice;
+                    trackAppInstall(outcome, 'navbar_fallback'); // ── log install attempt result
                     if (outcome === 'accepted') {
                         window.__deferredPrompt = null;
                     }

@@ -1,5 +1,6 @@
-// app/user/Map.jsx — v7: minimal detail panel, fixed full-height cover
+// app/user/Map.jsx — v8: framer-motion interactions, animated detail/list/filter panels, clickable key items
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getAllNearby } from '../../services/map';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -47,6 +48,14 @@ L.Icon.Default.mergeOptions({
 const TOP_BAR_H    = 64;
 const BOTTOM_NAV_H = 86;
 const SIDEBAR_W    = 340;
+
+// ─── Motion presets ─────────────────────────────────────────────────────────────
+const SPRING       = { type: 'spring', stiffness: 420, damping: 36, mass: 0.9 };
+const SPRING_SOFT   = { type: 'spring', stiffness: 300, damping: 32 };
+const SPRING_SNAPPY = { type: 'spring', stiffness: 520, damping: 30 };
+const EASE_FAST     = { duration: 0.18, ease: [0.16, 1, 0.3, 1] };
+const tapScale       = { scale: 0.94 };
+const hoverLift      = { y: -2 };
 
 // ─── Design Tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -134,6 +143,13 @@ function computeIsOpen(item) {
   const curr = now.getHours() * 60 + now.getMinutes();
   if (closeMins > openMins) return curr >= openMins && curr < closeMins;
   return curr >= openMins || curr < closeMins;
+}
+
+// ─── Google search helper (used by Key Items) ─────────────────────────────────
+function searchOnGoogle(term) {
+  if (!term) return;
+  const url = `https://www.google.com/search?q=${encodeURIComponent(term)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 // ─── SVG Map Pins ──────────────────────────────────────────────────────────────
@@ -242,6 +258,7 @@ const injectCSS = () => {
       padding: 0 !important;
       overflow: hidden;
       min-width: 220px;
+      transition: transform .18s cubic-bezier(.16,1,.3,1);
     }
     .leaflet-popup-content { margin: 0 !important; }
     .leaflet-popup-tip-container { display: none !important; }
@@ -252,7 +269,9 @@ const injectCSS = () => {
       border-radius: 50% !important; background: ${C.surfaceAlt} !important;
       display: flex !important; align-items: center !important;
       justify-content: center !important; z-index: 10 !important; line-height: 1 !important;
+      transition: background .15s, transform .15s !important;
     }
+    .leaflet-popup-close-button:hover { transform: scale(1.1) !important; }
     .leaflet-control-attribution { display: none !important; }
     .leaflet-bar { border: none !important; box-shadow: 0 4px 16px ${C.shadowMd} !important; }
     .leaflet-bar a {
@@ -260,9 +279,12 @@ const injectCSS = () => {
       border: 1px solid ${C.border} !important; border-radius: 12px !important;
       margin: 4px !important; width: 38px !important; height: 38px !important;
       line-height: 36px !important; font-size: 18px !important; font-weight: 700 !important;
+      transition: all .15s !important;
     }
-    .leaflet-bar a:hover  { background: ${C.accentLight} !important; }
+    .leaflet-bar a:hover  { background: ${C.accentLight} !important; transform: scale(1.06) !important; }
+    .leaflet-bar a:active { transform: scale(.93) !important; }
     .leaflet-routing-container { display: none !important; }
+    .leaflet-marker-icon { transition: filter .15s ease; }
 
     /* Animations */
     @keyframes slideUp   { from { transform:translateY(32px); opacity:0 } to { transform:translateY(0); opacity:1 } }
@@ -290,14 +312,13 @@ const injectCSS = () => {
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 5px;
       border: none; cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 600;
-      transition: all .15s ease; outline: none; white-space: nowrap;
+      transition: background .15s ease, box-shadow .15s ease, color .15s ease; outline: none; white-space: nowrap;
     }
     .btn-primary {
       background: ${C.accent}; color: #fff; border-radius: 12px;
       padding: 10px 18px; font-size: 13.5px;
     }
-    .btn-primary:hover  { background: ${C.accentDark}; transform: translateY(-1px); box-shadow: 0 8px 20px ${C.shadow}; }
-    .btn-primary:active { transform: scale(.97); }
+    .btn-primary:hover  { background: ${C.accentDark}; box-shadow: 0 8px 20px ${C.shadow}; }
     .btn-ghost {
       background: ${C.surface}; color: ${C.text}; border: 1px solid ${C.border};
       border-radius: 12px; padding: 10px 18px; font-size: 13.5px;
@@ -308,10 +329,9 @@ const injectCSS = () => {
       width: 40px; height: 40px; border-radius: 12px; border: 1px solid ${C.border};
       background: ${C.surface}; color: ${C.textSub};
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all .15s; box-shadow: 0 2px 8px ${C.shadowMd}; flex-shrink: 0;
+      cursor: pointer; transition: background .15s, border-color .15s, color .15s; box-shadow: 0 2px 8px ${C.shadowMd}; flex-shrink: 0;
     }
     .btn-icon:hover  { border-color: ${C.accent}; color: ${C.accent}; background: ${C.accentLight}; }
-    .btn-icon:active { transform: scale(.93); }
     .btn-icon.active { background: ${C.accent}; color: #fff; border-color: ${C.accent}; }
 
     /* Search */
@@ -329,10 +349,8 @@ const injectCSS = () => {
     .mv5-card {
       background: ${C.surface}; border: 1px solid ${C.borderLight};
       border-radius: 16px; padding: 14px; cursor: pointer;
-      transition: all .18s ease; display: flex; gap: 12px; align-items: flex-start;
+      display: flex; gap: 12px; align-items: flex-start;
     }
-    .mv5-card:hover  { transform: translateY(-2px); box-shadow: 0 12px 32px ${C.shadowMd}; border-color: ${C.border}; }
-    .mv5-card:active { transform: scale(.98); }
 
     /* Badge */
     .badge {
@@ -349,6 +367,7 @@ const injectCSS = () => {
       -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
       background: ${C.accent}; cursor: pointer;
       border: 2.5px solid white; box-shadow: 0 0 0 3px ${C.accentMid}66;
+      transition: box-shadow .15s;
     }
 
     /* Toggle */
@@ -356,12 +375,12 @@ const injectCSS = () => {
     .tog input { opacity: 0; width: 0; height: 0; }
     .tog-track {
       position: absolute; inset: 0; border-radius: 12px;
-      background: ${C.border}; cursor: pointer; transition: background .2s;
+      background: ${C.border}; cursor: pointer; transition: background .25s cubic-bezier(.16,1,.3,1);
     }
     .tog-track::before {
       content: ''; position: absolute; width: 18px; height: 18px;
       left: 3px; top: 3px; border-radius: 50%; background: #fff;
-      transition: all .2s; box-shadow: 0 1px 4px rgba(0,0,0,.18);
+      transition: transform .25s cubic-bezier(.34,1.56,.64,1); box-shadow: 0 1px 4px rgba(0,0,0,.18);
     }
     .tog input:checked + .tog-track { background: ${C.accent}; }
     .tog input:checked + .tog-track::before { transform: translateX(20px); }
@@ -374,7 +393,7 @@ const injectCSS = () => {
     .view-btn {
       flex: 1; padding: 7px 14px; border: none; background: transparent; color: ${C.textSub};
       font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 500;
-      cursor: pointer; border-radius: 9px; transition: all .15s;
+      cursor: pointer; border-radius: 9px; transition: color .15s, font-weight .15s;
       display: flex; align-items: center; justify-content: center; gap: 5px;
     }
     .view-btn.on { background: ${C.surface}; color: ${C.accent}; font-weight: 700; box-shadow: 0 2px 8px ${C.shadowMd}; }
@@ -383,7 +402,7 @@ const injectCSS = () => {
     .fchip {
       padding: 6px 14px; border-radius: 100px; font-size: 12.5px; font-weight: 600;
       cursor: pointer; border: 1px solid ${C.border}; background: ${C.surface}; color: ${C.textSub};
-      transition: all .15s; font-family: 'Inter', sans-serif;
+      transition: background .15s, border-color .15s, color .15s; font-family: 'Inter', sans-serif;
       white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
     }
     .fchip:hover        { background: ${C.accentLight}; border-color: ${C.accentMid}; color: ${C.accent}; }
@@ -400,44 +419,11 @@ const injectCSS = () => {
     /* Status bar */
     .mv5-statusbar {
       position: absolute; bottom: 20px;
-      left: 50%; transform: translateX(-50%);
+      left: 50%;
       z-index: 100; display: flex; align-items: center; gap: 8px;
       background: ${C.surface}; border: 1px solid ${C.border};
       border-radius: 100px; padding: 9px 18px;
       box-shadow: 0 4px 16px ${C.shadowMd}; white-space: nowrap;
-    }
-
-    /* List bottom sheet */
-    .mv5-list-overlay {
-      position: fixed; inset: 0; z-index: 500;
-      background: rgba(10,22,40,.5); backdrop-filter: blur(6px);
-      animation: fadeIn .2s ease;
-    }
-    .mv5-list-modal {
-      position: fixed;
-      top: ${TOP_BAR_H}px; bottom: 0; left: 0; right: 0;
-      z-index: 510; background: ${C.surface};
-      display: flex; flex-direction: column;
-      box-shadow: 0 -16px 60px ${C.shadowLg};
-      animation: slideUp .38s cubic-bezier(.16,1,.3,1) both;
-      overflow: hidden;
-      border-radius: 24px 24px 0 0;
-    }
-
-    /* ── Detail panel — TRUE full screen, always above everything ── */
-    .mv5-detail-panel {
-      position: fixed;
-      top: 0; bottom: 0; left: 0; right: 0;
-      z-index: 600;
-      
-      background: ${C.surface};
-      display: flex; flex-direction: column;
-      overflow: hidden;
-      animation: slideUp .32s cubic-bezier(.16,1,.3,1) both;
-    }
-    @media (min-width: 900px) {
-      .mv5-detail-panel { left: ${SIDEBAR_W}px; }
-      .mv5-list-modal   { left: ${SIDEBAR_W}px; top: 0; border-radius: 0; }
     }
 
     /* Detail hero — minimal, sits flush at the very top of the panel */
@@ -450,7 +436,7 @@ const injectCSS = () => {
       border-bottom: 1px solid ${C.borderLight};
     }
     .detail-hero-topbar {
-      display: flex; align-items: center; 
+      display: flex; align-items: center;
       padding: 14px 14px 0;
     }
     .detail-hero-btn {
@@ -460,20 +446,11 @@ const injectCSS = () => {
       border: 1px solid ${C.border};
       box-shadow: 0 2px 10px ${C.shadowSm};
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all .15s; flex-shrink: 0;
+      cursor: pointer; flex-shrink: 0;
     }
-    .detail-hero-btn:hover { background: ${C.accentLight}; border-color: ${C.accentMid}; }
     .detail-hero-body {
       padding: 18px 20px 24px;
       display: flex; align-items: flex-start; gap: 14px;
-    }
-
-    /* Card sections */
-    .detail-card {
-      background: ${C.surface};
-      border: 1px solid ${C.borderLight};
-      border-radius: 20px;
-      overflow: hidden;
     }
 
     /* Action buttons row */
@@ -490,17 +467,13 @@ const injectCSS = () => {
       border: 1px solid ${C.border};
       background: ${C.surface};
       color: ${C.textSub};
-      transition: all .15s;
       font-family: 'Inter', sans-serif;
       font-size: 11.5px; font-weight: 700;
       text-transform: uppercase; letter-spacing: .04em;
     }
-    .detail-action-btn:hover  { border-color: ${C.accentMid}; background: ${C.accentLight}; color: ${C.accent}; }
-    .detail-action-btn:active { transform: scale(.96); }
     .detail-action-btn.primary {
       background: ${C.accent}; color: #fff; border-color: ${C.accent};
     }
-    .detail-action-btn.primary:hover { background: ${C.accentDark}; }
 
     /* Info rows */
     .info-row {
@@ -521,7 +494,8 @@ const injectCSS = () => {
     .rad-pill {
       padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight: 600;
       border: 1px solid ${C.border}; background: ${C.surface}; color: ${C.textSub};
-      cursor: pointer; transition: all .14s; font-family: 'Inter', sans-serif;
+      cursor: pointer; font-family: 'Inter', sans-serif;
+      transition: background .14s, border-color .14s, color .14s;
     }
     .rad-pill.on { background: ${C.accent}; color: #fff; border-color: ${C.accent}; }
 
@@ -529,6 +503,23 @@ const injectCSS = () => {
     .sec-label {
       font-size: 10px; font-weight: 700; color: ${C.textMuted};
       text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px;
+    }
+
+    /* Key item chip — clickable, links to Google search */
+    .keyword-chip {
+      padding: 6px 14px 6px 12px; border-radius: 100px; font-size: 13px;
+      background: ${C.surfaceAlt}; color: ${C.textSub}; font-weight: 600;
+      border: 1px solid ${C.borderLight};
+      display: flex; align-items: center; gap: 5px;
+      cursor: pointer; font-family: 'Inter', sans-serif;
+    }
+    .keyword-chip:hover {
+      background: ${C.accentLight}; border-color: ${C.accentMid}; color: ${C.accentDark};
+    }
+    .keyword-chip:focus-visible { outline: 2px solid ${C.accent}; outline-offset: 2px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
     }
   `;
   document.head.appendChild(el);
@@ -763,13 +754,15 @@ export default function Map() {
             <div style="display:flex;gap:8px">
               <button style="flex:1;padding:10px;font-size:13px;font-weight:700;
                 font-family:Inter,sans-serif;border:none;border-radius:12px;
-                background:${m.color};color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px"
+                background:${m.color};color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:transform .12s"
+                onmousedown="this.style.transform='scale(.96)'" onmouseup="this.style.transform='scale(1)'"
                 onclick="window.dispatchEvent(new CustomEvent('mv5:route',{detail:${itemJson}}))">
                 Route
               </button>
               <button style="flex:1;padding:10px;font-size:13px;font-weight:700;
                 font-family:Inter,sans-serif;border:1px solid ${C.border};
-                border-radius:12px;background:white;color:${C.text};cursor:pointer"
+                border-radius:12px;background:white;color:${C.text};cursor:pointer;transition:transform .12s"
+                onmousedown="this.style.transform='scale(.96)'" onmouseup="this.style.transform='scale(1)'"
                 onclick="window.dispatchEvent(new CustomEvent('mv5:detail',{detail:${itemJson}}))">
                 Details
               </button>
@@ -823,11 +816,17 @@ export default function Map() {
         <div ref={mapContRef} style={{ position: 'absolute', inset: 0, zIndex: 0 }} />
 
         {/* ── MOBILE TOPBAR ── */}
-        <div className="mv5-topbar sd" style={{
-          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100,
-          padding: '12px 12px 0',
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}>
+        <motion.div
+          className="mv5-topbar"
+          initial={{ y: -24, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={SPRING_SOFT}
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100,
+            padding: '12px 12px 0',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}
+        >
           <div style={{
             background: C.accent, borderRadius: 13, padding: '9px 14px',
             display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
@@ -846,25 +845,34 @@ export default function Map() {
             <input className="mv5-search" placeholder="Search shops, houses, jobs…"
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-          <button className={`btn-icon ${filterOpen ? 'active' : ''}`}
+          <motion.button whileTap={tapScale} className={`btn-icon ${filterOpen ? 'active' : ''}`}
             onClick={() => setFilterOpen(v => !v)}>
-            <FilterListIcon sx={{ fontSize: 17 }} />
-          </button>
-        </div>
+            <motion.span style={{ display: 'flex' }} animate={{ rotate: filterOpen ? 90 : 0 }} transition={EASE_FAST}>
+              <FilterListIcon sx={{ fontSize: 17 }} />
+            </motion.span>
+          </motion.button>
+        </motion.div>
 
         {/* ── CATEGORY CHIPS + VIEW TOGGLE ── */}
-        <div className="mv5-topbar" style={{
-          position: 'absolute', top: 66, left: 12, right: 12, zIndex: 99,
-          display: 'flex', alignItems: 'center', gap: 7,
-          overflowX: 'auto', scrollbarWidth: 'none',
-        }}>
+        <motion.div
+          className="mv5-topbar"
+          initial={{ y: -16, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ ...SPRING_SOFT, delay: 0.05 }}
+          style={{
+            position: 'absolute', top: 66, left: 12, right: 12, zIndex: 99,
+            display: 'flex', alignItems: 'center', gap: 7,
+            overflowX: 'auto', scrollbarWidth: 'none',
+          }}
+        >
           {[
             { id: 'All',   cls: 'fchip-all' },
             { id: 'Shop',  cls: 'fchip-shop',  icon: <StorefrontIcon sx={{ fontSize: 12 }} /> },
             { id: 'House', cls: 'fchip-house', icon: <HomeIcon sx={{ fontSize: 12 }} /> },
             { id: 'Job',   cls: 'fchip-job',   icon: <WorkIcon sx={{ fontSize: 12 }} /> },
           ].map(c => (
-            <button key={c.id}
+            <motion.button key={c.id}
+              whileTap={tapScale}
               className={`fchip ${c.cls} ${activeCategory === c.id ? 'on' : ''}`}
               onClick={() => setActiveCategory(c.id)}
               style={{ boxShadow: `0 2px 8px ${C.shadowSm}` }}>
@@ -874,13 +882,13 @@ export default function Map() {
                   ({allItems.filter(i => i._type === c.id.toLowerCase()).length})
                 </span>
               )}
-            </button>
+            </motion.button>
           ))}
           <div className="view-pill" style={{ marginLeft: 'auto', flexShrink: 0, boxShadow: `0 2px 8px ${C.shadowSm}` }}>
-            <button className={`view-btn ${viewMode === 'map' ? 'on' : ''}`} onClick={() => setViewMode('map')}>
+            <motion.button whileTap={tapScale} className={`view-btn ${viewMode === 'map' ? 'on' : ''}`} onClick={() => setViewMode('map')}>
               <MapIcon sx={{ fontSize: 12 }} /> Map
-            </button>
-            <button className={`view-btn ${viewMode === 'list' ? 'on' : ''}`} onClick={() => setViewMode('list')}>
+            </motion.button>
+            <motion.button whileTap={tapScale} className={`view-btn ${viewMode === 'list' ? 'on' : ''}`} onClick={() => setViewMode('list')}>
               <ListIcon sx={{ fontSize: 12 }} />
               List
               {allItems.length > 0 && (
@@ -889,65 +897,98 @@ export default function Map() {
                   fontSize: 9, fontWeight: 800, padding: '1px 5px', lineHeight: '14px', marginLeft: 2,
                 }}>{allItems.length}</span>
               )}
-            </button>
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
 
         {/* ── FILTER PANEL ── */}
-        {filterOpen && (
-          <div className="fi" style={{
-            position: 'absolute', top: 64, right: 12, zIndex: 200,
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: 20, padding: 18, width: 265,
-            boxShadow: `0 20px 60px ${C.shadowLg}`,
-          }}>
-            <FilterPanel
-              radius={radius} setRadius={setRadius}
-              typeFilter={typeFilter} setTypeFilter={setTypeFilter}
-              onApply={() => { fetchData(); setFilterOpen(false); }}
-            />
-          </div>
-        )}
+        <AnimatePresence>
+          {filterOpen && (
+            <motion.div
+              key="filterpanel"
+              initial={{ opacity: 0, scale: 0.92, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: -10 }}
+              transition={SPRING_SNAPPY}
+              style={{
+                position: 'absolute', top: 64, right: 12, zIndex: 200,
+                background: C.surface, border: `1px solid ${C.border}`,
+                borderRadius: 20, padding: 18, width: 265,
+                boxShadow: `0 20px 60px ${C.shadowLg}`,
+                transformOrigin: 'top right',
+              }}
+            >
+              <FilterPanel
+                radius={radius} setRadius={setRadius}
+                typeFilter={typeFilter} setTypeFilter={setTypeFilter}
+                onApply={() => { fetchData(); setFilterOpen(false); }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── FABs ── */}
-        <div className="mv5-fabs" style={{
-          position: 'absolute', right: 12, bottom: 20, zIndex: 100,
-          display: 'flex', flexDirection: 'column', gap: 8,
-        }}>
-          <button className="btn-icon" title="My location" onClick={() => {
+        <motion.div
+          className="mv5-fabs"
+          initial={{ opacity: 0, x: 16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ ...SPRING_SOFT, delay: 0.1 }}
+          style={{
+            position: 'absolute', right: 12, bottom: 20, zIndex: 100,
+            display: 'flex', flexDirection: 'column', gap: 8,
+          }}
+        >
+          <motion.button whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }} className="btn-icon" title="My location" onClick={() => {
             if (mapRef.current && userLocation)
               mapRef.current.flyTo([userLocation.latitude, userLocation.longitude], 16, { duration: 1 });
           }}>
             <MyLocationIcon sx={{ fontSize: 17 }} />
-          </button>
-          <button className="btn-icon" title="Clear route" onClick={clearRoute}>
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }} className="btn-icon" title="Clear route" onClick={clearRoute}>
             <ClearIcon sx={{ fontSize: 16 }} />
-          </button>
-          <button className="btn-icon" title="Refresh" onClick={fetchData}>
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.08, rotate: 90 }} whileTap={{ scale: 0.9 }} className="btn-icon" title="Refresh" onClick={fetchData}>
             <RefreshIcon sx={{ fontSize: 16 }} />
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
 
         {/* ── STATUS BAR ── */}
-        {viewMode === 'map' && !detailItem && (
-          <div className="mv5-statusbar fi">
-            {loadingVisible ? (
-              <>
-                <CircularProgress size={11} sx={{ color: C.accent }} />
-                <span style={{ color: C.textSub, fontSize: 12.5, fontWeight: 500 }}>Updating…</span>
-              </>
-            ) : (
-              <>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: C.green, flexShrink: 0 }} />
-                <span style={{ color: C.text, fontWeight: 700, fontSize: 12.5 }}>{allItems.length} places</span>
-                <span style={{ color: C.border, fontSize: 10 }}>|</span>
-                <span style={{ color: C.textSub, fontSize: 12.5 }}>
-                  {radius < 1 ? `${Math.round(radius * 1000)}m` : `${radius}km`}
-                </span>
-              </>
-            )}
-          </div>
-        )}
+        <AnimatePresence>
+          {viewMode === 'map' && !detailItem && (
+            <motion.div
+              key="statusbar"
+              className="mv5-statusbar"
+              initial={{ opacity: 0, y: 10, x: '-50%' }}
+              animate={{ opacity: 1, y: 0, x: '-50%' }}
+              exit={{ opacity: 0, y: 10, x: '-50%' }}
+              transition={SPRING_SOFT}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {loadingVisible ? (
+                  <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <CircularProgress size={11} sx={{ color: C.accent }} />
+                    <span style={{ color: C.textSub, fontSize: 12.5, fontWeight: 500 }}>Updating…</span>
+                  </motion.div>
+                ) : (
+                  <motion.div key="ready" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <motion.div
+                      animate={{ opacity: [1, 0.35, 1] }}
+                      transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                      style={{ width: 7, height: 7, borderRadius: '50%', background: C.green, flexShrink: 0 }}
+                    />
+                    <span style={{ color: C.text, fontWeight: 700, fontSize: 12.5 }}>{allItems.length} places</span>
+                    <span style={{ color: C.border, fontSize: 10 }}>|</span>
+                    <span style={{ color: C.textSub, fontSize: 12.5 }}>
+                      {radius < 1 ? `${Math.round(radius * 1000)}m` : `${radius}km`}
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── LEGEND ── */}
         {viewMode === 'map' && !detailItem && (
@@ -955,28 +996,58 @@ export default function Map() {
             position: 'absolute', bottom: 20, left: 12, zIndex: 100,
             display: 'flex', flexDirection: 'column', gap: 5,
           }}>
-            {Object.entries(TYPE).map(([k, m]) => (
-              <div key={k} style={{
-                display: 'flex', alignItems: 'center', gap: 7,
-                background: C.surface, borderRadius: 100, padding: '5px 12px',
-                border: `1px solid ${typeFilter[k + 's'] ? m.color + '44' : C.border}`,
-                boxShadow: `0 2px 8px ${C.shadowSm}`,
-                opacity: typeFilter[k + 's'] ? 1 : 0.4,
-                transition: 'all .2s',
-              }}>
+            {Object.entries(TYPE).map(([k, m], i) => (
+              <motion.div key={k}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: typeFilter[k + 's'] ? 1 : 0.4, x: 0 }}
+                transition={{ ...EASE_FAST, delay: i * 0.04 }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  background: C.surface, borderRadius: 100, padding: '5px 12px',
+                  border: `1px solid ${typeFilter[k + 's'] ? m.color + '44' : C.border}`,
+                  boxShadow: `0 2px 8px ${C.shadowSm}`,
+                }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
                 <span style={{ color: m.dark, fontSize: 11.5, fontWeight: 600 }}>{m.label}</span>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
       </div>
 
       {/* ── LIST BOTTOM SHEET (mobile) ── */}
-      {listModalOpen && (
-        <>
-          <div className="mv5-list-overlay" onClick={() => setViewMode('map')} />
-          <div className="mv5-list-modal">
+      <AnimatePresence>
+        {listModalOpen && [
+          <motion.div
+            key="overlay"
+            className="mv5-list-overlay"
+            onClick={() => setViewMode('map')}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 500,
+              background: 'rgba(10,22,40,.5)', backdropFilter: 'blur(6px)',
+            }}
+          />,
+          <motion.div
+            key="modal"
+            className="mv5-list-modal"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={SPRING_SOFT}
+            style={{
+              position: 'fixed',
+              top: TOP_BAR_H, bottom: 0, left: 0, right: 0,
+              zIndex: 510, background: C.surface,
+              display: 'flex', flexDirection: 'column',
+              boxShadow: `0 -16px 60px ${C.shadowLg}`,
+              overflow: 'hidden',
+              borderRadius: '24px 24px 0 0',
+            }}
+          >
             <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border, margin: '12px auto 0', flexShrink: 0 }} />
             <div style={{ padding: '12px 16px 13px', borderBottom: `1px solid ${C.borderLight}`, flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -989,9 +1060,9 @@ export default function Map() {
                     {loading && <span style={{ marginLeft: 7, color: C.accent }}> · refreshing</span>}
                   </div>
                 </div>
-                <button className="btn-icon" onClick={() => setViewMode('map')}>
+                <motion.button whileTap={tapScale} className="btn-icon" onClick={() => setViewMode('map')}>
                   <CloseIcon sx={{ fontSize: 17 }} />
-                </button>
+                </motion.button>
               </div>
               <div style={{ position: 'relative', marginBottom: 11 }}>
                 <span style={{
@@ -1010,10 +1081,10 @@ export default function Map() {
                   { id: 'House', cls: 'fchip-house', count: allItems.filter(i => i._type === 'house').length },
                   { id: 'Job',   cls: 'fchip-job',   count: allItems.filter(i => i._type === 'job').length },
                 ].map(c => (
-                  <button key={c.id} className={`fchip ${c.cls} ${activeCategory === c.id ? 'on' : ''}`}
+                  <motion.button key={c.id} whileTap={tapScale} className={`fchip ${c.cls} ${activeCategory === c.id ? 'on' : ''}`}
                     onClick={() => setActiveCategory(c.id)}>
                     {c.id} ({c.count})
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -1022,37 +1093,49 @@ export default function Map() {
                 : filteredItems.length === 0 ? <EmptyState />
                 : <ListView items={filteredItems} onSelect={setDetailItem} onRoute={showRoute} />}
             </div>
-          </div>
-        </>
-      )}
+          </motion.div>,
+        ]}
+      </AnimatePresence>
 
       {/* ── DETAIL PANEL ── */}
-      {detailItem && (
-        <DetailPanel
-          item={detailItem}
-          onClose={() => setDetailItem(null)}
-          onRoute={showRoute}
-          openGoogleMaps={openGoogleMaps}
-        />
-      )}
+      <AnimatePresence>
+        {detailItem && (
+          <DetailPanel
+            key="detail-panel"
+            item={detailItem}
+            onClose={() => setDetailItem(null)}
+            onRoute={showRoute}
+            openGoogleMaps={openGoogleMaps}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── ERROR TOAST ── */}
-      {error && (
-        <div className="sd" style={{
-          position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 900, background: C.redLight, border: `1px solid #FCA5A5`,
-          borderRadius: 14, padding: '10px 16px',
-          display: 'flex', gap: 9, alignItems: 'center',
-          boxShadow: `0 8px 28px ${C.shadowLg}`, minWidth: 220,
-        }}>
-          <InfoIcon sx={{ fontSize: 15, color: C.red }} />
-          <span style={{ color: C.red, fontSize: 13, flex: 1, fontWeight: 500 }}>{error}</span>
-          <button style={{ background: 'transparent', border: 'none', color: C.textMuted, cursor: 'pointer' }}
-            onClick={() => setError('')}>
-            <CloseIcon sx={{ fontSize: 15 }} />
-          </button>
-        </div>
-      )}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            key="error-toast"
+            initial={{ opacity: 0, y: -16, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: -16, x: '-50%' }}
+            transition={SPRING_SNAPPY}
+            style={{
+              position: 'fixed', top: 16, left: '50%',
+              zIndex: 900, background: C.redLight, border: `1px solid #FCA5A5`,
+              borderRadius: 14, padding: '10px 16px',
+              display: 'flex', gap: 9, alignItems: 'center',
+              boxShadow: `0 8px 28px ${C.shadowLg}`, minWidth: 220,
+            }}
+          >
+            <InfoIcon sx={{ fontSize: 15, color: C.red }} />
+            <span style={{ color: C.red, fontSize: 13, flex: 1, fontWeight: 500 }}>{error}</span>
+            <motion.button whileTap={tapScale} style={{ background: 'transparent', border: 'none', color: C.textMuted, cursor: 'pointer', display: 'flex' }}
+              onClick={() => setError('')}>
+              <CloseIcon sx={{ fontSize: 15 }} />
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1079,14 +1162,14 @@ function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, s
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button className="btn-icon" style={{ width: 34, height: 34, borderRadius: 10 }}
+            <motion.button whileTap={tapScale} className="btn-icon" style={{ width: 34, height: 34, borderRadius: 10 }}
               onClick={clearRoute} title="Clear route">
               <ClearIcon sx={{ fontSize: 14 }} />
-            </button>
-            <button className="btn-icon" style={{ width: 34, height: 34, borderRadius: 10 }}
+            </motion.button>
+            <motion.button whileTap={{ ...tapScale, rotate: 90 }} className="btn-icon" style={{ width: 34, height: 34, borderRadius: 10 }}
               onClick={fetchData} title="Refresh">
               <RefreshIcon sx={{ fontSize: 14 }} />
-            </button>
+            </motion.button>
           </div>
         </div>
         <div style={{ position: 'relative' }}>
@@ -1103,34 +1186,39 @@ function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, s
 
       <div style={{ padding: '14px 18px 13px', borderBottom: `1px solid ${C.borderLight}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-          <button className={`fchip fchip-all ${activeCategory === 'All' ? 'on' : ''}`}
-            onClick={() => setActiveCategory('All')}>All</button>
+          <motion.button whileTap={tapScale} className={`fchip fchip-all ${activeCategory === 'All' ? 'on' : ''}`}
+            onClick={() => setActiveCategory('All')}>All</motion.button>
           {[
             { id: 'Shop',  cls: 'fchip-shop',  Icon: StorefrontIcon },
             { id: 'House', cls: 'fchip-house', Icon: HomeIcon },
             { id: 'Job',   cls: 'fchip-job',   Icon: WorkIcon },
           ].map(c => (
-            <button key={c.id} className={`fchip ${c.cls} ${activeCategory === c.id ? 'on' : ''}`}
+            <motion.button key={c.id} whileTap={tapScale} className={`fchip ${c.cls} ${activeCategory === c.id ? 'on' : ''}`}
               onClick={() => setActiveCategory(c.id)}>
               <c.Icon sx={{ fontSize: 12 }} />{c.id}s
-            </button>
+            </motion.button>
           ))}
         </div>
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 9 }}>
             <span style={{ color: C.textSub, fontSize: 12.5, fontWeight: 500 }}>Search Radius</span>
-            <span style={{
-              background: C.accentLight, color: C.accent, borderRadius: 100,
-              padding: '3px 10px', fontSize: 11.5, fontWeight: 700,
-            }}>
+            <motion.span
+              key={radius}
+              initial={{ scale: 1.15, opacity: 0.5 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={EASE_FAST}
+              style={{
+                background: C.accentLight, color: C.accent, borderRadius: 100,
+                padding: '3px 10px', fontSize: 11.5, fontWeight: 700,
+              }}>
               {radius < 1 ? `${Math.round(radius * 1000)}m` : `${radius}km`}
-            </span>
+            </motion.span>
           </div>
           <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
             {[0.2, 0.4, 1, 2].map(r => (
-              <button key={r} className={`rad-pill ${radius === r ? 'on' : ''}`} onClick={() => setRadius(r)}>
+              <motion.button key={r} whileTap={tapScale} className={`rad-pill ${radius === r ? 'on' : ''}`} onClick={() => setRadius(r)}>
                 {r < 1 ? `${r * 1000}m` : `${r}km`}
-              </button>
+              </motion.button>
             ))}
           </div>
           <input type="range" className="mv5-slider" min={0.1} max={10} step={0.1}
@@ -1174,23 +1262,28 @@ function SidebarContent({ allItems, filteredItems, loading, radius, setRadius, s
         justifyContent: 'space-between', borderBottom: `1px solid ${C.borderLight}`, flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <div style={{
-            width: 7, height: 7, borderRadius: '50%',
-            background: loading ? C.accent : C.green,
-            animation: loading ? 'pulse 1s ease infinite' : 'none',
-          }} />
-          <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{allItems.length}</span>
+          <motion.div
+            animate={loading ? { opacity: [1, 0.3, 1] } : { opacity: 1 }}
+            transition={loading ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : {}}
+            style={{ width: 7, height: 7, borderRadius: '50%', background: loading ? C.accent : C.green }}
+          />
+          <motion.span
+            key={allItems.length}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={EASE_FAST}
+            style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{allItems.length}</motion.span>
           <span style={{ fontSize: 13, color: C.textSub }}>results</span>
         </div>
         <div className="view-pill">
-          <button className={`view-btn ${viewMode === 'map' ? 'on' : ''}`}
+          <motion.button whileTap={tapScale} className={`view-btn ${viewMode === 'map' ? 'on' : ''}`}
             style={{ padding: '6px 13px', fontSize: 12 }} onClick={() => setViewMode('map')}>
             <MapIcon sx={{ fontSize: 12 }} /> Map
-          </button>
-          <button className={`view-btn ${viewMode === 'list' ? 'on' : ''}`}
+          </motion.button>
+          <motion.button whileTap={tapScale} className={`view-btn ${viewMode === 'list' ? 'on' : ''}`}
             style={{ padding: '6px 13px', fontSize: 12 }} onClick={() => setViewMode('list')}>
             <ListIcon sx={{ fontSize: 12 }} /> List
-          </button>
+          </motion.button>
         </div>
       </div>
 
@@ -1217,9 +1310,9 @@ function FilterPanel({ radius, setRadius, typeFilter, setTypeFilter, onApply }) 
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
           {[0.2, 0.4, 1, 2].map(r => (
-            <button key={r} className={`rad-pill ${radius === r ? 'on' : ''}`} onClick={() => setRadius(r)}>
+            <motion.button key={r} whileTap={tapScale} className={`rad-pill ${radius === r ? 'on' : ''}`} onClick={() => setRadius(r)}>
               {r < 1 ? `${r * 1000}m` : `${r}km`}
-            </button>
+            </motion.button>
           ))}
         </div>
         <input type="range" className="mv5-slider" min={0.1} max={10} step={0.1}
@@ -1251,10 +1344,11 @@ function FilterPanel({ radius, setRadius, typeFilter, setTypeFilter, onApply }) 
           </div>
         ))}
       </div>
-      <button className="btn btn-primary" style={{ width: '100%', borderRadius: 12, padding: '11px 0', fontSize: 13.5 }}
+      <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.97 }} className="btn btn-primary"
+        style={{ width: '100%', borderRadius: 12, padding: '11px 0', fontSize: 13.5 }}
         onClick={onApply}>
         Apply Filters
-      </button>
+      </motion.button>
     </>
   );
 }
@@ -1263,52 +1357,65 @@ function FilterPanel({ radius, setRadius, typeFilter, setTypeFilter, onApply }) 
 function ListView({ items, onSelect, onRoute }) {
   return (
     <div style={{ padding: '4px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {items.map((item, i) => {
-        const m     = TYPE[item._type];
-        const IconC = m.Icon;
-        const name  = getName(item);
-        const sub   = getSub(item);
-        const price = item._type === 'house'
-          ? fmtINR(item.rent_per_month) + '/mo'
-          : item._type === 'job'
-          ? fmtINR(item.salary) + (item.salary_type === 'month' ? '/mo' : '/day')
-          : null;
-        return (
-          <div key={`${item._type}-${item.id || i}`} className="mv5-card" onClick={() => onSelect(item)}>
-            <div style={{
-              width: 48, height: 48, borderRadius: 15, flexShrink: 0,
-              background: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <IconC sx={{ fontSize: 22, color: '#fff' }} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 2,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
-              {sub && <div style={{ color: C.textSub, fontSize: 12.5, marginBottom: 6,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                <span className="badge" style={{ background: m.bg, color: m.dark }}>{m.label}</span>
-                <span style={{ color: m.color, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <LocationOnIcon sx={{ fontSize: 10 }} />{fmtDist(item.distance)}
-                </span>
-                {price && <span style={{ color: m.dark, fontWeight: 700, fontSize: 12 }}>{price}</span>}
+      <AnimatePresence initial={false}>
+        {items.map((item, i) => {
+          const m     = TYPE[item._type];
+          const IconC = m.Icon;
+          const name  = getName(item);
+          const sub   = getSub(item);
+          const price = item._type === 'house'
+            ? fmtINR(item.rent_per_month) + '/mo'
+            : item._type === 'job'
+            ? fmtINR(item.salary) + (item.salary_type === 'month' ? '/mo' : '/day')
+            : null;
+          return (
+            <motion.div
+              key={`${item._type}-${item.id || i}`}
+              layout
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ ...SPRING, delay: Math.min(i * 0.035, 0.4) }}
+              whileHover={{ y: -3, boxShadow: `0 14px 32px ${C.shadowMd}` }}
+              whileTap={{ scale: 0.98 }}
+              className="mv5-card"
+              onClick={() => onSelect(item)}
+            >
+              <div style={{
+                width: 48, height: 48, borderRadius: 15, flexShrink: 0,
+                background: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <IconC sx={{ fontSize: 22, color: '#fff' }} />
               </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
-              <button className="btn" style={{ width: 34, height: 34, borderRadius: 10,
-                background: m.color, color: '#fff', border: 'none', padding: 0 }}
-                onClick={e => { e.stopPropagation(); onRoute(item); }}>
-                <NavigationIcon sx={{ fontSize: 15 }} />
-              </button>
-              <button className="btn" style={{ width: 34, height: 34, borderRadius: 10,
-                background: C.surfaceAlt, color: C.textSub, border: `1px solid ${C.border}`, padding: 0 }}
-                onClick={e => { e.stopPropagation(); onSelect(item); }}>
-                <VisibilityIcon sx={{ fontSize: 14 }} />
-              </button>
-            </div>
-          </div>
-        );
-      })}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 2,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+                {sub && <div style={{ color: C.textSub, fontSize: 12.5, marginBottom: 6,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                  <span className="badge" style={{ background: m.bg, color: m.dark }}>{m.label}</span>
+                  <span style={{ color: m.color, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <LocationOnIcon sx={{ fontSize: 10 }} />{fmtDist(item.distance)}
+                  </span>
+                  {price && <span style={{ color: m.dark, fontWeight: 700, fontSize: 12 }}>{price}</span>}
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
+                <motion.button whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }} className="btn" style={{ width: 34, height: 34, borderRadius: 10,
+                  background: m.color, color: '#fff', border: 'none', padding: 0 }}
+                  onClick={e => { e.stopPropagation(); onRoute(item); }}>
+                  <NavigationIcon sx={{ fontSize: 15 }} />
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }} className="btn" style={{ width: 34, height: 34, borderRadius: 10,
+                  background: C.surfaceAlt, color: C.textSub, border: `1px solid ${C.border}`, padding: 0 }}
+                  onClick={e => { e.stopPropagation(); onSelect(item); }}>
+                  <VisibilityIcon sx={{ fontSize: 14 }} />
+                </motion.button>
+              </div>
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1332,30 +1439,52 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
     : null;
 
   return (
-    <div className="mv5-detail-panel"style={{            marginTop: 60, marginRight: 12,
-}}>
+    <motion.div
+      className="mv5-detail-panel"
+      initial={{ y: 48, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 48, opacity: 0 }}
+      transition={SPRING_SOFT}
+      style={{
+        position: 'fixed',
+        top: 0, bottom: 0, left: 0, right: 0,
+        zIndex: 600,
+        background: C.surface,
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+        marginTop: 60, marginRight: 12,
+      }}
+    >
 
       {/* ── HERO — minimal, flush to the very top, back button always visible ── */}
       <div className="detail-hero">
         <div className="detail-hero-topbar">
-          <button className="detail-hero-btn" onClick={onClose} aria-label="Back">
+          <motion.button whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.9, x: -2 }} className="detail-hero-btn" onClick={onClose} aria-label="Back">
             <ArrowBackIcon sx={{ fontSize: 19, color: C.text }} />
-          </button>
-      
+          </motion.button>
         </div>
 
         <div className="detail-hero-body">
-          <div style={{
-            width: 56, height: 56, borderRadius: 16,
-            background: m.bg, border: `1px solid ${m.mid}55`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-            marginTop: 18, marginRight: 12,
-          }}>
+          <motion.div
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ ...SPRING_SNAPPY, delay: 0.05 }}
+            style={{
+              width: 56, height: 56, borderRadius: 16,
+              background: m.bg, border: `1px solid ${m.mid}55`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+              marginTop: 18, marginRight: 12,
+            }}>
             <IconC sx={{ fontSize: 26, color: m.color }} />
-          </div>
+          </motion.div>
 
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...EASE_FAST, delay: 0.08 }}
+            style={{ flex: 1, minWidth: 0 }}
+          >
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
               <span className="badge" style={{ background: m.bg, color: m.dark }}>{m.label}</span>
               {isOpen !== null && (
@@ -1393,12 +1522,17 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
                 </span>
               )}
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
 
       {/* ── SCROLLABLE BODY ── */}
-      <div style={{ flex: 1, overflowY: 'auto', background: C.surface, WebkitOverflowScrolling: 'touch' }}>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ ...EASE_FAST, delay: 0.1 }}
+        style={{ flex: 1, overflowY: 'auto', background: C.surface, WebkitOverflowScrolling: 'touch' }}
+      >
 
         {/* Price */}
         {price && (
@@ -1415,19 +1549,19 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
           <div className="detail-actions" style={{
             gridTemplateColumns: phone ? 'repeat(3,1fr)' : 'repeat(2,1fr)',
           }}>
-            <button className="detail-action-btn primary" onClick={() => onRoute(item)}>
+            <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }} className="detail-action-btn primary" onClick={() => onRoute(item)}>
               <DirectionsIcon sx={{ fontSize: 22 }} />
               Route
-            </button>
-            <button className="detail-action-btn" onClick={() => openGoogleMaps(item)}>
+            </motion.button>
+            <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }} className="detail-action-btn" onClick={() => openGoogleMaps(item)}>
               <OpenInNewIcon sx={{ fontSize: 22, color: C.textSub }} />
               Google Maps
-            </button>
+            </motion.button>
             {phone && (
-              <button className="detail-action-btn" onClick={() => window.location.href = `tel:${phone}`}>
+              <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }} className="detail-action-btn" onClick={() => window.location.href = `tel:${phone}`}>
                 <PhoneIcon sx={{ fontSize: 22, color: C.textSub }} />
                 Call
-              </button>
+              </motion.button>
             )}
           </div>
         </div>
@@ -1453,13 +1587,13 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
                 </div>
               )}
               {phone && (
-                <a href={`tel:${phone}`} style={{
+                <motion.a whileHover={{ y: -2, boxShadow: `0 10px 24px ${C.shadowMd}` }} whileTap={{ scale: 0.98 }}
+                  href={`tel:${phone}`} style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   padding: '13px 15px',
                   background: C.surfaceAlt, borderRadius: 14,
                   border: `1px solid ${C.borderLight}`,
                   textDecoration: 'none',
-                  transition: 'all .15s',
                 }}>
                   <div style={{
                     width: 38, height: 38, borderRadius: 11,
@@ -1473,13 +1607,13 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
                     <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>Tap to call</div>
                     <div style={{ fontSize: 14.5, fontWeight: 700, color: C.text }}>{phone}</div>
                   </div>
-                </a>
+                </motion.a>
               )}
             </div>
           </>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -1533,20 +1667,30 @@ function ShopBody({ item }) {
         </>
       )}
 
+      {/* ── KEY ITEMS — click any item to search it on Google ── */}
       {item.keywords?.length > 0 && (
         <div style={{ padding: '16px 0' }}>
           <div style={{ height: 1, background: C.borderLight, marginBottom: 16 }} />
           <div className="sec-label">Key Items</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {item.keywords.map((k, i) => (
-              <span key={i} style={{
-                padding: '6px 14px', borderRadius: 100, fontSize: 13,
-                background: C.surfaceAlt, color: C.textSub, fontWeight: 600,
-                border: `1px solid ${C.borderLight}`,
-                display: 'flex', alignItems: 'center', gap: 5,
-              }}>
-                <TagIcon sx={{ fontSize: 11, color: C.textMuted }} />{k}
-              </span>
+              <motion.button
+                key={i}
+                type="button"
+                className="keyword-chip"
+                title={`Search "${k}" on Google`}
+                aria-label={`Search ${k} on Google`}
+                onClick={() => searchOnGoogle(k)}
+                initial={{ opacity: 0, y: 8, scale: 0.92 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ ...SPRING, delay: Math.min(i * 0.04, 0.3) }}
+                whileHover={{ scale: 1.06, y: -2 }}
+                whileTap={{ scale: 0.92 }}
+              >
+                <TagIcon sx={{ fontSize: 11, color: 'inherit', opacity: 0.7 }} />
+                {k}
+                <SearchIcon sx={{ fontSize: 11, opacity: 0.45, marginLeft: 2 }} />
+              </motion.button>
             ))}
           </div>
         </div>
@@ -1565,8 +1709,10 @@ function HouseBody({ item }) {
           { label: 'Halls',    value: item.halls    || '—',                    Icon: MeetingRoomIcon },
           { label: 'Kitchens', value: item.kitchens || '—',                    Icon: KitchenIcon },
           { label: 'Floor',    value: item.floor    || '—',                    Icon: ApartmentIcon },
-        ].map(r => (
-          <div key={r.label} className="stat-card">
+        ].map((r, i) => (
+          <motion.div key={r.label} className="stat-card"
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ ...SPRING, delay: i * 0.05 }}>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8,
               color: C.textMuted, fontSize: 10.5, fontWeight: 700,
@@ -1575,11 +1721,40 @@ function HouseBody({ item }) {
               <r.Icon sx={{ fontSize: 13, color: C.textMuted }} />{r.label}
             </div>
             <div style={{ color: C.text, fontWeight: 800, fontSize: 18 }}>{r.value}</div>
-          </div>
+          </motion.div>
         ))}
       </div>
       {item.description && (
         <div style={{ color: C.textSub, fontSize: 14, lineHeight: 1.75 }}>{item.description}</div>
+      )}
+
+      {/* ── KEY ITEMS (amenities) — click to search on Google, shown for houses too if present ── */}
+      {item.keywords?.length > 0 && (
+        <div style={{ padding: '16px 0' }}>
+          <div style={{ height: 1, background: C.borderLight, marginBottom: 16 }} />
+          <div className="sec-label">Key Items</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {item.keywords.map((k, i) => (
+              <motion.button
+                key={i}
+                type="button"
+                className="keyword-chip"
+                title={`Search "${k}" on Google`}
+                aria-label={`Search ${k} on Google`}
+                onClick={() => searchOnGoogle(k)}
+                initial={{ opacity: 0, y: 8, scale: 0.92 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ ...SPRING, delay: Math.min(i * 0.04, 0.3) }}
+                whileHover={{ scale: 1.06, y: -2 }}
+                whileTap={{ scale: 0.92 }}
+              >
+                <TagIcon sx={{ fontSize: 11, color: 'inherit', opacity: 0.7 }} />
+                {k}
+                <SearchIcon sx={{ fontSize: 11, opacity: 0.45, marginLeft: 2 }} />
+              </motion.button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1612,6 +1787,35 @@ function JobBody({ item }) {
       {item.description && (
         <div style={{ color: C.textSub, fontSize: 14, lineHeight: 1.75 }}>{item.description}</div>
       )}
+
+      {/* ── KEY ITEMS (skills) — click to search on Google ── */}
+      {item.keywords?.length > 0 && (
+        <div style={{ padding: '16px 0' }}>
+          <div style={{ height: 1, background: C.borderLight, marginBottom: 16 }} />
+          <div className="sec-label">Key Items</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {item.keywords.map((k, i) => (
+              <motion.button
+                key={i}
+                type="button"
+                className="keyword-chip"
+                title={`Search "${k}" on Google`}
+                aria-label={`Search ${k} on Google`}
+                onClick={() => searchOnGoogle(k)}
+                initial={{ opacity: 0, y: 8, scale: 0.92 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ ...SPRING, delay: Math.min(i * 0.04, 0.3) }}
+                whileHover={{ scale: 1.06, y: -2 }}
+                whileTap={{ scale: 0.92 }}
+              >
+                <TagIcon sx={{ fontSize: 11, color: 'inherit', opacity: 0.7 }} />
+                {k}
+                <SearchIcon sx={{ fontSize: 11, opacity: 0.45, marginLeft: 2 }} />
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1621,10 +1825,12 @@ function SkeletonList() {
   return (
     <div style={{ padding: '4px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
       {[...Array(5)].map((_, i) => (
-        <div key={i} style={{
-          display: 'flex', gap: 12, alignItems: 'center',
-          background: C.surface, border: `1px solid ${C.borderLight}`, borderRadius: 16, padding: 14,
-        }}>
+        <motion.div key={i}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}
+          style={{
+            display: 'flex', gap: 12, alignItems: 'center',
+            background: C.surface, border: `1px solid ${C.borderLight}`, borderRadius: 16, padding: 14,
+          }}>
           <div className="skeleton" style={{ width: 48, height: 48, borderRadius: 15, flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
             <div className="skeleton" style={{ height: 13, width: '55%', marginBottom: 8 }} />
@@ -1634,7 +1840,7 @@ function SkeletonList() {
               <div className="skeleton" style={{ height: 18, width: 34 }} />
             </div>
           </div>
-        </div>
+        </motion.div>
       ))}
     </div>
   );
@@ -1642,22 +1848,29 @@ function SkeletonList() {
 
 function EmptyState() {
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', padding: '60px 24px', textAlign: 'center', gap: 14,
-    }}>
-      <div style={{
-        width: 64, height: 64, borderRadius: 20, background: C.accentLight,
-        border: `1.5px solid ${C.accentMid}`, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', color: C.accent,
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={SPRING_SOFT}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', padding: '60px 24px', textAlign: 'center', gap: 14,
       }}>
+      <motion.div
+        animate={{ y: [0, -6, 0] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+        style={{
+          width: 64, height: 64, borderRadius: 20, background: C.accentLight,
+          border: `1.5px solid ${C.accentMid}`, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', color: C.accent,
+        }}>
         <SearchIcon sx={{ fontSize: 28 }} />
-      </div>
+      </motion.div>
       <div style={{ fontWeight: 800, fontSize: 17, color: C.text, letterSpacing: '-.3px' }}>Nothing nearby</div>
       <div style={{ color: C.textSub, fontSize: 13.5, maxWidth: 230, lineHeight: 1.65 }}>
         Try increasing the search radius or clearing your filters
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -1669,7 +1882,11 @@ function LoadingScreen() {
       alignItems: 'center', justifyContent: 'center',
       gap: 20, background: C.bg, fontFamily: 'Inter, sans-serif',
     }}>
-      <img src={loadingGif} alt="Loading…"
+      <motion.img
+        src={loadingGif} alt="Loading…"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={SPRING_SOFT}
         style={{ width: 240, height: 'auto', objectFit: 'contain', marginBottom: 60 }} />
     </div>
   );

@@ -12,6 +12,7 @@ import UseCases from './UseCases';
 import WhyForEasy from './WhyForEasy';
 import DownloadCTA from './DownloadCTA';
 import Footer from './Footer';
+import { trackPageVisit, trackAppInstall } from '../services/Analytics';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -32,6 +33,11 @@ function LandingPage() {
     };
   }, []);
 
+  // ── Track every landing-page visit ──────────────────────────────────────
+  useEffect(() => {
+    trackPageVisit('landing');
+  }, []);
+
   useEffect(() => {
     const handler = (e) => {
       e.preventDefault();
@@ -46,6 +52,7 @@ function LandingPage() {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
+    trackAppInstall(outcome, 'landing_banner'); // ── log install attempt result
     if (outcome === 'accepted') {
       setDeferredPrompt(null);
       setShowInstallBanner(false);
@@ -58,6 +65,7 @@ function LandingPage() {
       if (deferredPrompt) {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
+        trackAppInstall(outcome, 'navbar_button'); // ── log install attempt result
         if (outcome === 'accepted') {
           setDeferredPrompt(null);
           setShowInstallBanner(false);

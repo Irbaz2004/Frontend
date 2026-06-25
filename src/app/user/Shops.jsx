@@ -86,6 +86,13 @@ const BOTTOM_NAV_OFFSET = 150;
 const SHEET_EASE_ENTER = 'cubic-bezier(0.16, 1, 0.3, 1)';
 const SHEET_EASE_EXIT  = 'cubic-bezier(0.7, 0, 0.84, 0)';
 
+// ─── Google search helper (used by "Key Items Available" chips) ─────────────
+function searchOnGoogle(term) {
+    if (!term) return;
+    const url = `https://www.google.com/search?q=${encodeURIComponent(term)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+}
+
 // ─── Time utilities ───────────────────────────────────────────────────────────
 
 /**
@@ -701,6 +708,7 @@ function ShopDetailsContent({ shop, isMobile }) {
                     </>
                 )}
 
+                {/* ── Key Items Available — click any item to search it on Google ── */}
                 {shop.keywords?.length > 0 && (
                     <>
                         <SectionLabel>Key Items Available</SectionLabel>
@@ -709,9 +717,30 @@ function ShopDetailsContent({ shop, isMobile }) {
                                 <Chip
                                     key={idx}
                                     label={item}
+                                    icon={<SearchIcon sx={{ fontSize: '12px !important' }} />}
                                     size="small"
                                     variant="outlined"
-                                    sx={{ borderRadius: '6px', fontFamily: FONT, fontSize: 12, borderColor: C.border, color: C.textSub }}
+                                    clickable
+                                    onClick={() => searchOnGoogle(item)}
+                                    title={`Search "${item}" on Google`}
+                                    sx={{
+                                        borderRadius: '6px',
+                                        fontFamily: FONT,
+                                        fontSize: 12,
+                                        borderColor: C.border,
+                                        color: C.textSub,
+                                        cursor: 'pointer',
+                                        transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease',
+                                        '& .MuiChip-icon': { color: C.textMuted, ml: '6px' },
+                                        '&:hover': {
+                                            background: C.accentLight,
+                                            borderColor: C.accentMid,
+                                            color: C.accentDark,
+                                            transform: 'translateY(-1px)',
+                                        },
+                                        '&:hover .MuiChip-icon': { color: C.accent },
+                                        '&:active': { transform: 'scale(0.95)' },
+                                    }}
                                 />
                             ))}
                         </Box>
