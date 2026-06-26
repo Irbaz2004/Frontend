@@ -26,10 +26,11 @@ async function apiCall(endpoint, options = {}) {
 
 // ===================== ADMIN SHOP SERVICES =====================
 
-export async function getAllShops({ page = 1, limit = 20, search = '', status = 'all', category = '' }) {
+export async function getAllShops({ page = 1, limit = 20, search = '', verified = 'all', status = 'all', category = '' }) {
     const params = new URLSearchParams({ page, limit });
     if (search) params.append('search', search);
-    if (status) params.append('status', status);
+    if (verified && verified !== 'all') params.append('verified', verified);
+    if (status && status !== 'all') params.append('status', status);
     if (category) params.append('category', category);
     
     return apiCall(`/admin/shops?${params}`);
@@ -48,6 +49,18 @@ export async function verifyShop(id, is_verified) {
 
 export async function deleteShop(id) {
     return apiCall(`/admin/shops/${id}`, {
+        method: 'DELETE',
+    });
+}
+
+export async function reactivateShop(id) {
+    return apiCall(`/admin/shops/${id}/reactivate`, {
+        method: 'PUT',
+    });
+}
+
+export async function hardDeleteShop(id) {
+    return apiCall(`/admin/shops/${id}/permanent`, {
         method: 'DELETE',
     });
 }
@@ -72,6 +85,8 @@ export default {
     getShopByIdForAdmin,
     verifyShop,
     deleteShop,
+    reactivateShop,
+    hardDeleteShop,
     getShopStatistics,
     bulkVerifyShops,
     getShopCategoriesList,

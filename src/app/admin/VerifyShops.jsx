@@ -46,10 +46,9 @@ import {
     Verified as VerifiedIcon,
     Pending as PendingIcon,
     Store as StoreIcon,
-    LocationOn as LocationOnIcon,
-    Phone as PhoneIcon,
     Close as CloseIcon,
-    Image as ImageIcon
+    Image as ImageIcon,
+    Restore as RestoreIcon
 } from '@mui/icons-material';
 import {
     getAllShops,
@@ -57,7 +56,9 @@ import {
     deleteShop,
     getShopStatistics,
     bulkVerifyShops,
-    getShopCategoriesList
+    getShopCategoriesList,
+    reactivateShop,
+    hardDeleteShop
 } from '../../services/adminShop';
 
 export default function VerifyShops() {
@@ -67,6 +68,7 @@ export default function VerifyShops() {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [search, setSearch] = useState('');
+    const [verifiedFilter, setVerifiedFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('');
     const [categories, setCategories] = useState([]);
@@ -77,12 +79,16 @@ export default function VerifyShops() {
     const [selectedShop, setSelectedShop] = useState(null);
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
     const [shopToDelete, setShopToDelete] = useState(null);
+    const [openReactivateDialog, setOpenReactivateDialog] = useState(false);
+    const [shopToReactivate, setShopToReactivate] = useState(null);
+    const [openHardDeleteDialog, setOpenHardDeleteDialog] = useState(false);
+    const [shopToHardDelete, setShopToHardDelete] = useState(null);
 
     useEffect(() => {
         loadShops();
         loadStats();
         loadCategories();
-    }, [page, rowsPerPage, statusFilter, categoryFilter]);
+    }, [page, rowsPerPage, verifiedFilter, statusFilter, categoryFilter]);
 
     const loadShops = async () => {
         setLoading(true);
@@ -91,6 +97,7 @@ export default function VerifyShops() {
                 page: page + 1,
                 limit: rowsPerPage,
                 search,
+                verified: verifiedFilter,
                 status: statusFilter,
                 category: categoryFilter
             });
@@ -137,14 +144,44 @@ export default function VerifyShops() {
         }
     };
 
-    const handleDelete = async () => {
+    const handleReactivate = async () => {
+        if (!shopToReactivate) return;
+        
+        try {
+            await reactivateShop(shopToReactivate.id);
+            showSnackbar('Shop reactivated successfully');
+            setOpenReactivateDialog(false);
+            setShopToReactivate(null);
+            loadShops();
+            loadStats();
+        } catch (error) {
+            showSnackbar(error.message, 'error');
+        }
+    };
+
+    const handleSoftDelete = async () => {
         if (!shopToDelete) return;
         
         try {
             await deleteShop(shopToDelete.id);
-            showSnackbar('Shop deleted successfully');
+            showSnackbar('Shop deactivated successfully');
             setOpenDeleteDialog(false);
             setShopToDelete(null);
+            loadShops();
+            loadStats();
+        } catch (error) {
+            showSnackbar(error.message, 'error');
+        }
+    };
+
+    const handleHardDelete = async () => {
+        if (!shopToHardDelete) return;
+        
+        try {
+            await hardDeleteShop(shopToHardDelete.id);
+            showSnackbar('Shop permanently deleted');
+            setOpenHardDeleteDialog(false);
+            setShopToHardDelete(null);
             loadShops();
             loadStats();
         } catch (error) {
@@ -230,10 +267,29 @@ export default function VerifyShops() {
         );
     };
 
-    // Helper function to render shop image
+    const getActiveChip = (isActive) => {
+        if (isActive) {
+            return (
+                <Chip
+                    label="Active"
+                    size="small"
+                    icon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
+                    sx={{ bgcolor: '#e0f2fe', color: '#0284c7', fontWeight: 600, borderRadius: 1 }}
+                />
+            );
+        }
+        return (
+            <Chip
+                label="Inactive"
+                size="small"
+                icon={<CancelIcon sx={{ fontSize: 14 }} />}
+                sx={{ bgcolor: '#f3f4f6', color: '#6b7280', fontWeight: 600, borderRadius: 1 }}
+            />
+        );
+    };
+
     const renderShopImage = (shop) => {
         if (shop.shop_image) {
-            // If shop_image is a Cloudinary URL
             return (
                 <Avatar
                     src={shop.shop_image}
@@ -248,7 +304,6 @@ export default function VerifyShops() {
                 />
             );
         }
-        // Fallback if no image
         return (
             <Avatar variant="rounded" sx={{ width: 48, height: 48, bgcolor: '#e8f0fe' }}>
                 <StoreIcon sx={{ color: '#325fec' }} />
@@ -256,7 +311,6 @@ export default function VerifyShops() {
         );
     };
 
-    // Helper function to render shop image in dialog
     const renderShopImageDialog = (shop) => {
         if (shop.shop_image) {
             return (
@@ -290,20 +344,26 @@ export default function VerifyShops() {
         <Container maxWidth="xl" sx={{ py: 3 }}>
             {/* Header */}
             <Typography variant="h4" sx={{ fontFamily: '"Alumni Sans", sans-serif', fontWeight: 600, mb: 3 }}>
-                Verify Shops
+                Shop Management
             </Typography>
 
             {/* Statistics Cards */}
             {stats && (
                 <Grid container spacing={2} sx={{ mb: 3 }}>
-                    <Grid item xs={12} sm={4}>
+                    <Grid item xs={12} sm={6} md={2.4}>
                         <StatCard title="Total Shops" value={stats.total} icon={<StoreIcon />} color="#3b82f6" />
                     </Grid>
-                    <Grid item xs={12} sm={4}>
-                        <StatCard title="Verified Shops" value={stats.verified} icon={<VerifiedIcon />} color="#10b981" />
+                    <Grid item xs={12} sm={6} md={2.4}>
+                        <StatCard title="Active" value={stats.active} icon={<CheckCircleIcon />} color="#10b981" />
                     </Grid>
-                    <Grid item xs={12} sm={4}>
-                        <StatCard title="Pending Verification" value={stats.unverified} icon={<PendingIcon />} color="#f59e0b" />
+                    <Grid item xs={12} sm={6} md={2.4}>
+                        <StatCard title="Inactive" value={stats.inactive} icon={<CancelIcon />} color="#6b7280" />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={2.4}>
+                        <StatCard title="Verified" value={stats.verified} icon={<VerifiedIcon />} color="#059669" />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={2.4}>
+                        <StatCard title="Pending" value={stats.unverified} icon={<PendingIcon />} color="#f59e0b" />
                     </Grid>
                 </Grid>
             )}
@@ -337,6 +397,19 @@ export default function VerifyShops() {
                         }}
                     />
                     
+                    <FormControl size="small" sx={{ minWidth: 140 }}>
+                        <InputLabel>Verification</InputLabel>
+                        <Select
+                            value={verifiedFilter}
+                            onChange={(e) => setVerifiedFilter(e.target.value)}
+                            label="Verification"
+                        >
+                            <MenuItem value="all">All</MenuItem>
+                            <MenuItem value="verified">Verified</MenuItem>
+                            <MenuItem value="unverified">Pending</MenuItem>
+                        </Select>
+                    </FormControl>
+
                     <FormControl size="small" sx={{ minWidth: 130 }}>
                         <InputLabel>Status</InputLabel>
                         <Select
@@ -345,8 +418,8 @@ export default function VerifyShops() {
                             label="Status"
                         >
                             <MenuItem value="all">All</MenuItem>
-                            <MenuItem value="verified">Verified</MenuItem>
-                            <MenuItem value="unverified">Pending</MenuItem>
+                            <MenuItem value="active">Active</MenuItem>
+                            <MenuItem value="inactive">Inactive</MenuItem>
                         </Select>
                     </FormControl>
                     
@@ -376,6 +449,7 @@ export default function VerifyShops() {
                         variant="outlined"
                         onClick={() => {
                             setSearch('');
+                            setVerifiedFilter('all');
                             setStatusFilter('all');
                             setCategoryFilter('');
                             setPage(0);
@@ -425,7 +499,7 @@ export default function VerifyShops() {
                                 </TableRow>
                             ) : (
                                 shops.map((shop) => (
-                                    <TableRow key={shop.id} hover>
+                                    <TableRow key={shop.id} hover sx={{ opacity: shop.is_active ? 1 : 0.6 }}>
                                         <TableCell padding="checkbox">
                                             <Checkbox
                                                 checked={selectedShops.includes(shop.id)}
@@ -457,14 +531,19 @@ export default function VerifyShops() {
                                                 {shop.city}, {shop.state}
                                             </Typography>
                                         </TableCell>
-                                        <TableCell>{getStatusChip(shop.is_verified)}</TableCell>
+                                        <TableCell>
+                                            <Stack direction="column" spacing={0.5} alignItems="flex-start">
+                                                {getStatusChip(shop.is_verified)}
+                                                {getActiveChip(shop.is_active)}
+                                            </Stack>
+                                        </TableCell>
                                         <TableCell>
                                             <Typography variant="body2">
                                                 {new Date(shop.created_at).toLocaleDateString()}
                                             </Typography>
                                         </TableCell>
                                         <TableCell align="center">
-                                            <Box display="flex" gap={1} justifyContent="center">
+                                            <Box display="flex" gap={0.5} justifyContent="center" flexWrap="wrap">
                                                 <Tooltip title="View Details">
                                                     <IconButton 
                                                         size="small" 
@@ -477,27 +556,61 @@ export default function VerifyShops() {
                                                         <VisibilityIcon fontSize="small" />
                                                     </IconButton>
                                                 </Tooltip>
-                                                <Tooltip title={shop.is_verified ? "Unverify" : "Verify"}>
-                                                    <IconButton 
-                                                        size="small" 
-                                                        onClick={() => handleVerify(shop.id, shop.is_verified)}
-                                                        sx={{ color: shop.is_verified ? '#f59e0b' : '#10b981' }}
-                                                    >
-                                                        {shop.is_verified ? <CancelIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Delete">
-                                                    <IconButton 
-                                                        size="small" 
-                                                        onClick={() => {
-                                                            setShopToDelete(shop);
-                                                            setOpenDeleteDialog(true);
-                                                        }}
-                                                        sx={{ color: '#ef4444' }}
-                                                    >
-                                                        <DeleteIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
+                                                
+                                                {shop.is_active && (
+                                                    <>
+                                                        <Tooltip title={shop.is_verified ? "Unverify" : "Verify"}>
+                                                            <IconButton 
+                                                                size="small" 
+                                                                onClick={() => handleVerify(shop.id, shop.is_verified)}
+                                                                sx={{ color: shop.is_verified ? '#f59e0b' : '#10b981' }}
+                                                            >
+                                                                {shop.is_verified ? <CancelIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                        <Tooltip title="Deactivate">
+                                                            <IconButton 
+                                                                size="small" 
+                                                                onClick={() => {
+                                                                    setShopToDelete(shop);
+                                                                    setOpenDeleteDialog(true);
+                                                                }}
+                                                                sx={{ color: '#ef4444' }}
+                                                            >
+                                                                <DeleteIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </>
+                                                )}
+                                                
+                                                {!shop.is_active && (
+                                                    <>
+                                                        <Tooltip title="Reactivate">
+                                                            <IconButton 
+                                                                size="small" 
+                                                                onClick={() => {
+                                                                    setShopToReactivate(shop);
+                                                                    setOpenReactivateDialog(true);
+                                                                }}
+                                                                sx={{ color: '#10b981' }}
+                                                            >
+                                                                <RestoreIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                        <Tooltip title="Permanently Delete">
+                                                            <IconButton 
+                                                                size="small" 
+                                                                onClick={() => {
+                                                                    setShopToHardDelete(shop);
+                                                                    setOpenHardDeleteDialog(true);
+                                                                }}
+                                                                sx={{ color: '#dc2626' }}
+                                                            >
+                                                                <DeleteIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </>
+                                                )}
                                             </Box>
                                         </TableCell>
                                     </TableRow>
@@ -532,7 +645,6 @@ export default function VerifyShops() {
                 <DialogContent dividers>
                     {selectedShop && (
                         <Box>
-                            {/* Shop Image - using Cloudinary URL directly */}
                             <Box sx={{ mb: 3, textAlign: 'center' }}>
                                 {renderShopImageDialog(selectedShop)}
                             </Box>
@@ -553,6 +665,10 @@ export default function VerifyShops() {
                                 <Grid item xs={12} sm={6}>
                                     <Typography variant="caption" color="#6b7280">Status</Typography>
                                     <Box mt={0.5}>{getStatusChip(selectedShop.is_verified)}</Box>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <Typography variant="caption" color="#6b7280">Active</Typography>
+                                    <Box mt={0.5}>{getActiveChip(selectedShop.is_active)}</Box>
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="caption" color="#6b7280">Key Items</Typography>
@@ -590,7 +706,7 @@ export default function VerifyShops() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpenViewDialog(false)}>Close</Button>
-                    {selectedShop && !selectedShop.is_verified && (
+                    {selectedShop && selectedShop.is_active && !selectedShop.is_verified && (
                         <Button 
                             variant="contained" 
                             onClick={() => {
@@ -605,18 +721,48 @@ export default function VerifyShops() {
                 </DialogActions>
             </Dialog>
 
-            {/* Delete Confirmation Dialog */}
+            {/* Soft Delete Confirmation Dialog */}
             <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>Confirm Delete</DialogTitle>
+                <DialogTitle>Confirm Deactivation</DialogTitle>
                 <DialogContent>
                     <Typography>
-                        Are you sure you want to delete <strong>{shopToDelete?.business_name}</strong>?
-                        This action cannot be undone.
+                        Are you sure you want to deactivate <strong>{shopToDelete?.business_name}</strong>?
+                        This shop will be hidden from users but can be reactivated later.
                     </Typography>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-                    <Button onClick={handleDelete} variant="contained" color="error">Delete</Button>
+                    <Button onClick={handleSoftDelete} variant="contained" color="warning">Deactivate</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Reactivate Confirmation Dialog */}
+            <Dialog open={openReactivateDialog} onClose={() => setOpenReactivateDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Confirm Reactivation</DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        Are you sure you want to reactivate <strong>{shopToReactivate?.business_name}</strong>?
+                        This shop will be visible to users again.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenReactivateDialog(false)}>Cancel</Button>
+                    <Button onClick={handleReactivate} variant="contained" color="success">Reactivate</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Hard Delete Confirmation Dialog */}
+            <Dialog open={openHardDeleteDialog} onClose={() => setOpenHardDeleteDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Confirm Permanent Deletion</DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        Are you sure you want to permanently delete <strong>{shopToHardDelete?.business_name}</strong>?
+                        This action cannot be undone and all associated data will be removed.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenHardDeleteDialog(false)}>Cancel</Button>
+                    <Button onClick={handleHardDelete} variant="contained" color="error">Permanently Delete</Button>
                 </DialogActions>
             </Dialog>
 

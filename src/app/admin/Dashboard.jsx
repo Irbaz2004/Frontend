@@ -29,8 +29,11 @@ import {
     Laptop as DesktopIcon,
     Tablet as TabletIcon,
     Download as DownloadIcon,
-    SwapHoriz as ConversionIcon,
     AccessTime as TimeIcon,
+    PeopleAlt as UsersIcon,
+    Storefront as ShopsIcon,
+    HomeWork as HousesIcon,
+    WorkOutline as JobsIcon,
 } from '@mui/icons-material';
 import {
     ComposedChart,
@@ -51,8 +54,9 @@ import {
 } from 'recharts';
 import { db } from '../../Firebase';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
+import { getStats } from '../../services/admin.js';
 
-// ─── Design tokens (same family as the rest of the app) ───────────────────────
+// ─── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
     bg:          '#F4F6FB',
     surface:     '#FFFFFF',
@@ -81,15 +85,14 @@ const FONT = '"Inter", sans-serif';
 
 const PIE_COLORS = [C.accent, C.purple, C.amber, C.green, C.red, '#0EA5E9'];
 
-// Max content width — wide enough to breathe on large monitors, but capped
-// so charts don't stretch into illegibility on ultra-wide displays.
+// Max content width
 const MAX_WIDTH = 1680;
 
-// How far back we pull raw events for. Everything (daily / monthly / hourly /
-// sources / device split) is derived client-side from this one fetch.
-// NOTE: at meaningful scale, replace this with pre-aggregated daily/monthly
-// counter docs written by a Cloud Function, instead of reading raw events.
+// How far back we pull raw events for
 const FETCH_DAYS_BACK = 365;
+
+// How many items to show in the "Recent activity" feed
+const RECENT_ACTIVITY_LIMIT = 5;
 
 /* ─── Date / formatting helpers ─────────────────────────────────────────── */
 function toDate(ts) {
@@ -98,7 +101,10 @@ function toDate(ts) {
     return new Date(ts);
 }
 function dayKey(d) {
-    return d.toISOString().slice(0, 10); // YYYY-MM-DD
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
 }
 function monthKey(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -134,7 +140,7 @@ function deviceIcon(device) {
     return <DesktopIcon sx={{ fontSize: 14 }} />;
 }
 
-/* ─── Build a continuous list of last N days (so empty days show as 0) ──── */
+/* ─── Build a continuous list of last N days ───────────────────────────── */
 function lastNDayKeys(n, offsetDays = 0) {
     const out = [];
     const today = new Date();
@@ -158,7 +164,7 @@ function lastNMonthKeys(n) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Stat Card — now with a small inline sparkline so trend has visual context
+   Stat Card
 ═══════════════════════════════════════════════════════════════════════════ */
 function StatCard({ icon, label, value, trend, trendLabel, color, loading, sparkline }) {
     const isUp = trend != null && trend >= 0;
@@ -330,10 +336,25 @@ export default function Dashboard() {
     const [lastUpdated, setLastUpdated] = useState(null);
 
     const [summary, setSummary]     = useState({ totalVisits: 0, totalInstalls: 0 });
-    const [visits, setVisits]       = useState([]);   // raw docs, last FETCH_DAYS_BACK days
-    const [installs, setInstalls]   = useState([]);   // raw docs, last FETCH_DAYS_BACK days
+    const [visits, setVisits]       = useState([]);
+    const [installs, setInstalls]   = useState([]);
     const [rangeDays, setRangeDays] = useState(30);
     const [compareEnabled, setCompareEnabled] = useState(false);
+
+    // Platform-wide totals from /admin/stats
+    const [platformStats, setPlatformStats] = useState({
+        totalUsers: 0,
+        totalShops: 0,      // ALL shops (active + inactive)
+        activeShops: 0,     // Only active shops
+        totalHouses: 0,
+        activeHouses: 0,
+        totalJobs: 0,
+        activeJobs: 0,
+        verifiedShops: 0,
+        unverifiedShops: 0,
+        recentShops: 0,
+        usersByRole: { regular: 0, admin: 0 },
+    });
 
     const fetchData = useCallback(async (isRefresh = false) => {
         isRefresh ? setRefreshing(true) : setLoading(true);
@@ -343,15 +364,25 @@ export default function Dashboard() {
             since.setDate(since.getDate() - FETCH_DAYS_BACK);
             const sinceTs = Timestamp.fromDate(since);
 
-            const [summarySnap, visitsSnap, installsSnap] = await Promise.all([
+            const [summarySnap, visitsSnap, installsSnap, statsResult] = await Promise.all([
                 getDoc(doc(db, 'analytics', 'summary')),
                 getDocs(query(collection(db, 'visits'), where('timestamp', '>=', sinceTs), orderBy('timestamp', 'asc'))),
                 getDocs(query(collection(db, 'installs'), where('timestamp', '>=', sinceTs), orderBy('timestamp', 'asc'))),
+                getStats().catch((statsErr) => {
+                    console.error('Dashboard: failed to load platform stats', statsErr);
+                    return null;
+                }),
             ]);
 
             setSummary(summarySnap.exists() ? summarySnap.data() : { totalVisits: 0, totalInstalls: 0 });
             setVisits(visitsSnap.docs.map((d) => d.data()));
             setInstalls(installsSnap.docs.map((d) => d.data()));
+            
+            if (statsResult?.stats) {
+                console.log('Platform stats received:', statsResult.stats);
+                setPlatformStats(statsResult.stats);
+            }
+            
             setLastUpdated(new Date());
         } catch (err) {
             console.error('Dashboard: failed to load analytics', err);
@@ -383,7 +414,8 @@ export default function Dashboard() {
             installMap[k] = (installMap[k] || 0) + 1;
         });
         return keys.map((k) => {
-            const d = new Date(k);
+            const [y, m, da] = k.split('-').map(Number);
+            const d = new Date(y, m - 1, da);
             return {
                 key: k,
                 label: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
@@ -393,11 +425,9 @@ export default function Dashboard() {
         });
     }, [visits, installs, rangeDays]);
 
-    /* ── Derived: the equal-length period immediately before the selected
-         range — used both for the trend % on stat cards and as a dashed
-         overlay on the daily chart when "compare" is switched on. ───────── */
+    /* ── Derived: the equal-length period immediately before the selected range ── */
     const prevPeriodDaily = useMemo(() => {
-        const keys = lastNDayKeys(rangeDays, rangeDays); // shifted back by rangeDays
+        const keys = lastNDayKeys(rangeDays, rangeDays);
         const keySet = new Set(keys);
         const visitMap = {};
         const installMap = {};
@@ -432,8 +462,6 @@ export default function Dashboard() {
         };
     }, [dailySeries, prevPeriodDaily]);
 
-    /* ── Merge current + previous period for the overlay chart, aligned by
-         relative day position rather than calendar date. ──────────────────── */
     const dailySeriesWithCompare = useMemo(() => {
         return dailySeries.map((d, i) => ({
             ...d,
@@ -442,7 +470,7 @@ export default function Dashboard() {
         }));
     }, [dailySeries, prevPeriodDaily]);
 
-    /* ── Derived: monthly series, last 12 months ──────────────────────────── */
+    /* ── Derived: monthly series ───────────────────────────────────────────── */
     const monthlySeries = useMemo(() => {
         const keys = lastNMonthKeys(12);
         const visitMap = {};
@@ -467,7 +495,7 @@ export default function Dashboard() {
         });
     }, [visits, installs]);
 
-    /* ── Derived: traffic sources (referrer domains), within selected range ── */
+    /* ── Derived: traffic sources ──────────────────────────────────────────── */
     const trafficSources = useMemo(() => {
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - rangeDays);
@@ -486,7 +514,7 @@ export default function Dashboard() {
         return data;
     }, [visits, rangeDays]);
 
-    /* ── Derived: device breakdown, within selected range ─────────────────── */
+    /* ── Derived: device breakdown ─────────────────────────────────────────── */
     const deviceBreakdown = useMemo(() => {
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - rangeDays);
@@ -504,7 +532,7 @@ export default function Dashboard() {
 
     const deviceTotal = useMemo(() => deviceBreakdown.reduce((s, d) => s + d.value, 0), [deviceBreakdown]);
 
-    /* ── Derived: traffic by hour of day (all fetched data) ────────────────── */
+    /* ── Derived: traffic by hour of day ───────────────────────────────────── */
     const hourlyTraffic = useMemo(() => {
         const counts = Array.from({ length: 24 }, () => 0);
         visits.forEach((v) => {
@@ -519,18 +547,17 @@ export default function Dashboard() {
         }));
     }, [visits]);
 
-    /* ── Derived: recent activity feed (merge visits + installs) ──────────── */
+    /* ── Derived: recent activity feed ────────────────────────────────────── */
     const recentActivity = useMemo(() => {
         const v = visits.map((d) => ({ type: 'visit', ...d, ts: toDate(d.timestamp) }));
         const i = installs.map((d) => ({ type: 'install', ...d, ts: toDate(d.timestamp) }));
         return [...v, ...i]
             .filter((e) => e.ts)
             .sort((a, b) => b.ts - a.ts)
-            .slice(0, 10);
+            .slice(0, RECENT_ACTIVITY_LIMIT);
     }, [visits, installs]);
 
-    /* ── Derived: quick today vs yesterday read-out (kept as a small caption,
-         the headline trend % now reflects the full selected period) ─────── */
+    /* ── Derived: today vs yesterday ──────────────────────────────────────── */
     const todayKey = dayKey(new Date());
     const yestKey  = dayKey(new Date(Date.now() - 86400000));
     const todayVisits     = dailySeries.find((d) => d.key === todayKey)?.visits || 0;
@@ -538,19 +565,16 @@ export default function Dashboard() {
     const todayInstalls     = dailySeries.find((d) => d.key === todayKey)?.installs || 0;
     const yesterdayInstalls = dailySeries.find((d) => d.key === yestKey)?.installs || 0;
 
-    const acceptedInstallsInRange = installs.filter((i) => i.outcome === 'accepted').length;
-    const conversionRate = visits.length > 0 ? (acceptedInstallsInRange / visits.length) * 100 : 0;
-
     const busiestHour = useMemo(() => {
         if (!hourlyTraffic.some((h) => h.value > 0)) return null;
         return hourlyTraffic.reduce((max, h) => (h.value > max.value ? h : max), hourlyTraffic[0]);
     }, [hourlyTraffic]);
 
-    /* ── Sparkline slices for stat cards (last 14 points of selected range) ── */
+    /* ── Sparkline slices ──────────────────────────────────────────────────── */
     const visitSparkline = useMemo(() => dailySeries.slice(-14).map((d) => ({ v: d.visits })), [dailySeries]);
     const installSparkline = useMemo(() => dailySeries.slice(-14).map((d) => ({ v: d.installs })), [dailySeries]);
 
-    /* ── CSV export of the raw events currently loaded ─────────────────────── */
+    /* ── CSV export ────────────────────────────────────────────────────────── */
     const exportCSV = () => {
         const rows = [['type', 'timestamp', 'page_or_outcome', 'device', 'referrer_or_source']];
         visits.forEach((v) => {
@@ -572,14 +596,14 @@ export default function Dashboard() {
     };
 
     return (
-        <Box sx={{ background: C.bg, minHeight: '100%', fontFamily: FONT }}>
+        <Box sx={{ background: '#ffffff', minHeight: '100%', fontFamily: FONT }}>
             {/* ── Sticky header / toolbar ──────────────────────────────────── */}
             <Box
                 sx={{
                     position: 'sticky',
                     top: 0,
                     zIndex: 5,
-                    background: 'rgba(244,246,251,0.85)',
+                    background: '#ffffff',
                     backdropFilter: 'blur(8px)',
                     borderBottom: `1px solid ${C.border}`,
                 }}
@@ -671,51 +695,92 @@ export default function Dashboard() {
                     </Alert>
                 )}
 
-                {/* ── Stat cards ───────────────────────────────────────────── */}
-                <Grid container spacing={2} sx={{ mb: 3 }}>
-                    <Grid item xs={12} sm={6} md={3}>
-                        <StatCard
-                            icon={<VisibilityIcon />}
-                            color={C.accent}
-                            loading={loading}
-                            value={formatNumber(periodComparison.curVisits)}
-                            label={`Visits — last ${rangeDays}d`}
-                            trend={periodComparison.visitTrend}
-                            trendLabel={`${formatNumber(todayVisits)} today vs ${formatNumber(yesterdayVisits)} yesterday`}
-                            sparkline={visitSparkline}
-                        />
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                        <StatCard
-                            icon={<InstallIcon />}
-                            color={C.purple}
-                            loading={loading}
-                            value={formatNumber(periodComparison.curInstalls)}
-                            label={`Installs — last ${rangeDays}d`}
-                            trend={periodComparison.installTrend}
-                            trendLabel={`${formatNumber(todayInstalls)} today vs ${formatNumber(yesterdayInstalls)} yesterday`}
-                            sparkline={installSparkline}
-                        />
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                        <StatCard
-                            icon={<ConversionIcon />}
-                            color={C.green}
-                            loading={loading}
-                            value={`${conversionRate.toFixed(1)}%`}
-                            label={`Visit → install rate (last ${rangeDays}d)`}
-                        />
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                        <StatCard
-                            icon={<TimeIcon />}
-                            color={C.amber}
-                            loading={loading}
-                            value={busiestHour ? busiestHour.label : '—'}
-                            label="Busiest hour for traffic"
-                        />
-                    </Grid>
-                </Grid>
+                {/* ── Platform overview: users / shops / houses / jobs ─────── */}
+                <Typography sx={{ fontFamily: FONT, fontWeight: 700, fontSize: 12.5, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.2 }}>
+                    Platform overview
+                </Typography>
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                        gap: 2,
+                        mb: 3,
+                    }}
+                >
+                    <StatCard
+                        icon={<UsersIcon />}
+                        color={C.accent}
+                        loading={loading}
+                        value={formatNumber(platformStats.totalUsers)}
+                        label="Total users"
+                        trendLabel={`${formatNumber(platformStats.usersByRole?.regular)} regular · ${formatNumber(platformStats.usersByRole?.admin)} admin`}
+                    />
+                    <StatCard
+                        icon={<ShopsIcon />}
+                        color={C.purple}
+                        loading={loading}
+                        value={formatNumber(platformStats.activeShops)}  
+                        label="Total shops"
+                        trendLabel={`${formatNumber(platformStats.verifiedShops)} verified · ${formatNumber(platformStats.activeShops - platformStats.verifiedShops)} unverified · ${formatNumber(platformStats.inactiveShops || 0)} inactive`}
+                    />
+                    <StatCard
+                        icon={<HousesIcon />}
+                        color={C.green}
+                        loading={loading}
+                        value={formatNumber(platformStats.activeHouses || platformStats.totalHouses)}  
+                        label="Houses listed"
+                        trendLabel={`${formatNumber(platformStats.totalHouses - (platformStats.activeHouses || 0))} inactive`}
+                    />
+                    <StatCard
+                        icon={<JobsIcon />}
+                        color={C.amber}
+                        loading={loading}
+                        value={formatNumber(platformStats.activeJobs || platformStats.totalJobs)}  
+                        label="Job listings"
+                        trendLabel={`${formatNumber(platformStats.totalJobs - (platformStats.activeJobs || 0))} inactive`}
+                    />
+                </Box>
+
+                {/* ── Stat cards (website analytics) ───────────────────────── */}
+                <Typography sx={{ fontFamily: FONT, fontWeight: 700, fontSize: 12.5, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1.2 }}>
+                    Website analytics
+                </Typography>
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+                        gap: 2,
+                        mb: 3,
+                    }}
+                >
+                    <StatCard
+                        icon={<VisibilityIcon />}
+                        color={C.accent}
+                        loading={loading}
+                        value={formatNumber(periodComparison.curVisits)}
+                        label={`Visits — last ${rangeDays}d`}
+                        trend={periodComparison.visitTrend}
+                        trendLabel={`${formatNumber(todayVisits)} today vs ${formatNumber(yesterdayVisits)} yesterday`}
+                        sparkline={visitSparkline}
+                    />
+                    <StatCard
+                        icon={<InstallIcon />}
+                        color={C.purple}
+                        loading={loading}
+                        value={formatNumber(periodComparison.curInstalls)}
+                        label={`Installs — last ${rangeDays}d`}
+                        trend={periodComparison.installTrend}
+                        trendLabel={`${formatNumber(todayInstalls)} today vs ${formatNumber(yesterdayInstalls)} yesterday`}
+                        sparkline={installSparkline}
+                    />
+                    <StatCard
+                        icon={<TimeIcon />}
+                        color={C.amber}
+                        loading={loading}
+                        value={busiestHour ? busiestHour.label : '—'}
+                        label="Busiest hour for traffic"
+                    />
+                </Box>
 
                 {/* ── Daily traffic chart ─────────────────────────────────── */}
                 <Grid container spacing={2} sx={{ mb: 2 }}>
