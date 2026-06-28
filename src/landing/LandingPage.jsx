@@ -333,27 +333,7 @@ function LandingPage() {
         </Box>
       </Dialog>
 
-      {/* ── Install Banner (fallback snackbar) ── */}
-      <Snackbar
-        open={showInstallBanner && !isAppInstalled}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{
-          '& .MuiSnackbarContent-root': {
-            background: '#fff',
-            color: '#111',
-            borderRadius: '14px',
-            fontFamily: '"Inter", sans-serif',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-            border: '1px solid #e8eaf2',
-            px: 2,
-            py: 1,
-            minWidth: 0,
-          }
-        }}
-      >
-       
-      </Snackbar>
-
+ 
       {/* ── Already Installed ── */}
       {isAppInstalled && (
         <Snackbar
