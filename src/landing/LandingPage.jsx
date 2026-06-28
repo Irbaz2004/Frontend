@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Snackbar, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Typography } from '@mui/material';
+import { Box, Snackbar, Button, Dialog, CircularProgress, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -13,10 +13,23 @@ import WhyForEasy from './WhyForEasy';
 import DownloadCTA from './DownloadCTA';
 import Footer from './Footer';
 import { trackPageVisit, trackAppInstall } from '../services/Analytics';
-import InstallMobileIcon from '@mui/icons-material/InstallMobile';
-import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from '@mui/icons-material/Download';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import SecurityOutlinedIcon from '@mui/icons-material/SecurityOutlined';
+import logo from '../assets/nearzologo.png';
 
 gsap.registerPlugin(ScrollTrigger);
+
+// Sparkle SVG component
+const Sparkle = ({ style }) => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={style}>
+    <path
+      d="M8 0L9.2 6.8L16 8L9.2 9.2L8 16L6.8 9.2L0 8L6.8 6.8L8 0Z"
+      fill="#325fec"
+      opacity="0.35"
+    />
+  </svg>
+);
 
 function LandingPage() {
   const navigate = useNavigate();
@@ -146,87 +159,136 @@ function LandingPage() {
         onClose={handleCloseInstallDialog}
         PaperProps={{
           sx: {
-            borderRadius: '16px',
-            maxWidth: 360,
-            width: '90%',
+            borderRadius: '24px',
+            maxWidth: 380,
+            width: '92%',
             p: 0,
             overflow: 'hidden',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+            background: '#ffffff',
+            boxShadow: '0 24px 80px rgba(50, 95, 236, 0.12), 0 8px 32px rgba(0,0,0,0.08)',
           }
         }}
+        BackdropProps={{
+          sx: { background: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(4px)' }
+        }}
       >
-        {/* Top accent bar */}
-        <Box sx={{ height: 4, background: '#325fec', width: '100%' }} />
+        {/* Close button */}
+        <Box
+          onClick={handleCloseInstallDialog}
+          sx={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: '#f1f3f9',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 10,
+            '&:hover': { background: '#e2e6f5' },
+            transition: 'background 0.2s',
+          }}
+        >
+          <Typography sx={{ fontSize: '14px', color: '#666', lineHeight: 1, fontWeight: 500 }}>✕</Typography>
+        </Box>
 
-        <DialogTitle sx={{ px: 3, pt: 2.5, pb: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Box
-                component="img"
-                src="/logo192.png"
-                alt="NearZO"
-                sx={{ width: 44, height: 44, borderRadius: '10px', border: '1px solid #eee' }}
-              />
-              <Box>
-                <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: '#111', fontFamily: '"Inter", sans-serif', lineHeight: 1.2 }}>
-                  Install NearZO
-                </Typography>
-                <Typography sx={{ fontSize: '0.75rem', color: '#888', fontFamily: '"Inter", sans-serif' }}>
-                  nearzo.in
-                </Typography>
-              </Box>
-            </Box>
-            <CloseIcon
-              onClick={handleCloseInstallDialog}
-              sx={{ fontSize: 20, color: '#aaa', cursor: 'pointer', mt: 0.5, '&:hover': { color: '#333' } }}
+        <Box sx={{ px: 3.5, pt: 4, pb: 3.5, textAlign: 'center' }}>
+
+          {/* Logo with sparkles + soft glow circle */}
+          <Box sx={{ position: 'relative', display: 'inline-block', mb: 2.5 }}>
+            {/* Glow circle behind logo */}
+            <Box sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 120,
+              height: 120,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(50,95,236,0.1) 0%, rgba(50,95,236,0.03) 60%, transparent 100%)',
+            }} />
+
+            {/* Sparkles */}
+            <Sparkle style={{ position: 'absolute', top: -4, left: 8, width: 12, height: 12 }} />
+            <Sparkle style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16 }} />
+            <Sparkle style={{ position: 'absolute', bottom: 4, left: 0, width: 10, height: 10 }} />
+            <Sparkle style={{ position: 'absolute', bottom: -2, right: 10, width: 14, height: 14 }} />
+            <Sparkle style={{ position: 'absolute', top: 14, left: -8, width: 8, height: 8 }} />
+            <Sparkle style={{ position: 'absolute', top: 10, right: -6, width: 9, height: 9 }} />
+
+            {/* Logo box */}
+            <Box
+              component="img"
+              src={logo}
+              alt="NearZO"
+              sx={{
+                width: 88,
+                height: 88,
+                borderRadius: '22px',
+                display: 'block',
+                position: 'relative',
+                zIndex: 1,
+                boxShadow: '0 4px 20px rgba(50,95,236,0.18), 0 2px 8px rgba(0,0,0,0.06)',
+                border: '1.5px solid rgba(50,95,236,0.08)',
+              }}
             />
           </Box>
-        </DialogTitle>
 
-        <DialogContent sx={{ px: 3, pt: 2, pb: 1 }}>
-          <Typography sx={{ fontSize: '0.875rem', color: '#444', fontFamily: '"Inter", sans-serif', lineHeight: 1.6 }}>
-            Add NearZO to your home screen for quick access — discover nearby shops, jobs, rentals & services instantly.
+          {/* Title */}
+          <Typography sx={{
+            fontWeight: 800,
+            fontSize: '1.6rem',
+            color: '#0a0a0a',
+            fontFamily: '"Inter", sans-serif',
+            lineHeight: 1.2,
+            mb: 1,
+            letterSpacing: '-0.02em',
+          }}>
+            Install NearZO App
           </Typography>
 
-          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-            {[
-              'Works offline, loads faster',
-              'Push notifications for updates',
-              'Full-screen native experience',
-            ].map((point) => (
-              <Box key={point} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{
-                  width: 18, height: 18, borderRadius: '50%',
-                  background: '#eef1fd', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                }}>
-                  <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: '#325fec' }} />
-                </Box>
-                <Typography sx={{ fontSize: '0.8rem', color: '#555', fontFamily: '"Inter", sans-serif' }}>
-                  {point}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </DialogContent>
+          {/* Subtitle */}
+          <Typography sx={{
+            fontSize: '0.95rem',
+            color: '#8a8fa8',
+            fontFamily: '"Inter", sans-serif',
+            lineHeight: 1.5,
+            mb: 3.5,
+          }}>
+            Get the best local experience.<br />
+            Faster, easier and better.
+          </Typography>
 
-        <DialogActions sx={{ px: 3, pb: 3, pt: 2, flexDirection: 'column', gap: 1, alignItems: 'stretch' }}>
+          {/* Install Button */}
           <Button
             onClick={handleInstall}
             variant="contained"
             fullWidth
             disabled={isInstalling}
             disableElevation
+            startIcon={!isInstalling && <DownloadIcon sx={{ fontSize: '1.1rem' }} />}
             sx={{
               background: '#325fec',
               color: '#fff',
-              borderRadius: '10px',
-              py: 1.25,
+              borderRadius: '14px',
+              py: 1.6,
               fontFamily: '"Inter", sans-serif',
-              fontWeight: 600,
-              fontSize: '0.9rem',
+              fontWeight: 700,
+              fontSize: '1rem',
               textTransform: 'none',
-              '&:hover': { background: '#2a52d4' },
+              letterSpacing: '-0.01em',
+              mb: 1.5,
+              '&:hover': {
+                background: '#2a52d4',
+                transform: 'translateY(-1px)',
+                boxShadow: '0 8px 24px rgba(50,95,236,0.35)',
+              },
+              '&:active': { transform: 'translateY(0)' },
               '&:disabled': { background: '#a0b4f7', color: '#fff' },
+              transition: 'all 0.2s ease',
             }}
           >
             {isInstalling ? (
@@ -235,29 +297,49 @@ function LandingPage() {
                 <span>Installing…</span>
               </Box>
             ) : (
-              'Add to Home Screen'
+              'Install App'
             )}
           </Button>
+
+          {/* Not Now Button */}
           <Button
             onClick={handleCloseInstallDialog}
             fullWidth
             disableElevation
+            startIcon={<InfoOutlinedIcon sx={{ fontSize: '1rem', color: '#aaa' }} />}
             sx={{
-              color: '#999',
+              color: '#555',
               fontFamily: '"Inter", sans-serif',
               fontWeight: 500,
-              fontSize: '0.82rem',
+              fontSize: '0.95rem',
               textTransform: 'none',
-              py: 0.5,
-              '&:hover': { color: '#333', background: 'transparent' },
+              borderRadius: '14px',
+              py: 1.4,
+              border: '1.5px solid #e8eaf2',
+              mb: 2.5,
+              '&:hover': { background: '#f7f8fc', border: '1.5px solid #d0d4e8' },
+              transition: 'all 0.2s ease',
             }}
           >
-            Not now
+            Not Now
           </Button>
-        </DialogActions>
+
+          {/* Security note */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75 }}>
+            <SecurityOutlinedIcon sx={{ fontSize: '0.85rem', color: '#bbb' }} />
+            <Typography sx={{
+              fontSize: '0.75rem',
+              color: '#bbb',
+              fontFamily: '"Inter", sans-serif',
+            }}>
+              Safe & Secure. No data is collected.
+            </Typography>
+          </Box>
+
+        </Box>
       </Dialog>
 
-      {/* ── Install Banner (fallback) ── */}
+      {/* ── Install Banner (fallback snackbar) ── */}
       <Snackbar
         open={showInstallBanner && !isAppInstalled}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
@@ -265,10 +347,10 @@ function LandingPage() {
           '& .MuiSnackbarContent-root': {
             background: '#fff',
             color: '#111',
-            borderRadius: '12px',
+            borderRadius: '14px',
             fontFamily: '"Inter", sans-serif',
             boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-            border: '1px solid #e8e8e8',
+            border: '1px solid #e8eaf2',
             px: 2,
             py: 1,
             minWidth: 0,
@@ -338,7 +420,7 @@ function LandingPage() {
               fontFamily: '"Inter", sans-serif',
               border: '1px solid #e0e7ff',
               boxShadow: '0 4px 20px rgba(50,95,236,0.1)',
-              fontWeight: 500,
+              fontWeight: 600,
               fontSize: '0.85rem',
             }
           }}

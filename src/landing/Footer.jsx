@@ -708,7 +708,7 @@ const Footer = () => {
                         }}>
                             Experience NearZO on your mobile.
                         </Typography>
-                        <Box
+                        {/* <Box
                             onClick={handleInstall}
                             sx={{
                                 display: 'inline-flex',
@@ -743,7 +743,7 @@ const Footer = () => {
                             }}>
                                 {getDownloadLabel()}
                             </Typography>
-                        </Box>
+                        </Box> */}
                     </Box>
                 </Container>
 
