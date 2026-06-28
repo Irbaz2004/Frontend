@@ -219,8 +219,8 @@ function LandingPage() {
               src={logo}
               alt="NearZO"
               sx={{
-                width: 100,
-                height: 60,
+                width: 120,
+                height: 50,
                 // borderRadius: '22px',
                 display: 'block',
                 position: 'relative',
@@ -239,7 +239,6 @@ function LandingPage() {
             fontFamily: '"Inter", sans-serif',
             lineHeight: 1.2,
             mb: 1,
-            letterSpacing: '-0.02em',
           }}>
             Install NearZO App
           </Typography>
