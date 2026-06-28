@@ -153,8 +153,7 @@ function LandingPage() {
       <DownloadCTA />
       <Footer />
 
-      {/* ── Install Dialog ── */}
-      <Dialog
+      {/* <Dialog
         open={installDialogOpen}
         onClose={handleCloseInstallDialog}
         PaperProps={{
@@ -165,14 +164,12 @@ function LandingPage() {
             p: 0,
             overflow: 'hidden',
             background: '#ffffff',
-            boxShadow: '0 24px 80px rgba(50, 95, 236, 0.12), 0 8px 32px rgba(0,0,0,0.08)',
           }
         }}
         BackdropProps={{
           sx: { background: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(4px)' }
         }}
       >
-        {/* Close button */}
         <Box
           onClick={handleCloseInstallDialog}
           sx={{
@@ -197,9 +194,7 @@ function LandingPage() {
 
         <Box sx={{ px: 3.5, pt: 4, pb: 3.5, textAlign: 'center' }}>
 
-          {/* Logo with sparkles + soft glow circle */}
           <Box sx={{ position: 'relative', display: 'inline-block', mb: 2.5 }}>
-            {/* Glow circle behind logo */}
             <Box sx={{
               position: 'absolute',
               top: '50%',
@@ -210,10 +205,6 @@ function LandingPage() {
               borderRadius: '50%',
               background: 'radial-gradient(circle, rgba(50,95,236,0.1) 0%, rgba(50,95,236,0.03) 60%, transparent 100%)',
             }} />
-
-            {/* Sparkles */}
-          
-            {/* Logo box */}
             <Box
               component="img"
               src={logo}
@@ -221,17 +212,13 @@ function LandingPage() {
               sx={{
                 width: 120,
                 height: 50,
-                // borderRadius: '22px',
                 display: 'block',
                 position: 'relative',
                 zIndex: 1,
-                // boxShadow: '0 4px 20px rgba(50,95,236,0.18), 0 2px 8px rgba(0,0,0,0.06)',
-                // border: '1.5px solid rgba(50,95,236,0.08)',
               }}
             />
           </Box>
 
-          {/* Title */}
           <Typography sx={{
             fontWeight: 800,
             fontSize: '1.6rem',
@@ -243,7 +230,6 @@ function LandingPage() {
             Install NearZO App
           </Typography>
 
-          {/* Subtitle */}
           <Typography sx={{
             fontSize: '0.95rem',
             color: '#8a8fa8',
@@ -255,7 +241,6 @@ function LandingPage() {
             Faster, easier and better.
           </Typography>
 
-          {/* Install Button */}
           <Button
             onClick={handleInstall}
             variant="contained"
@@ -294,7 +279,6 @@ function LandingPage() {
             )}
           </Button>
 
-          {/* Not Now Button */}
           <Button
             onClick={handleCloseInstallDialog}
             fullWidth
@@ -317,20 +301,9 @@ function LandingPage() {
             Not Now
           </Button>
 
-          {/* Security note */}
-          {/* <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75 }}>
-            <SecurityOutlinedIcon sx={{ fontSize: '0.85rem', color: '#bbb' }} />
-            <Typography sx={{
-              fontSize: '0.75rem',
-              color: '#bbb',
-              fontFamily: '"Inter", sans-serif',
-            }}>
-              Safe & Secure. No data is collected.
-            </Typography>
-          </Box> */}
 
         </Box>
-      </Dialog>
+      </Dialog> */}
 
  
       {/* ── Already Installed ── */}
