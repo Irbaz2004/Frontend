@@ -212,27 +212,21 @@ function LandingPage() {
             }} />
 
             {/* Sparkles */}
-            <Sparkle style={{ position: 'absolute', top: -4, left: 8, width: 12, height: 12 }} />
-            <Sparkle style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16 }} />
-            <Sparkle style={{ position: 'absolute', bottom: 4, left: 0, width: 10, height: 10 }} />
-            <Sparkle style={{ position: 'absolute', bottom: -2, right: 10, width: 14, height: 14 }} />
-            <Sparkle style={{ position: 'absolute', top: 14, left: -8, width: 8, height: 8 }} />
-            <Sparkle style={{ position: 'absolute', top: 10, right: -6, width: 9, height: 9 }} />
-
+          
             {/* Logo box */}
             <Box
               component="img"
               src={logo}
               alt="NearZO"
               sx={{
-                width: 120,
-                height: 80,
+                width: 100,
+                height: 60,
                 // borderRadius: '22px',
                 display: 'block',
                 position: 'relative',
                 zIndex: 1,
-                boxShadow: '0 4px 20px rgba(50,95,236,0.18), 0 2px 8px rgba(0,0,0,0.06)',
-                border: '1.5px solid rgba(50,95,236,0.08)',
+                // boxShadow: '0 4px 20px rgba(50,95,236,0.18), 0 2px 8px rgba(0,0,0,0.06)',
+                // border: '1.5px solid rgba(50,95,236,0.08)',
               }}
             />
           </Box>
