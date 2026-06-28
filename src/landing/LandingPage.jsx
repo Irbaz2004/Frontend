@@ -27,61 +27,34 @@ function LandingPage() {
   const [isAppInstalled, setIsAppInstalled] = useState(false);
 
   useEffect(() => {
-    // Refresh ScrollTrigger after all components are mounted
-    setTimeout(() => {
-      ScrollTrigger.refresh();
-    }, 500);
-
-    // Clean up all scroll triggers on unmount
-    return () => {
-      ScrollTrigger.getAll().forEach(st => st.kill());
-    };
+    setTimeout(() => { ScrollTrigger.refresh(); }, 500);
+    return () => { ScrollTrigger.getAll().forEach(st => st.kill()); };
   }, []);
 
-  // ── Track every landing-page visit ──────────────────────────────────────
-  useEffect(() => {
-    trackPageVisit('landing');
-  }, []);
+  useEffect(() => { trackPageVisit('landing'); }, []);
 
-  // Check if app is already installed
   useEffect(() => {
-    // Check if running in standalone mode (already installed)
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsAppInstalled(true);
     }
-
-    // Listen for display mode changes
     const mediaQuery = window.matchMedia('(display-mode: standalone)');
-    const handleDisplayModeChange = (e) => {
-      setIsAppInstalled(e.matches);
-    };
+    const handleDisplayModeChange = (e) => setIsAppInstalled(e.matches);
     mediaQuery.addEventListener('change', handleDisplayModeChange);
-    
-    return () => {
-      mediaQuery.removeEventListener('change', handleDisplayModeChange);
-    };
+    return () => mediaQuery.removeEventListener('change', handleDisplayModeChange);
   }, []);
 
   useEffect(() => {
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      // Always show the install dialog when the page loads
-      setTimeout(() => {
-        setInstallDialogOpen(true);
-      }, 1000); // Show after 1 second for better UX
+      setTimeout(() => { setInstallDialogOpen(true); }, 1000);
     };
     window.addEventListener('beforeinstallprompt', handler);
 
-    // If the event doesn't fire (e.g., already installed or not supported),
-    // show a fallback install option
     const timeout = setTimeout(() => {
       if (!deferredPrompt && !isAppInstalled) {
-        // Check if it's a mobile device
         const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-        if (isMobile) {
-          setInstallDialogOpen(true);
-        }
+        if (isMobile) setInstallDialogOpen(true);
       }
     }, 3000);
 
@@ -93,30 +66,22 @@ function LandingPage() {
 
   const handleInstall = async () => {
     if (!deferredPrompt) {
-      // Fallback for browsers that don't support beforeinstallprompt
-      alert('To install the app, please select "Add to Home Screen" from your browser menu.');
+      alert('To install the app, tap the browser menu and select "Add to Home Screen".');
       setInstallDialogOpen(false);
       return;
     }
-
     setIsInstalling(true);
     setInstallDialogOpen(false);
-    
     try {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       trackAppInstall(outcome, 'landing_dialog');
-      
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
         setShowInstallBanner(false);
         setIsAppInstalled(true);
-        // Show success message
-        setTimeout(() => {
-          setShowInstallBanner(true);
-        }, 500);
+        setTimeout(() => { setShowInstallBanner(true); }, 500);
       } else {
-        // User declined, show the banner as fallback
         setShowInstallBanner(true);
       }
     } catch (error) {
@@ -128,26 +93,16 @@ function LandingPage() {
 
   const handleCloseInstallDialog = () => {
     setInstallDialogOpen(false);
-    // Show the banner as fallback
     setTimeout(() => {
-      if (!isAppInstalled) {
-        setShowInstallBanner(true);
-      }
+      if (!isAppInstalled) setShowInstallBanner(true);
     }, 500);
   };
 
-  const handleCloseBanner = () => {
-    setShowInstallBanner(false);
-  };
+  const handleCloseBanner = () => setShowInstallBanner(false);
 
-  // Expose triggers to child components
   useEffect(() => {
     window.__triggerPWAInstall = async () => {
-      if (isAppInstalled) {
-        alert('App is already installed!');
-        return;
-      }
-      
+      if (isAppInstalled) { alert('App is already installed!'); return; }
       if (deferredPrompt) {
         setIsInstalling(true);
         try {
@@ -168,9 +123,7 @@ function LandingPage() {
         setInstallDialogOpen(true);
       }
     };
-
     window.__nearzoNavigate = () => navigate('/app/login');
-
     return () => {
       delete window.__triggerPWAInstall;
       delete window.__nearzoNavigate;
@@ -187,186 +140,183 @@ function LandingPage() {
       <DownloadCTA />
       <Footer />
 
-      {/* Install Dialog */}
+      {/* ── Install Dialog ── */}
       <Dialog
         open={installDialogOpen}
         onClose={handleCloseInstallDialog}
         PaperProps={{
           sx: {
-            borderRadius: 4,
-            maxWidth: 400,
+            borderRadius: '16px',
+            maxWidth: 360,
             width: '90%',
-            padding: 2,
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-            color: '#fff',
+            p: 0,
+            overflow: 'hidden',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
           }
         }}
       >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          padding: '16px 24px',
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <InstallMobileIcon sx={{ fontSize: 32, color: '#4FC3F7' }} />
-            <Typography variant="h6" sx={{ fontWeight: 700, fontFamily: '"Outfit", sans-serif' }}>
-              Install NearZO
-            </Typography>
-          </Box>
-          <CloseIcon 
-            onClick={handleCloseInstallDialog}
-            sx={{ 
-              cursor: 'pointer', 
-              '&:hover': { color: '#4FC3F7' } 
-            }}
-          />
-        </DialogTitle>
-        
-        <DialogContent>
-          <Box sx={{ textAlign: 'center', py: 2 }}>
-            <Box 
-              component="img" 
-              src="/logo192.png" 
-              alt="NearZO Logo"
-              sx={{ 
-                width: 80, 
-                height: 80, 
-                mb: 2,
-                borderRadius: 2,
-                boxShadow: '0 8px 32px rgba(79, 195, 247, 0.3)'
-              }}
-            />
-            <Typography variant="body1" sx={{ mb: 2, fontFamily: '"Outfit", sans-serif' }}>
-              Get the full NearZO experience with:
-            </Typography>
-            <Box sx={{ textAlign: 'left', pl: 2 }}>
-              <Typography variant="body2" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span style={{ color: '#4FC3F7' }}>✓</span> Offline access to your documents
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span style={{ color: '#4FC3F7' }}>✓</span> Push notifications
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span style={{ color: '#4FC3F7' }}>✓</span> Faster loading times
-              </Typography>
-              <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span style={{ color: '#4FC3F7' }}>✓</span> Native app-like experience
-              </Typography>
+        {/* Top accent bar */}
+        <Box sx={{ height: 4, background: '#325fec', width: '100%' }} />
+
+        <DialogTitle sx={{ px: 3, pt: 2.5, pb: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box
+                component="img"
+                src="/logo192.png"
+                alt="NearZO"
+                sx={{ width: 44, height: 44, borderRadius: '10px', border: '1px solid #eee' }}
+              />
+              <Box>
+                <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: '#111', fontFamily: '"Inter", sans-serif', lineHeight: 1.2 }}>
+                  Install NearZO
+                </Typography>
+                <Typography sx={{ fontSize: '0.75rem', color: '#888', fontFamily: '"Inter", sans-serif' }}>
+                  nearzo.in
+                </Typography>
+              </Box>
             </Box>
+            <CloseIcon
+              onClick={handleCloseInstallDialog}
+              sx={{ fontSize: 20, color: '#aaa', cursor: 'pointer', mt: 0.5, '&:hover': { color: '#333' } }}
+            />
+          </Box>
+        </DialogTitle>
+
+        <DialogContent sx={{ px: 3, pt: 2, pb: 1 }}>
+          <Typography sx={{ fontSize: '0.875rem', color: '#444', fontFamily: '"Inter", sans-serif', lineHeight: 1.6 }}>
+            Add NearZO to your home screen for quick access — discover nearby shops, jobs, rentals & services instantly.
+          </Typography>
+
+          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            {[
+              'Works offline, loads faster',
+              'Push notifications for updates',
+              'Full-screen native experience',
+            ].map((point) => (
+              <Box key={point} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{
+                  width: 18, height: 18, borderRadius: '50%',
+                  background: '#eef1fd', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                }}>
+                  <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: '#325fec' }} />
+                </Box>
+                <Typography sx={{ fontSize: '0.8rem', color: '#555', fontFamily: '"Inter", sans-serif' }}>
+                  {point}
+                </Typography>
+              </Box>
+            ))}
           </Box>
         </DialogContent>
-        
-        <DialogActions sx={{ padding: '16px 24px', flexDirection: 'column', gap: 1 }}>
-          <Button 
+
+        <DialogActions sx={{ px: 3, pb: 3, pt: 2, flexDirection: 'column', gap: 1, alignItems: 'stretch' }}>
+          <Button
             onClick={handleInstall}
             variant="contained"
             fullWidth
             disabled={isInstalling}
+            disableElevation
             sx={{
-              background: 'linear-gradient(135deg, #4FC3F7 0%, #2196F3 100%)',
+              background: '#325fec',
               color: '#fff',
-              borderRadius: 3,
-              py: 1.5,
-              fontFamily: '"Outfit", sans-serif',
+              borderRadius: '10px',
+              py: 1.25,
+              fontFamily: '"Inter", sans-serif',
               fontWeight: 600,
-              fontSize: '1rem',
+              fontSize: '0.9rem',
               textTransform: 'none',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #45B5E8 0%, #1976D2 100%)',
-                transform: 'scale(1.02)',
-                transition: 'all 0.2s'
-              }
+              '&:hover': { background: '#2a52d4' },
+              '&:disabled': { background: '#a0b4f7', color: '#fff' },
             }}
           >
             {isInstalling ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <CircularProgress size={24} sx={{ color: '#fff' }} />
-                <span>Installing NearZO...</span>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <CircularProgress size={18} sx={{ color: '#fff' }} />
+                <span>Installing…</span>
               </Box>
             ) : (
-              'Install NearZO'
+              'Add to Home Screen'
             )}
           </Button>
-          <Button 
+          <Button
             onClick={handleCloseInstallDialog}
-            variant="text"
             fullWidth
+            disableElevation
             sx={{
-              color: '#888',
-              fontFamily: '"Outfit", sans-serif',
+              color: '#999',
+              fontFamily: '"Inter", sans-serif',
+              fontWeight: 500,
+              fontSize: '0.82rem',
               textTransform: 'none',
-              '&:hover': { color: '#fff' }
+              py: 0.5,
+              '&:hover': { color: '#333', background: 'transparent' },
             }}
           >
-            Maybe Later
+            Not now
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Install Banner - Shows when dialog is closed or user declines */}
+      {/* ── Install Banner (fallback) ── */}
       <Snackbar
         open={showInstallBanner && !isAppInstalled}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         sx={{
           '& .MuiSnackbarContent-root': {
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-            color: '#fff',
-            borderRadius: 3,
-            fontFamily: '"Outfit", sans-serif',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-            border: '1px solid rgba(79, 195, 247, 0.2)',
-            padding: '12px 20px',
+            background: '#fff',
+            color: '#111',
+            borderRadius: '12px',
+            fontFamily: '"Inter", sans-serif',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+            border: '1px solid #e8e8e8',
+            px: 2,
+            py: 1,
+            minWidth: 0,
           }
         }}
       >
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          width: '100%',
-          gap: 2,
-          flexWrap: 'wrap'
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <InstallMobileIcon sx={{ color: '#4FC3F7' }} />
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-              Get the full NearZO experience!
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box
+              component="img"
+              src="/logo192.png"
+              alt="NearZO"
+              sx={{ width: 32, height: 32, borderRadius: '8px', border: '1px solid #eee' }}
+            />
+            <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#111', fontFamily: '"Inter", sans-serif' }}>
+              Install NearZO
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button 
-              color="primary" 
-              size="small" 
-              variant="contained" 
+            <Button
+              size="small"
+              variant="contained"
               onClick={handleInstall}
               disabled={isInstalling}
+              disableElevation
               sx={{
-                borderRadius: 2,
+                background: '#325fec',
+                color: '#fff',
+                borderRadius: '8px',
                 textTransform: 'none',
                 fontWeight: 600,
-                fontFamily: '"Outfit", sans-serif',
-                background: 'linear-gradient(135deg, #4FC3F7, #2196F3)'
+                fontFamily: '"Inter", sans-serif',
+                fontSize: '0.8rem',
+                px: 2,
+                '&:hover': { background: '#2a52d4' },
               }}
             >
-              {isInstalling ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CircularProgress size={16} sx={{ color: '#fff' }} />
-                  <span>Installing...</span>
-                </Box>
-              ) : (
-                'Install Now'
-              )}
+              {isInstalling ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : 'Install'}
             </Button>
-            <Button 
-              color="inherit" 
-              size="small" 
+            <Button
+              size="small"
               onClick={handleCloseBanner}
               sx={{
-                color: '#888',
+                color: '#999',
                 textTransform: 'none',
-                fontFamily: '"Outfit", sans-serif',
-                '&:hover': { color: '#fff' }
+                fontFamily: '"Inter", sans-serif',
+                fontSize: '0.8rem',
+                '&:hover': { color: '#333', background: 'transparent' },
               }}
             >
               Dismiss
@@ -375,21 +325,24 @@ function LandingPage() {
         </Box>
       </Snackbar>
 
-      {/* Already Installed Message */}
+      {/* ── Already Installed ── */}
       {isAppInstalled && (
         <Snackbar
           open={true}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
           sx={{
             '& .MuiSnackbarContent-root': {
-              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-              color: '#4FC3F7',
-              borderRadius: 3,
-              fontFamily: '"Outfit", sans-serif',
-              border: '1px solid rgba(79, 195, 247, 0.3)',
+              background: '#fff',
+              color: '#325fec',
+              borderRadius: '12px',
+              fontFamily: '"Inter", sans-serif',
+              border: '1px solid #e0e7ff',
+              boxShadow: '0 4px 20px rgba(50,95,236,0.1)',
+              fontWeight: 500,
+              fontSize: '0.85rem',
             }
           }}
-          message="✅ NearZO is installed! Enjoy the full experience."
+          message="✅ NearZO is installed!"
         />
       )}
     </Box>

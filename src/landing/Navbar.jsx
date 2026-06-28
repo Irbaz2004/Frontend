@@ -135,7 +135,7 @@ const Navbar = () => {
                             }}
                         />
                     </Box>
-
+{/* 
                     <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                         <Button
                             variant="contained"
@@ -155,7 +155,7 @@ const Navbar = () => {
                         >
                             Download Now
                         </Button>
-                    </Box>
+                    </Box> */}
                 </Toolbar>
             </AppBar>
         </HideOnScrollDown>

@@ -179,6 +179,15 @@ const GLOBAL_STYLE = `
   .modal-sheet.closing {
     animation: slideDown .24s cubic-bezier(0.7, 0, 0.84, 0) forwards;
   }
+  .modal-sheet.full-screen {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 
   @media (min-width: 640px) {
     .modal-overlay { align-items: center; padding: 16px; }
@@ -188,6 +197,12 @@ const GLOBAL_STYLE = `
       margin-bottom: 0;
       padding-bottom: 0;
       margin-top: 0;
+    }
+    .modal-overlay.full-screen { align-items: stretch; padding: 0; }
+    .modal-sheet.full-screen {
+      border-radius: 0;
+      max-height: 100dvh;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
   }
 
@@ -389,6 +404,19 @@ const Icon = ({ name, size = 20, color, style = {} }) => (
     <span className="mi" style={{ fontSize: size, width: size, height: size, color, ...style }}>{name}</span>
 );
 
+const getCategoryIconName = (name = '') => {
+    const text = name.toLowerCase();
+    if (text.includes('food') || text.includes('restaurant') || text.includes('hotel')) return 'restaurant';
+    if (text.includes('grocery') || text.includes('mart') || text.includes('store')) return 'local_grocery_store';
+    if (text.includes('medical') || text.includes('pharmacy') || text.includes('health')) return 'local_pharmacy';
+    if (text.includes('salon') || text.includes('beauty')) return 'content_cut';
+    if (text.includes('cloth') || text.includes('fashion')) return 'checkroom';
+    if (text.includes('mobile') || text.includes('phone')) return 'smartphone';
+    if (text.includes('repair') || text.includes('service')) return 'build';
+    if (text.includes('education') || text.includes('school')) return 'school';
+    return 'storefront';
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PRIMITIVES
 // ─────────────────────────────────────────────────────────────────────────────
@@ -560,7 +588,7 @@ const Toggle = ({ checked, onChange, label }) => (
 // ─────────────────────────────────────────────────────────────────────────────
 // MODAL
 // ─────────────────────────────────────────────────────────────────────────────
-const Modal = ({ open, onClose, title, children, footer }) => {
+const Modal = ({ open, onClose, title, children, footer, fullScreen = false }) => {
     const [rendered, setRendered] = useState(open);
     const [closing, setClosing] = useState(false);
     const closeTimer = useRef(null);
@@ -586,14 +614,14 @@ const Modal = ({ open, onClose, title, children, footer }) => {
 
     if (!rendered) return null;
     return (
-        <div className={`modal-overlay${closing ? ' closing' : ''}`} onClick={onClose}>
+        <div className={`modal-overlay${fullScreen ? ' full-screen' : ''}${closing ? ' closing' : ''}`} onClick={onClose}>
             <div
-                className={`modal-sheet${closing ? ' closing' : ''}`}
+                className={`modal-sheet${fullScreen ? ' full-screen' : ''}${closing ? ' closing' : ''}`}
                 onClick={e => e.stopPropagation()}
                 style={{
-                    marginBottom: window.innerWidth <= 768 ? '0' : 0,
-                    maxHeight: window.innerWidth <= 768 ? '83dvh' : '75dvh',
-                    marginTop: window.innerWidth <= 768 ? '60px' : '0',
+                    marginBottom: fullScreen ? 0 : (window.innerWidth <= 768 ? '0' : 0),
+                    maxHeight: fullScreen ? '100dvh' : (window.innerWidth <= 768 ? '83dvh' : '75dvh'),
+                    marginTop: fullScreen ? 0 : (window.innerWidth <= 768 ? '60px' : '0'),
                 }}
             >
                 <div style={{ padding: '10px 0 0', flexShrink: 0 }}>
@@ -781,10 +809,10 @@ const NotificationsPanel = ({ isOpen, onClose, onUnreadCountChange }) => {
 
     const getNotificationIcon = (type) => {
         switch (type) {
-            case 'new_shop': return '🏪';
-            case 'new_house': return '🏠';
-            case 'new_job': return '💼';
-            default: return '📢';
+            case 'new_shop': return 'storefront';
+            case 'new_house': return 'home';
+            case 'new_job': return 'work';
+            default: return 'campaign';
         }
     };
 
@@ -926,7 +954,7 @@ const NotificationsPanel = ({ isOpen, onClose, onUnreadCountChange }) => {
                             padding: '60px 20px',
                             color: '#94A3B8'
                         }}>
-                            <div style={{ fontSize: 48, marginBottom: 12 }}>🔔</div>
+                            <Icon name="notifications" size={48} color="#CBD5E1" style={{ marginBottom: 12 }} />
                             <div style={{ fontSize: 16, fontWeight: 600, color: '#0F172A' }}>
                                 No notifications
                             </div>
@@ -969,9 +997,8 @@ const NotificationsPanel = ({ isOpen, onClose, onUnreadCountChange }) => {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     flexShrink: 0,
-                                    fontSize: 22
                                 }}>
-                                    {getNotificationIcon(notification.type)}
+                                    <Icon name={getNotificationIcon(notification.type)} size={22} color={getNotificationColor(notification.type)} />
                                 </div>
 
                                 {/* Content */}
@@ -1451,6 +1478,9 @@ export default function Profile() {
     const [unreadCount, setUnreadCount] = useState(0);
 
     const [modal, setModal] = useState('');
+    const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+    const [keyItemsModalOpen, setKeyItemsModalOpen] = useState(false);
+    const [pendingKeyItems, setPendingKeyItems] = useState([]);
     const [editingShop, setEditingShop] = useState(null);
     const [editingHouse, setEditingHouse] = useState(null);
     const [editingJob, setEditingJob] = useState(null);
@@ -2142,6 +2172,29 @@ export default function Profile() {
 
     const handleRemoveKeyword = (kw) => setShopForm(p => ({ ...p, keywords: p.keywords.filter(k => k !== kw) }));
 
+    const handleSelectCategory = (categoryName) => {
+        setShopForm(p => ({ ...p, category: categoryName, keywords: [] }));
+        setCategoryModalOpen(false);
+    };
+
+    const handleOpenKeyItemsModal = () => {
+        if (!shopForm.category) {
+            showToast('Select a category first', 'error');
+            return;
+        }
+        if (!selectedCategoryItems.length) {
+            showToast('No key items available for this category', 'error');
+            return;
+        }
+        setPendingKeyItems(shopForm.keywords);
+        setKeyItemsModalOpen(true);
+    };
+
+    const handleAddSelectedKeyItems = () => {
+        setShopForm(p => ({ ...p, keywords: pendingKeyItems }));
+        setKeyItemsModalOpen(false);
+    };
+
     const shopFormFields = () => (
         <FormGrid>
             <FormItem full>
@@ -2149,26 +2202,62 @@ export default function Profile() {
                     onChange={e => setShopForm(p => ({ ...p, business_name: e.target.value }))} />
             </FormItem>
             <FormItem full>
-                <SelectField label="Category *" value={shopForm.category}
-                    onChange={e => setShopForm(p => ({ ...p, category: e.target.value, keywords: [] }))}
-                    options={[{ value: '', label: 'Select Category' }, ...shopCategories.map(c => ({ value: c.name, label: c.name }))]} />
+                <FieldLabel>Category *</FieldLabel>
+                <button
+                    type="button"
+                    onClick={() => setCategoryModalOpen(true)}
+                    style={{
+                        width: '100%',
+                        minHeight: 44,
+                        padding: '10px 12px',
+                        borderRadius: 10,
+                        border: `1.5px solid ${shopForm.category ? '#325fec' : '#E2E8F5'}`,
+                        background: shopForm.category ? '#EEF4FF' : '#FAFBFE',
+                        color: shopForm.category ? '#0F172A' : '#94A3B8',
+                        fontFamily: 'var(--font)',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 10,
+                        textAlign: 'left'
+                    }}
+                >
+                    <span>{shopForm.category || 'Select Category'}</span>
+                    <Icon name="chevron_right" size={20} color="#64748B" />
+                </button>
             </FormItem>
 
-            {selectedCategoryItems.length > 0 && (
+            {shopForm.category && (
                 <FormItem full>
-                    <FieldLabel>Key Items — tap to select</FieldLabel>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                        {selectedCategoryItems.map(item => {
-                            const sel = shopForm.keywords.includes(item.item_name);
-                            return (
-                                <span key={item.id}
-                                    onClick={() => { if (!sel) setShopForm(p => ({ ...p, keywords: [...p.keywords, item.item_name] })); }}
-                                    style={{ padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${sel ? '#325fec' : '#E2E8F5'}`, background: sel ? '#EEF4FF' : '#F4F6FB', color: sel ? '#325fec' : '#334155', fontSize: 12, fontWeight: 500, cursor: 'pointer', transition: 'all .15s' }}>
-                                    {item.item_name}
-                                </span>
-                            );
-                        })}
-                    </div>
+                    <FieldLabel>Key Items</FieldLabel>
+                    <button
+                        type="button"
+                        onClick={handleOpenKeyItemsModal}
+                        style={{
+                            width: '100%',
+                            minHeight: 44,
+                            padding: '10px 12px',
+                            borderRadius: 10,
+                            border: '1.5px solid #325fec',
+                            background: '#EEF4FF',
+                            color: '#325fec',
+                            fontFamily: 'var(--font)',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                            textAlign: 'left'
+                        }}
+                    >
+                        <span>Add Key Items{shopForm.keywords.length ? ` (${shopForm.keywords.length})` : ''}</span>
+                        <Icon name="add" size={20} color="#325fec" />
+                    </button>
                 </FormItem>
             )}
 
@@ -2513,7 +2602,7 @@ export default function Profile() {
             </Modal>
 
             {/* Add Shop */}
-            <Modal open={modal === 'shop'} onClose={closeModal} title="Add New Shop"
+            <Modal open={modal === 'shop'} onClose={closeModal} title="Add New Shop" fullScreen
                 footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleCreateShop} loading={creatingShop} icon={<Icon name="storefront" size={15} color="#fff" />}>Create Shop</Btn></>}>
                 {shopFormFields()}
                 <div style={{ height: 12 }} />
@@ -2529,6 +2618,103 @@ export default function Profile() {
                         onAreaChange={v => setShopForm(p => ({ ...p, area: v }))}
                         onStateChange={v => setShopForm(p => ({ ...p, state: v }))}
                     />
+                </div>
+            </Modal>
+
+            <Modal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} title="Select Category" fullScreen>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
+                    {shopCategories.map(cat => (
+                        <button
+                            key={cat.id || cat.name}
+                            type="button"
+                            onClick={() => handleSelectCategory(cat.name)}
+                            style={{
+                                minHeight: 150,
+                                padding: 14,
+                                borderRadius: 14,
+                                border: `1.5px solid ${shopForm.category === cat.name ? '#325fec' : '#E2E8F5'}`,
+                                background: shopForm.category === cat.name ? '#EEF4FF' : '#fff',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                fontFamily: 'var(--font)',
+                                boxShadow: 'var(--shadow-sm)'
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                                <div style={{ width: 46, height: 46, borderRadius: 12, background: shopForm.category === cat.name ? '#325fec' : '#F0F3FA', color: shopForm.category === cat.name ? '#fff' : '#325fec', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>
+                                    {cat.icon || <Icon name="storefront" size={22} color={shopForm.category === cat.name ? '#fff' : '#325fec'} />}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>{cat.name}</div>
+                                        {shopForm.category === cat.name && <Icon name="check_circle" size={19} color="#325fec" />}
+                                    </div>
+                                    {cat.description && <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.45, marginTop: 4 }}>{cat.description}</div>}
+                                </div>
+                            </div>
+                            {cat.key_items?.length > 0 && (
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+                                    {cat.key_items.slice(0, 4).map(item => (
+                                        <span key={item.id || item.item_name} style={{ padding: '4px 9px', borderRadius: 99, background: '#F8FAFC', border: '1px solid #E2E8F5', color: '#334155', fontSize: 11, fontWeight: 600 }}>
+                                            {item.item_name}
+                                        </span>
+                                    ))}
+                                    {cat.key_items.length > 4 && (
+                                        <span style={{ padding: '4px 9px', borderRadius: 99, background: '#EEF4FF', color: '#325fec', fontSize: 11, fontWeight: 700 }}>
+                                            +{cat.key_items.length - 4} more
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </button>
+                    ))}
+                    {shopCategories.length === 0 && <Empty label="No categories available." />}
+                </div>
+            </Modal>
+
+            <Modal
+                open={keyItemsModalOpen}
+                onClose={() => setKeyItemsModalOpen(false)}
+                title="Add Key Items"
+                fullScreen
+                footer={<><Btn variant="secondary" onClick={() => setKeyItemsModalOpen(false)}>Cancel</Btn><Btn variant="primary" onClick={handleAddSelectedKeyItems}>Add Selected ({pendingKeyItems.length})</Btn></>}
+            >
+                <div style={{ padding: 14, borderRadius: 14, border: '1px solid #E2E8F5', background: '#fff', marginBottom: 12 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A' }}>{pendingKeyItems.length} selected</div>
+                    <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>Select multiple key items for {shopForm.category || 'this category'}.</div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 10 }}>
+                    {selectedCategoryItems.map(item => {
+                        const itemName = item.item_name;
+                        const checked = pendingKeyItems.includes(itemName);
+                        return (
+                            <button
+                                key={item.id || itemName}
+                                type="button"
+                                onClick={() => setPendingKeyItems(prev => checked ? prev.filter(k => k !== itemName) : [...prev, itemName])}
+                                style={{
+                                    minHeight: 72,
+                                    padding: 12,
+                                    borderRadius: 12,
+                                    border: `1.5px solid ${checked ? '#325fec' : '#E2E8F5'}`,
+                                    background: checked ? '#EEF4FF' : '#fff',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'flex-start',
+                                    gap: 10,
+                                    textAlign: 'left',
+                                    fontFamily: 'var(--font)'
+                                }}
+                            >
+                                <input type="checkbox" checked={checked} readOnly style={{ width: 18, height: 18, accentColor: '#325fec', marginTop: 1 }} />
+                                <div>
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{itemName}</div>
+                                    {item.description && <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.4, marginTop: 3 }}>{item.description}</div>}
+                                </div>
+                            </button>
+                        );
+                    })}
+                    {selectedCategoryItems.length === 0 && <Empty label="No key items available for this category." />}
                 </div>
             </Modal>
 
@@ -2564,7 +2750,7 @@ export default function Profile() {
             </Modal>
 
             {/* Add House */}
-            <Modal open={modal === 'house'} onClose={closeModal} title="Add New House"
+            <Modal open={modal === 'house'} onClose={closeModal} title="Add New House" fullScreen
                 footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleCreateHouse} loading={creatingHouse} icon={<Icon name="home" size={15} color="#fff" />}>List House</Btn></>}>
                 <FormGrid>
                     <FormItem half><Input label="Rooms *" type="number" value={houseForm.rooms} onChange={e => setHouseForm(p => ({ ...p, rooms: e.target.value }))} /></FormItem>
@@ -2627,7 +2813,7 @@ export default function Profile() {
             </Modal>
 
             {/* Add Job */}
-            <Modal open={modal === 'job'} onClose={closeModal} title="Post a Job"
+            <Modal open={modal === 'job'} onClose={closeModal} title="Post a Job" fullScreen
                 footer={<><Btn variant="secondary" onClick={closeModal}>Cancel</Btn><Btn variant="primary" onClick={handleCreateJob} loading={creatingJob} icon={<Icon name="work" size={15} color="#fff" />}>Post Job</Btn></>}>
                 <FormGrid>
                     <FormItem full>
