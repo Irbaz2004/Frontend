@@ -225,9 +225,9 @@ function LandingPage() {
               src={logo}
               alt="NearZO"
               sx={{
-                width: 88,
-                height: 88,
-                borderRadius: '22px',
+                width: 120,
+                height: 80,
+                // borderRadius: '22px',
                 display: 'block',
                 position: 'relative',
                 zIndex: 1,
@@ -325,7 +325,7 @@ function LandingPage() {
           </Button>
 
           {/* Security note */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75 }}>
+          {/* <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75 }}>
             <SecurityOutlinedIcon sx={{ fontSize: '0.85rem', color: '#bbb' }} />
             <Typography sx={{
               fontSize: '0.75rem',
@@ -334,7 +334,7 @@ function LandingPage() {
             }}>
               Safe & Secure. No data is collected.
             </Typography>
-          </Box>
+          </Box> */}
 
         </Box>
       </Dialog>
@@ -357,54 +357,7 @@ function LandingPage() {
           }
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box
-              component="img"
-              src="/logo192.png"
-              alt="NearZO"
-              sx={{ width: 32, height: 32, borderRadius: '8px', border: '1px solid #eee' }}
-            />
-            <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#111', fontFamily: '"Inter", sans-serif' }}>
-              Install NearZO
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              size="small"
-              variant="contained"
-              onClick={handleInstall}
-              disabled={isInstalling}
-              disableElevation
-              sx={{
-                background: '#325fec',
-                color: '#fff',
-                borderRadius: '8px',
-                textTransform: 'none',
-                fontWeight: 600,
-                fontFamily: '"Inter", sans-serif',
-                fontSize: '0.8rem',
-                px: 2,
-                '&:hover': { background: '#2a52d4' },
-              }}
-            >
-              {isInstalling ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : 'Install'}
-            </Button>
-            <Button
-              size="small"
-              onClick={handleCloseBanner}
-              sx={{
-                color: '#999',
-                textTransform: 'none',
-                fontFamily: '"Inter", sans-serif',
-                fontSize: '0.8rem',
-                '&:hover': { color: '#333', background: 'transparent' },
-              }}
-            >
-              Dismiss
-            </Button>
-          </Box>
-        </Box>
+       
       </Snackbar>
 
       {/* ── Already Installed ── */}
