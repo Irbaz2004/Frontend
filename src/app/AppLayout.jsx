@@ -1094,16 +1094,7 @@ function AppLayout() {
                         >
                             <PersonIcon sx={{ fontSize: 16 }} />
                         </Avatar>
-                        <Typography sx={{
-                            fontSize: '0.75rem',
-                            fontFamily: FONT,
-                            fontWeight: 600,
-                            color: C.textSub,
-                            textTransform: 'capitalize',
-                            display: { xs: 'none', sm: 'block' },
-                        }}>
-                            {role}
-                        </Typography>
+                      
                     </Box>
 
                     <Menu
