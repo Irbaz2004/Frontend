@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AppBar, Toolbar, Typography, Button, Slide, useScrollTrigger, Box } from '@mui/material';
 import helozologo from '../assets/helozologo.png';
-import { trackAppInstall } from '../services/Analytics';
 
 function HideOnScrollDown({ children }) {
     const [show, setShow] = useState(true);
@@ -58,7 +57,9 @@ const Navbar = () => {
     }, []);
 
     const handlePrimaryAction = () => {
-        if (typeof window.__helozoNavigate === 'function') {
+        if (typeof window.__triggerPWAInstall === 'function') {
+            window.__triggerPWAInstall();
+        } else if (typeof window.__helozoNavigate === 'function') {
             window.__helozoNavigate();
         } else {
             window.location.href = '/app/login';
@@ -135,7 +136,7 @@ const Navbar = () => {
                             }}
                             onClick={handlePrimaryAction}
                         >
-                            Coming Soon
+                            {isInstallAvailable ? 'Install App' : 'Login'}
                         </Button>
                     </Box>
                 </Toolbar>

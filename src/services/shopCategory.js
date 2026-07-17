@@ -26,7 +26,6 @@ async function apiCall(endpoint, options = {}) {
 }
 
 // ===================== CATEGORY SERVICES =====================
-// Changed from /admin/shop-categories to /shop-categories
 export async function getCategories({ page = 1, limit = 10, search = '', is_active = '' } = {}) {
     const params = new URLSearchParams({ page, limit });
     if (search) params.append('search', search);
@@ -59,6 +58,20 @@ export async function deleteCategory(id) {
     });
 }
 
+export async function bulkDeleteCategories(ids) {
+    return apiCall('/shop-categories/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+    });
+}
+
+export async function bulkImportCategories(categories) {
+    return apiCall('/shop-categories/bulk-import', {
+        method: 'POST',
+        body: JSON.stringify({ categories }),
+    });
+}
+
 export async function getAllCategoriesWithItems() {
     return apiCall('/shop-categories/with-items');
 }
@@ -88,6 +101,13 @@ export async function deleteKeyItem(id) {
     });
 }
 
+export async function bulkDeleteKeyItems(ids) {
+    return apiCall('/shop-categories/items/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+    });
+}
+
 export async function bulkImportKeyItems(categoryId, items) {
     return apiCall(`/shop-categories/${categoryId}/items/bulk`, {
         method: 'POST',
@@ -101,10 +121,13 @@ export default {
     createCategory,
     updateCategory,
     deleteCategory,
+    bulkDeleteCategories,
+    bulkImportCategories,
     getAllCategoriesWithItems,
     getKeyItemsByCategory,
     createKeyItem,
     updateKeyItem,
     deleteKeyItem,
+    bulkDeleteKeyItems,
     bulkImportKeyItems,
 };

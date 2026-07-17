@@ -30,6 +30,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { getHomeData, getUserCity, updateUserCity } from '../../services/homeUser';
+import { getCityOptions } from '../../services/location';
 import { useAuth } from '../context/AuthContext';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
@@ -42,10 +43,73 @@ import houseImagePlaceholder from '../../assets/house.png';
 import jobImagePlaceholder from '../../assets/job.png';
 import mapImagePlaceholder from '../../assets/map.png';
 
+const GEO_TIMEOUT_MS = 12000;
+const GEO_MAX_AGE_MS = 0;
+const MAX_ACCEPTED_ACCURACY_METERS = 25000;
+let supportedCitiesCache = null;
+
 const formatPrice = (price) =>
     new Intl.NumberFormat('en-IN', {
         style: 'currency', currency: 'INR', maximumFractionDigits: 0,
     }).format(price);
+
+const normalizeLocationName = (value = '') =>
+    String(value).trim().replace(/\s+/g, ' ');
+
+const normalizeCompare = (value = '') =>
+    normalizeLocationName(value).toLowerCase();
+
+const getSupportedCityNames = async () => {
+    if (supportedCitiesCache) return supportedCitiesCache;
+
+    try {
+        const cities = await getCityOptions();
+        supportedCitiesCache = (cities || [])
+            .map((city) => normalizeLocationName(typeof city === 'string' ? city : city?.city || city?.name))
+            .filter(Boolean);
+    } catch (error) {
+        console.error('Failed to load supported cities for location matching:', error);
+        supportedCitiesCache = [];
+    }
+    return supportedCitiesCache;
+};
+
+const pickSupportedCity = (address = {}, displayName = '') => {
+    const addressCandidates = [
+        address.city,
+        address.town,
+        address.municipality,
+        address.city_district,
+        address.state_district,
+        address.county,
+        address.village,
+        address.suburb,
+    ].map(normalizeLocationName).filter(Boolean);
+
+    return getSupportedCityNames()
+        .then((supportedCities) => {
+            if (!supportedCities.length) return addressCandidates[0] || '';
+
+            const exactCandidate = addressCandidates.find((candidate) =>
+                supportedCities.some((city) => normalizeCompare(city) === normalizeCompare(candidate))
+            );
+            if (exactCandidate) {
+                return supportedCities.find((city) => normalizeCompare(city) === normalizeCompare(exactCandidate)) || exactCandidate;
+            }
+
+            const searchableAddress = normalizeCompare([
+                displayName,
+                ...Object.values(address).filter((value) => typeof value === 'string'),
+            ].join(' '));
+
+            const containedCity = supportedCities.find((city) => {
+                const normalizedCity = normalizeCompare(city);
+                return searchableAddress.includes(normalizedCity);
+            });
+
+            return containedCity || addressCandidates[0] || '';
+        });
+};
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -553,7 +617,7 @@ const BoostBanner = ({ onLearnMore }) => (
 );
 
 // ── Location Dialog ───────────────────────────────────────────────────────────
-const LocationPermissionDialog = ({ open, onClose, onAllow, onManualCity, loading }) => {
+const LocationPermissionDialog = ({ open, onClose, onAllow, onManualCity, loading, error }) => {
     const [manualCity, setManualCity] = useState('');
     const handleManualSubmit = () => {
         if (manualCity.trim()) { onManualCity(manualCity.trim()); setManualCity(''); }
@@ -593,6 +657,11 @@ const LocationPermissionDialog = ({ open, onClose, onAllow, onManualCity, loadin
                 >
                     {loading ? <CircularProgress size={20} color="inherit" /> : 'Use My Current Location'}
                 </Button>
+                {error && (
+                    <Alert severity="warning" sx={{ mb: 2, borderRadius: '11px', fontFamily: '"Inter", sans-serif', fontSize: '0.76rem' }}>
+                        {error}
+                    </Alert>
+                )}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <Box sx={{ flex: 1, height: 1, bgcolor: T.border }} />
                     <Typography sx={{ fontSize: '0.7rem', color: T.textMuted, fontFamily: '"Inter", sans-serif' }}>or type your city</Typography>
@@ -787,16 +856,22 @@ export default function Home() {
     const [currentCity, setCurrentCity] = useState('');
     const [showCitySnackbar, setShowCitySnackbar] = useState(false);
     const [detectedCity, setDetectedCity] = useState('');
+    const [locationError, setLocationError] = useState('');
 
     const getCityFromCoordinates = async (latitude, longitude) => {
-        const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`,
-            { headers: { 'User-Agent': 'NearZO-App/1.0' } }
-        );
+        const params = new URLSearchParams({
+            format: 'json',
+            lat: latitude,
+            lon: longitude,
+            zoom: '14',
+            addressdetails: '1',
+            'accept-language': 'en',
+        });
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`);
+        if (!response.ok) throw new Error('Could not detect city from location');
         const data = await response.json();
         if (data?.address) {
-            const city = data.address.city || data.address.town || data.address.village ||
-                         data.address.municipality || data.address.county;
+            const city = await pickSupportedCity(data.address, data.display_name);
             if (city) return city;
         }
         throw new Error('City not found');
@@ -805,28 +880,37 @@ export default function Home() {
     const getCurrentLocationCity = () => new Promise((resolve, reject) => {
         if (!navigator.geolocation) { reject(new Error('Geolocation not supported')); return; }
         navigator.geolocation.getCurrentPosition(
-            async ({ coords: { latitude, longitude } }) => {
-                try { resolve(await getCityFromCoordinates(latitude, longitude)); }
+            async ({ coords: { latitude, longitude, accuracy } }) => {
+                try {
+                    if (accuracy && accuracy > MAX_ACCEPTED_ACCURACY_METERS) {
+                        reject(new Error('Location accuracy is too low. Please enable precise location or choose your city manually.'));
+                        return;
+                    }
+                    resolve(await getCityFromCoordinates(latitude, longitude));
+                }
                 catch (e) { reject(e); }
             },
             (err) => {
                 const msgs = { 1: 'Location permission denied.', 2: 'Location unavailable.', 3: 'Location request timed out.' };
                 reject(new Error(msgs[err.code] || 'Unable to get location'));
             },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            { enableHighAccuracy: true, timeout: GEO_TIMEOUT_MS, maximumAge: GEO_MAX_AGE_MS }
         );
     });
 
     const loadHomeData = async (city, showNotification = false) => {
         setLoading(true); setError('');
         try {
-            const result = await getHomeData(city);
-            setHomeData(result); setCurrentCity(city);
-            if (showNotification && city !== currentCity && currentCity !== '') {
-                setDetectedCity(city); setShowCitySnackbar(true);
+            const resolvedCity = normalizeLocationName(city);
+            const result = await getHomeData(resolvedCity);
+            const displayCity = result?.city || resolvedCity;
+            setHomeData(result); setCurrentCity(displayCity);
+            localStorage.setItem('nearzo_user_city', displayCity);
+            if (showNotification && displayCity !== currentCity && currentCity !== '') {
+                setDetectedCity(displayCity); setShowCitySnackbar(true);
             }
-            if (user?.id && city !== user.city) {
-                try { await updateUserCity(city); if (updateUser) updateUser({ ...user, city }); } catch {}
+            if (user?.id && displayCity !== user.city) {
+                try { await updateUserCity(displayCity); if (updateUser) updateUser({ ...user, city: displayCity }); } catch {}
             }
         } catch (err) {
             setError(err.message || 'Failed to load');
@@ -835,27 +919,25 @@ export default function Home() {
 
     const handleAllowLocation = async () => {
         setLocationLoading(true);
+        setLocationError('');
         try {
             const city = await getCurrentLocationCity();
             setLocationDialogOpen(false);
             await loadHomeData(city, true);
         } catch (err) {
-            setError(err.message);
-            await loadHomeData(user?.city || 'Vellore');
+            setLocationDialogOpen(true);
+            setLocationError(err.message || 'Unable to get your current location');
         } finally { setLocationLoading(false); }
     };
 
-    const handleManualCity = async (city) => { setLocationDialogOpen(false); await loadHomeData(city, true); };
-    const handleSkipLocation = async () => { setLocationDialogOpen(false); await loadHomeData(user?.city || 'Vellore'); };
+    const handleManualCity = async (city) => { setLocationError(''); setLocationDialogOpen(false); await loadHomeData(city, true); };
+    const handleSkipLocation = async () => { setLocationError(''); setLocationDialogOpen(false); await loadHomeData(user?.city || 'Vellore'); };
 
     useEffect(() => {
         const init = async () => {
             try {
                 const city = await getCurrentLocationCity();
                 await loadHomeData(city, false);
-                if (user?.id && city !== user.city) {
-                    try { await updateUserCity(city); if (updateUser) updateUser({ ...user, city }); } catch {}
-                }
                 return;
             } catch {}
             if (user?.city) { await loadHomeData(user.city); return; }
@@ -913,6 +995,7 @@ export default function Home() {
                 open={locationDialogOpen} onClose={handleSkipLocation}
                 onAllow={handleAllowLocation} onManualCity={handleManualCity}
                 loading={locationLoading}
+                error={locationError}
             />
 
             <Snackbar

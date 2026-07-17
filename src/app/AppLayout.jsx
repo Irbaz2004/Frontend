@@ -135,6 +135,31 @@ const BOTTOM_NAV_HEIGHT = 66;
 const TOP_BAR_HEIGHT = 64;
 const NOTIFICATION_POLL_MS = 10000;
 
+const normalizeUnreadCount = (payload) => {
+    if (typeof payload === 'number') {
+        return Number.isFinite(payload) ? Math.max(0, Math.trunc(payload)) : 0;
+    }
+
+    const possibleCounts = [
+        payload?.unread_count,
+        payload?.unread,
+        payload?.unreadCount,
+        payload?.count,
+        payload?.total_unread,
+        payload?.totalUnread,
+        payload?.unread_notifications,
+    ];
+    const raw = possibleCounts.find((value) => value !== undefined && value !== null && value !== '');
+
+    if (raw !== undefined) {
+        const parsed = Number(raw);
+        return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : 0;
+    }
+
+    const notifications = Array.isArray(payload?.notifications) ? payload.notifications : [];
+    return notifications.filter((notification) => !notification.is_read).length;
+};
+
 // ─── Avatar initial — always the person's NAME, never a phone digit ────────
 const looksLikePhoneNumber = (str) => /^[+\d\s().-]+$/.test(str.trim());
 
@@ -359,7 +384,6 @@ function AppLayout() {
             }
             setNotifications(data.notifications || []);
             setFilteredNotifications(data.notifications || []);
-            setUnreadCount(data.unread_count || 0);
         } catch (err) {
             console.error('Failed to load notifications:', err);
             try {
@@ -367,7 +391,6 @@ function AppLayout() {
                 const fallbackData = await getNotifications(100, 0);
                 setNotifications(fallbackData.notifications || []);
                 setFilteredNotifications(fallbackData.notifications || []);
-                setUnreadCount(fallbackData.unread_count || 0);
                 console.log(`📬 Loaded ${fallbackData.notifications?.length || 0} fallback notifications (no city filter)`);
             } catch (fallbackErr) {
                 console.error('Fallback notification load failed:', fallbackErr);
@@ -377,18 +400,21 @@ function AppLayout() {
         }
     }, [userCity, role, getUserCityLocation]);
 
-    // ─── Load unread count with city filter (or all for admin) ──────────────
+    // ─── Load unread count for the badge. Keep this unfiltered for all roles. ──────────────
     const loadUnreadCount = useCallback(async () => {
-        const isAdmin = role === 'admin';
-        const cityToUse = !isAdmin ? (userCity || localStorage.getItem('nearzo_user_city')) : null;
-
         try {
-            const data = await getUnreadCount(cityToUse || null);
-            setUnreadCount(Number(data.unread_count) || 0);
+            const data = await getUnreadCount();
+            setUnreadCount(normalizeUnreadCount(data));
         } catch (err) {
             console.error('Failed to load unread count:', err);
+            try {
+                const fallbackData = await getNotifications(100, 0);
+                setUnreadCount(normalizeUnreadCount(fallbackData));
+            } catch (fallbackErr) {
+                console.error('Failed to load unread count fallback:', fallbackErr);
+            }
         }
-    }, [userCity, role]);
+    }, []);
 
     // ─── Filter notifications by search query ──────────────────────────────
     const filterNotifications = useCallback((query) => {
@@ -521,6 +547,7 @@ function AppLayout() {
 
     const isAdmin = role === 'admin';
     const navItems = role ? (NAV_CONFIG[role] || NAV_CONFIG.user) : [];
+    const unreadBadgeCount = normalizeUnreadCount(unreadCount);
 
     const isActivePath = (path) =>
         location.pathname === path || location.pathname.startsWith(path + '/');
@@ -550,9 +577,9 @@ function AppLayout() {
             // Get city filter
             const cityToUse = !isAdmin ? (userCity || localStorage.getItem('nearzo_user_city')) : null;
             await markAllNotificationsRead(cityToUse);
-            setUnreadCount(0);
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
             setFilteredNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            await loadUnreadCount();
         } catch (err) {
             console.error('Failed to mark all as read:', err);
         }
@@ -594,6 +621,32 @@ function AppLayout() {
             default: return <NotificationsIcon sx={{ fontSize: 20, color: C.accent }} />;
         }
     };
+
+    const renderNotificationBadge = () => (
+        <Badge
+            badgeContent={unreadBadgeCount}
+            max={99}
+            color="error"
+            invisible={unreadBadgeCount === 0}
+            overlap="circular"
+            sx={{
+                '& .MuiBadge-badge': {
+                    minWidth: 18,
+                    height: 18,
+                    px: '5px',
+                    fontFamily: FONT,
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    lineHeight: '18px',
+                    border: `2px solid ${C.surfaceAlt}`,
+                    top: 2,
+                    right: 2,
+                },
+            }}
+        >
+            <NotificationsIcon sx={{ fontSize: '1.15rem' }} />
+        </Badge>
+    );
 
     const formatTimeAgo = (dateStr) => {
         const date = new Date(dateStr);
@@ -787,9 +840,11 @@ function AppLayout() {
                     sx={{
                         display: { xs: 'block', md: 'none' },
                         '& .MuiDrawer-paper': {
-                            width: DRAWER_WIDTH,
+                            width: `min(${DRAWER_WIDTH}px, calc(100vw - 48px))`,
                             boxSizing: 'border-box',
                             bgcolor: C.surface,
+                            maxWidth: '100vw',
+                            overflowX: 'hidden',
                         },
                     }}
                 >
@@ -871,6 +926,8 @@ function AppLayout() {
                             borderRadius: '100px',
                             px: '6px',
                             py: '6px',
+                            maxWidth: 'calc(100vw - 16px)',
+                            overflowX: 'hidden',
                             border: `1px solid ${C.border}`,
                             boxShadow: `0 4px 20px ${C.shadowMd}, 0 1px 2px rgba(0,0,0,0.05)`,
                         }}
@@ -1023,7 +1080,10 @@ function AppLayout() {
             <Box
                 sx={{
                     height: TOP_BAR_HEIGHT,
-                    px: 2.5,
+                    width: '100%',
+                    maxWidth: '100vw',
+                    overflowX: 'hidden',
+                    px: { xs: 1.5, sm: 2.5 },
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -1036,7 +1096,7 @@ function AppLayout() {
                     zIndex: 1100,
                 }}
             >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
                     <Box
                         component="img" src={logo} alt="NearZO"
                         sx={{ width: 90, height: 'auto', objectFit: 'contain', cursor: 'pointer' }}
@@ -1044,7 +1104,7 @@ function AppLayout() {
                     />
                 </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
                     <Tooltip title="Notifications" arrow>
                         <IconButton
                             size="small"
@@ -1056,12 +1116,11 @@ function AppLayout() {
                                 bgcolor: C.surfaceAlt,
                                 '&:hover': { bgcolor: C.accentLight, color: C.accent },
                                 transition: 'all 0.15s ease',
+                                overflow: 'visible',
                                 '&:active': { transform: 'scale(0.88)' },
                             }}
                         >
-                            <Badge badgeContent={Number(unreadCount) || 0} color="error" invisible={(Number(unreadCount) || 0) === 0}>
-                                <NotificationsIcon sx={{ fontSize: '1.15rem' }} />
-                            </Badge>
+                            {renderNotificationBadge()}
                         </IconButton>
                     </Tooltip>
 
@@ -1574,14 +1633,17 @@ function AppLayout() {
     if (isAdmin) {
         return (
             <>
-                <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: C.bg, fontFamily: FONT }}>
+                <Box sx={{ display: 'flex', minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', bgcolor: C.bg, fontFamily: FONT }}>
                     {renderSidebar()}
 
-                    <Box component="main" sx={{ flexGrow: 1, bgcolor: C.surface, minWidth: 0, minHeight: '100vh' }}>
+                    <Box component="main" sx={{ flexGrow: 1, bgcolor: C.surface, minWidth: 0, width: '100%', maxWidth: '100%', overflowX: 'hidden', minHeight: '100vh' }}>
                         <Box
                             sx={{
                                 height: TOP_BAR_HEIGHT,
-                                px: 3,
+                                width: '100%',
+                                maxWidth: '100vw',
+                                overflowX: 'hidden',
+                                px: { xs: 1.5, md: 3 },
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
@@ -1593,7 +1655,7 @@ function AppLayout() {
                                 zIndex: 1100,
                             }}
                         >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
                                 <IconButton
                                     onClick={() => { haptic('tap'); setMobileOpen(!mobileOpen); }}
                                     sx={{
@@ -1607,12 +1669,12 @@ function AppLayout() {
                                 >
                                     <MenuIcon sx={{ fontSize: '1.1rem' }} />
                                 </IconButton>
-                                <Typography sx={{ fontWeight: 700, fontFamily: FONT, color: C.text, fontSize: '1rem', letterSpacing: '-0.02em' }}>
+                                <Typography noWrap sx={{ fontWeight: 700, fontFamily: FONT, color: C.text, fontSize: '1rem', letterSpacing: '-0.02em', minWidth: 0 }}>
                                     {navItems.find(item => isActivePath(item.path))?.label || 'Dashboard'}
                                 </Typography>
                             </Box>
 
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 }, flexShrink: 0 }}>
                                 <Tooltip title="Notifications" arrow>
                                     <IconButton
                                         size="small"
@@ -1623,12 +1685,11 @@ function AppLayout() {
                                             color: C.textMuted,
                                             bgcolor: C.surfaceAlt,
                                             '&:hover': { bgcolor: C.accentLight, color: C.accent },
+                                            overflow: 'visible',
                                             '&:active': { transform: 'scale(0.88)' },
                                         }}
                                     >
-                                        <Badge badgeContent={Number(unreadCount) || 0} color="error" invisible={(Number(unreadCount) || 0) === 0}>
-                                            <NotificationsIcon sx={{ fontSize: '1.15rem' }} />
-                                        </Badge>
+                                        {renderNotificationBadge()}
                                     </IconButton>
                                 </Tooltip>
 
@@ -1705,7 +1766,7 @@ function AppLayout() {
                             </Box>
                         </Box>
 
-                        <Box sx={{ p: 3 }}>
+                        <Box sx={{ p: { xs: 1.5, md: 3 }, width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
                             <Outlet />
                         </Box>
                     </Box>
@@ -1725,13 +1786,16 @@ function AppLayout() {
                     display: 'flex',
                     flexDirection: 'column',
                     minHeight: '100vh',
+                    width: '100%',
+                    maxWidth: '100vw',
+                    overflowX: 'hidden',
                     bgcolor: C.surface,
                     fontFamily: FONT,
                     pb: `${BOTTOM_NAV_HEIGHT + 32}px`,
                 }}
             >
                 {renderTopBar()}
-                <Box sx={{ flex: 1, minHeight: '100vh', bgcolor: C.surface }}>
+                <Box sx={{ flex: 1, minHeight: '100vh', width: '100%', maxWidth: '100%', overflowX: 'hidden', bgcolor: C.surface }}>
                     <Outlet />
                 </Box>
             </Box>

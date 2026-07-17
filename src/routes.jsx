@@ -1,6 +1,6 @@
 // AppRoutes.jsx
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './app/context/AuthContext';
 import { Box, CircularProgress, Fade } from '@mui/material';
 import radar from './assets/Radar.gif';
@@ -141,44 +141,42 @@ function WebsiteSplash({ onComplete }) {
     );
 }
 
+const isRunningAsInstalledApp = () => {
+    if (typeof window === 'undefined') return false;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isPWA = window.navigator.standalone === true;
+    const isWebView = /wv|android.*(; wv)/i.test(navigator.userAgent);
+    return isStandalone || isPWA || isWebView;
+};
+
 // Component to handle root route based on auth and platform
 function RootRedirect() {
-    const { isAuthenticated, user, loading } = useAuth();
-    const location = useLocation();
-    const [isApp, setIsApp] = useState(false);
+    const { isAuthenticated, user, role, loading } = useAuth();
+    const [isApp, setIsApp] = useState(() => isRunningAsInstalledApp());
 
     useEffect(() => {
-        // Check if running as a mobile app (PWA or WebView)
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-        const isPWA = window.navigator.standalone === true;
-        const isWebView = /wv|android.*(; wv)/i.test(navigator.userAgent);
-        const isMobileApp = isStandalone || isPWA || isWebView;
-        
-        setIsApp(isMobileApp);
+        setIsApp(isRunningAsInstalledApp());
     }, []);
 
     if (loading) {
         return <LoadingScreen />;
     }
 
-    // // If user is authenticated, redirect to app home
-    // if (isAuthenticated && user) {
-    //     const role = user.role || localStorage.getItem('nearzo_role');
-    //     if (role === 'admin') {
-    //         return <Navigate to="/app/admin/dashboard" replace />;
-    //     } else if (role === 'business') {
-    //         return <Navigate to="/app/business/dashboard" replace />;
-    //     }
-    //     return <Navigate to="/app/home" replace />;
-    // }
-
-    // If running as mobile app and not authenticated, go to login
-    if (isApp && !isAuthenticated) {
-        return <Navigate to="/app/login" replace />;
+    // Normal website visits always stay on the public landing page.
+    if (!isApp) {
+        return <LandingPage />;
     }
 
-    // For web/browser, show landing page
-    return <LandingPage />;
+    // Installed PWA opens directly into the app when a valid session exists.
+    if (isAuthenticated && user) {
+        const activeRole = role || user.role || localStorage.getItem('nearzo_role');
+        if (activeRole === 'admin') {
+            return <Navigate to="/app/admin/dashboard" replace />;
+        }
+        return <Navigate to="/app/home" replace />;
+    }
+
+    return <Navigate to="/app/login" replace />;
 }
 
 function AppRoutes() {

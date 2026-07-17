@@ -250,7 +250,7 @@ const Hero = () => {
                                 <Button
                                     variant="contained"
                                     size="large"
-                                    onClick={handleGetStarted}
+                                    // onClick={handleGetStarted}
                                     startIcon={<LoginIcon />}
                                     sx={{
                                         px: { xs: 3, md: 5 },
