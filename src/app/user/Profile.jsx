@@ -1,5 +1,5 @@
 // app/user/Profile.jsx
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import {
     getProfile,
     updateProfile,
@@ -26,6 +26,7 @@ import {
     createJobNotification
 } from '../../services/profile';
 import { getAllCities, getAreasByCity, verifyLocation, getShopCategories } from '../../services/location';
+import { formatFileSize, openImagePicker } from '../../utils/imageUpload';
 import { useAuth } from '../context/AuthContext';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -323,145 +324,6 @@ if (!document.getElementById('profile-styles-v5')) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PWA-SAFE IMAGE PICKER
 // ─────────────────────────────────────────────────────────────────────────────
-const MAX_UPLOAD_IMAGE_BYTES = 100 * 1024;
-const MAX_UPLOAD_IMAGE_DIMENSION = 1400;
-
-const formatFileSize = (bytes) => {
-    if (!Number.isFinite(bytes)) return '0 KB';
-    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-};
-
-const getCompressedFileName = (fileName, mimeType) => {
-    const baseName = (fileName || 'image').replace(/\.[^.]+$/, '');
-    const extension = mimeType === 'image/webp' ? 'webp' : 'jpg';
-    return `${baseName}-compressed.${extension}`;
-};
-
-const loadImageFromFile = (file) => new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-
-    img.onload = () => {
-        URL.revokeObjectURL(url);
-        resolve(img);
-    };
-    img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error('Unable to read selected image'));
-    };
-    img.src = url;
-});
-
-const canvasToBlob = (canvas, mimeType, quality) => new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error('Unable to compress selected image'));
-    }, mimeType, quality);
-});
-
-async function compressImageForUpload(file, maxBytes = MAX_UPLOAD_IMAGE_BYTES) {
-    if (!(file instanceof File) || !file.type.startsWith('image/')) return file;
-    if (file.size <= maxBytes) return file;
-
-    const sourceImage = await loadImageFromFile(file);
-    const outputType = 'image/jpeg';
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d', { alpha: false });
-
-    if (!ctx) throw new Error('Image compression is not supported on this device');
-
-    const largestSide = Math.max(sourceImage.naturalWidth, sourceImage.naturalHeight);
-    let scale = Math.min(1, MAX_UPLOAD_IMAGE_DIMENSION / largestSide);
-    let bestBlob = null;
-
-    for (let resizeAttempt = 0; resizeAttempt < 8; resizeAttempt++) {
-        canvas.width = Math.max(1, Math.round(sourceImage.naturalWidth * scale));
-        canvas.height = Math.max(1, Math.round(sourceImage.naturalHeight * scale));
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
-
-        for (const quality of [0.82, 0.72, 0.62, 0.52, 0.42, 0.34, 0.28, 0.22]) {
-            const blob = await canvasToBlob(canvas, outputType, quality);
-            bestBlob = !bestBlob || blob.size < bestBlob.size ? blob : bestBlob;
-            if (blob.size <= maxBytes) {
-                return new File([blob], getCompressedFileName(file.name, outputType), {
-                    type: outputType,
-                    lastModified: Date.now(),
-                });
-            }
-        }
-
-        scale *= 0.82;
-    }
-
-    if (bestBlob && bestBlob.size <= maxBytes) {
-        return new File([bestBlob], getCompressedFileName(file.name, outputType), {
-            type: outputType,
-            lastModified: Date.now(),
-        });
-    }
-
-    throw new Error(`Could not compress image below ${formatFileSize(maxBytes)}. Please choose a smaller image.`);
-}
-
-function openImagePicker(onFile) {
-    return new Promise((resolve, reject) => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;z-index:-1;';
-        document.body.appendChild(input);
-
-        let handled = false;
-
-        const cleanup = () => {
-            try { document.body.removeChild(input); } catch { }
-        };
-
-        const handleChange = async (e) => {
-            if (handled) return;
-            const file = e.target.files?.[0];
-            if (file) {
-                handled = true;
-                try {
-                    const compressedFile = await compressImageForUpload(file);
-                    const url = URL.createObjectURL(compressedFile);
-                    const meta = {
-                        compressed: compressedFile !== file,
-                        originalSize: file.size,
-                        finalSize: compressedFile.size,
-                    };
-                    onFile(compressedFile, url, meta);
-                    resolve({ file: compressedFile, url, ...meta });
-                } catch (error) {
-                    reject(error);
-                }
-            }
-            cleanup();
-        };
-
-        input.addEventListener('change', handleChange);
-        input.addEventListener('input', handleChange);
-
-        window.addEventListener('focus', function onFocus() {
-            window.removeEventListener('focus', onFocus);
-            setTimeout(() => {
-                if (!handled) {
-                    cleanup();
-                    resolve(null);
-                }
-            }, 500);
-        }, { once: true });
-
-        setTimeout(() => {
-            try { input.click(); } catch (err) {
-                input.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-            }
-        }, 50);
-    });
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // LOCATION SERVICE
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1538,6 +1400,16 @@ const getAvatarInitial = (profile) => {
     return 'U';
 };
 
+const getCategoryName = (category) => category?.name || category?.category_name || '';
+const getCategoryTitle = (category) => category?.title || category?.display_title || '';
+const getCategoryItems = (category) => (
+    Array.isArray(category?.key_items) ? category.key_items :
+        Array.isArray(category?.items) ? category.items : []
+);
+const getKeyItemName = (item) => (
+    typeof item === 'string' ? item : (item?.item_name || item?.name || item?.title || '')
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1575,6 +1447,9 @@ export default function Profile() {
     const [categoryModalOpen, setCategoryModalOpen] = useState(false);
     const [keyItemsModalOpen, setKeyItemsModalOpen] = useState(false);
     const [pendingKeyItems, setPendingKeyItems] = useState([]);
+    const [categorySearch, setCategorySearch] = useState('');
+    const [keyItemSearch, setKeyItemSearch] = useState('');
+    const [manualKeyItem, setManualKeyItem] = useState('');
     const [editingShop, setEditingShop] = useState(null);
     const [editingHouse, setEditingHouse] = useState(null);
     const [editingJob, setEditingJob] = useState(null);
@@ -1679,10 +1554,35 @@ export default function Profile() {
     useEffect(() => { if (jobForm.city) loadAreasFor(jobForm.city, setJobAreas); else setJobAreas([]); }, [jobForm.city]);
     useEffect(() => {
         if (shopForm.category) {
-            const cat = shopCategories.find(c => c.name === shopForm.category);
-            setSelectedCategoryItems(cat?.key_items || []);
+            const cat = shopCategories.find(c => getCategoryName(c) === shopForm.category);
+            setSelectedCategoryItems(getCategoryItems(cat));
         } else setSelectedCategoryItems([]);
     }, [shopForm.category, shopCategories]);
+
+    const filteredShopCategories = useMemo(() => {
+        const q = categorySearch.trim().toLowerCase();
+        if (!q) return shopCategories;
+        return shopCategories.filter(cat => {
+            const itemsText = getCategoryItems(cat).map(getKeyItemName).join(' ');
+            return [getCategoryName(cat), getCategoryTitle(cat), cat?.description, itemsText]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase()
+                .includes(q);
+        });
+    }, [categorySearch, shopCategories]);
+
+    const filteredCategoryItems = useMemo(() => {
+        const q = keyItemSearch.trim().toLowerCase();
+        if (!q) return selectedCategoryItems;
+        return selectedCategoryItems.filter(item => (
+            [getKeyItemName(item), item?.description]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase()
+                .includes(q)
+        ));
+    }, [keyItemSearch, selectedCategoryItems]);
 
     useEffect(() => () => {
         if (shopObjUrl) URL.revokeObjectURL(shopObjUrl);
@@ -2257,18 +2157,13 @@ export default function Profile() {
         setJobForm(p => ({ ...p, shop_id: id, company_name: s ? s.business_name : '', area: s?.area || '', city: s?.city || '', state: s?.state || '' }));
     };
 
-    const handleAddCustomKeyword = () => {
-        const kw = shopForm.custom_keyword.trim();
-        if (!kw) return;
-        if (shopForm.keywords.some(k => k.toLowerCase() === kw.toLowerCase())) { showToast('Keyword already added', 'error'); return; }
-        setShopForm(p => ({ ...p, keywords: [...p.keywords, kw], custom_keyword: '' }));
-    };
-
     const handleRemoveKeyword = (kw) => setShopForm(p => ({ ...p, keywords: p.keywords.filter(k => k !== kw) }));
 
     const handleSelectCategory = (categoryName) => {
         setShopForm(p => ({ ...p, category: categoryName, keywords: [] }));
         setCategoryModalOpen(false);
+        setCategorySearch('');
+        setKeyItemSearch('');
     };
 
     const handleOpenKeyItemsModal = () => {
@@ -2276,17 +2171,36 @@ export default function Profile() {
             showToast('Select a category first', 'error');
             return;
         }
-        if (!selectedCategoryItems.length) {
-            showToast('No key items available for this category', 'error');
-            return;
-        }
         setPendingKeyItems(shopForm.keywords);
+        setKeyItemSearch('');
+        setManualKeyItem('');
         setKeyItemsModalOpen(true);
     };
 
     const handleAddSelectedKeyItems = () => {
         setShopForm(p => ({ ...p, keywords: pendingKeyItems }));
         setKeyItemsModalOpen(false);
+        setManualKeyItem('');
+    };
+
+    const handleTogglePendingKeyItem = (itemName) => {
+        if (!itemName) return;
+        setPendingKeyItems(prev => (
+            prev.some(k => k.toLowerCase() === itemName.toLowerCase())
+                ? prev.filter(k => k.toLowerCase() !== itemName.toLowerCase())
+                : [...prev, itemName]
+        ));
+    };
+
+    const handleAddManualKeyItem = () => {
+        const itemName = manualKeyItem.trim();
+        if (!itemName) return;
+        if (pendingKeyItems.some(k => k.toLowerCase() === itemName.toLowerCase())) {
+            showToast('Key item already selected', 'error');
+            return;
+        }
+        setPendingKeyItems(prev => [...prev, itemName]);
+        setManualKeyItem('');
     };
 
     const shopFormFields = () => (
@@ -2349,25 +2263,11 @@ export default function Profile() {
                             textAlign: 'left'
                         }}
                     >
-                        <span>Add Key Items{shopForm.keywords.length ? ` (${shopForm.keywords.length})` : ''}</span>
-                        <Icon name="add" size={20} color="#325fec" />
+                        <span>{shopForm.keywords.length ? `Edit Key Items (${shopForm.keywords.length})` : 'Select Key Items'}</span>
+                        <Icon name="chevron_right" size={20} color="#325fec" />
                     </button>
                 </FormItem>
             )}
-
-            <FormItem full>
-                <FieldLabel>Custom Keyword</FieldLabel>
-                <div style={{ display: 'flex', gap: 8 }}>
-                    <input
-                        style={{ flex: 1, padding: '10px 14px', border: '1.5px solid #E2E8F5', borderRadius: 10, fontSize: 14, color: '#0F172A', background: '#FAFBFE', outline: 'none', fontFamily: 'var(--font)', minWidth: 0 }}
-                        placeholder="e.g. Fresh Juice"
-                        value={shopForm.custom_keyword}
-                        onChange={e => setShopForm(p => ({ ...p, custom_keyword: e.target.value }))}
-                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddCustomKeyword())}
-                    />
-                    <button onClick={handleAddCustomKeyword} style={{ padding: '0 14px', borderRadius: 10, border: '1.5px solid #325fec', background: '#EEF4FF', color: '#325fec', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0 }}>Add</button>
-                </div>
-            </FormItem>
 
             {shopForm.keywords.length > 0 && (
                 <FormItem full>
@@ -2716,53 +2616,85 @@ export default function Profile() {
             </Modal>
 
             <Modal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} title="Select Category" fullScreen>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
-                    {shopCategories.map(cat => (
-                        <button
-                            key={cat.id || cat.name}
-                            type="button"
-                            onClick={() => handleSelectCategory(cat.name)}
-                            style={{
-                                minHeight: 150,
-                                padding: 14,
-                                borderRadius: 14,
-                                border: `1.5px solid ${shopForm.category === cat.name ? '#325fec' : '#E2E8F5'}`,
-                                background: shopForm.category === cat.name ? '#EEF4FF' : '#fff',
-                                cursor: 'pointer',
-                                textAlign: 'left',
-                                fontFamily: 'var(--font)',
-                                boxShadow: 'var(--shadow-sm)'
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                                <div style={{ width: 46, height: 46, borderRadius: 12, background: shopForm.category === cat.name ? '#325fec' : '#F0F3FA', color: shopForm.category === cat.name ? '#fff' : '#325fec', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>
-                                    {cat.icon || <Icon name="storefront" size={22} color={shopForm.category === cat.name ? '#fff' : '#325fec'} />}
-                                </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>{cat.name}</div>
-                                        {shopForm.category === cat.name && <Icon name="check_circle" size={19} color="#325fec" />}
-                                    </div>
-                                    {cat.description && <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.45, marginTop: 4 }}>{cat.description}</div>}
-                                </div>
+                <div style={{ display: 'grid', gap: 12 }}>
+                    <div style={{ display: 'grid', gap: 8, position: 'sticky', top: 0, zIndex: 2, background: '#fff', paddingBottom: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                            <div>
+                                <div style={{ fontSize: 13, fontWeight: 800, color: '#0F172A' }}>Filter categories</div>
+                                <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>Search by category name, title, or key item.</div>
                             </div>
-                            {cat.key_items?.length > 0 && (
-                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
-                                    {cat.key_items.slice(0, 4).map(item => (
-                                        <span key={item.id || item.item_name} style={{ padding: '4px 9px', borderRadius: 99, background: '#F8FAFC', border: '1px solid #E2E8F5', color: '#334155', fontSize: 11, fontWeight: 600 }}>
-                                            {item.item_name}
-                                        </span>
-                                    ))}
-                                    {cat.key_items.length > 4 && (
-                                        <span style={{ padding: '4px 9px', borderRadius: 99, background: '#EEF4FF', color: '#325fec', fontSize: 11, fontWeight: 700 }}>
-                                            +{cat.key_items.length - 4} more
-                                        </span>
+                            <Badge label={`${filteredShopCategories.length}/${shopCategories.length}`} />
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                            <Icon name="search" size={18} color="#94A3B8" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                            <input
+                                value={categorySearch}
+                                onChange={e => setCategorySearch(e.target.value)}
+                                placeholder="Search category or title"
+                                style={{ ...inputBase, paddingLeft: 38 }}
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
+                        {filteredShopCategories.map(cat => {
+                            const categoryName = getCategoryName(cat);
+                            const categoryTitle = getCategoryTitle(cat);
+                            const categoryItems = getCategoryItems(cat);
+                            const selected = shopForm.category === categoryName;
+                            return (
+                                <button
+                                    key={cat.id || categoryName}
+                                    type="button"
+                                    onClick={() => handleSelectCategory(categoryName)}
+                                    style={{
+                                        minHeight: 150,
+                                        padding: 14,
+                                        borderRadius: 14,
+                                        border: `1.5px solid ${selected ? '#325fec' : '#E2E8F5'}`,
+                                        background: selected ? '#EEF4FF' : '#fff',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        fontFamily: 'var(--font)',
+                                        boxShadow: 'var(--shadow-sm)'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                                        <div style={{ width: 46, height: 46, borderRadius: 12, background: selected ? '#325fec' : '#F0F3FA', color: selected ? '#fff' : '#325fec', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>
+                                            {cat.icon || <Icon name="storefront" size={22} color={selected ? '#fff' : '#325fec'} />}
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>{categoryName}</div>
+                                                {selected && <Icon name="check_circle" size={19} color="#325fec" />}
+                                            </div>
+                                            {categoryTitle && <div style={{ fontSize: 12, color: '#325fec', fontWeight: 700, marginTop: 4 }}>{categoryTitle}</div>}
+                                            {cat.description && <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.45, marginTop: 4 }}>{cat.description}</div>}
+                                        </div>
+                                    </div>
+                                    {categoryItems.length > 0 && (
+                                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+                                            {categoryItems.slice(0, 4).map(item => {
+                                                const itemName = getKeyItemName(item);
+                                                return (
+                                                    <span key={item.id || itemName} style={{ padding: '4px 9px', borderRadius: 99, background: '#F8FAFC', border: '1px solid #E2E8F5', color: '#334155', fontSize: 11, fontWeight: 600 }}>
+                                                        {itemName}
+                                                    </span>
+                                                );
+                                            })}
+                                            {categoryItems.length > 4 && (
+                                                <span style={{ padding: '4px 9px', borderRadius: 99, background: '#EEF4FF', color: '#325fec', fontSize: 11, fontWeight: 700 }}>
+                                                    +{categoryItems.length - 4} more
+                                                </span>
+                                            )}
+                                        </div>
                                     )}
-                                </div>
-                            )}
-                        </button>
-                    ))}
-                    {shopCategories.length === 0 && <Empty label="No categories available." />}
+                                </button>
+                            );
+                        })}
+                        {shopCategories.length === 0 && <Empty label="No categories available." />}
+                        {shopCategories.length > 0 && filteredShopCategories.length === 0 && <Empty label="No category matches your search." />}
+                    </div>
                 </div>
             </Modal>
 
@@ -2773,42 +2705,80 @@ export default function Profile() {
                 fullScreen
                 footer={<><Btn variant="secondary" onClick={() => setKeyItemsModalOpen(false)}>Cancel</Btn><Btn variant="primary" onClick={handleAddSelectedKeyItems}>Add Selected ({pendingKeyItems.length})</Btn></>}
             >
-                <div style={{ padding: 14, borderRadius: 14, border: '1px solid #E2E8F5', background: '#fff', marginBottom: 12 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A' }}>{pendingKeyItems.length} selected</div>
-                    <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>Select multiple key items for {shopForm.category || 'this category'}.</div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 10 }}>
-                    {selectedCategoryItems.map(item => {
-                        const itemName = item.item_name;
-                        const checked = pendingKeyItems.includes(itemName);
-                        return (
-                            <button
-                                key={item.id || itemName}
-                                type="button"
-                                onClick={() => setPendingKeyItems(prev => checked ? prev.filter(k => k !== itemName) : [...prev, itemName])}
-                                style={{
-                                    minHeight: 72,
-                                    padding: 12,
-                                    borderRadius: 12,
-                                    border: `1.5px solid ${checked ? '#325fec' : '#E2E8F5'}`,
-                                    background: checked ? '#EEF4FF' : '#fff',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'flex-start',
-                                    gap: 10,
-                                    textAlign: 'left',
-                                    fontFamily: 'var(--font)'
-                                }}
-                            >
-                                <input type="checkbox" checked={checked} readOnly style={{ width: 18, height: 18, accentColor: '#325fec', marginTop: 1 }} />
+                <div style={{ display: 'grid', gap: 12 }}>
+                    <div style={{ display: 'grid', gap: 10, position: 'sticky', top: 0, zIndex: 2, background: '#fff', paddingBottom: 6 }}>
+                        <div style={{ padding: 14, borderRadius: 14, border: '1px solid #E2E8F5', background: '#fff' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                                 <div>
-                                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{itemName}</div>
-                                    {item.description && <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.4, marginTop: 3 }}>{item.description}</div>}
+                                    <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A' }}>{shopForm.category}</div>
+                                    <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>Select key items or add your own.</div>
                                 </div>
+                                <Badge label={`${pendingKeyItems.length} selected`} />
+                            </div>
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                            <Icon name="search" size={18} color="#94A3B8" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                            <input
+                                value={keyItemSearch}
+                                onChange={e => setKeyItemSearch(e.target.value)}
+                                placeholder="Search key items"
+                                style={{ ...inputBase, paddingLeft: 38 }}
+                                autoFocus
+                            />
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <input
+                                value={manualKeyItem}
+                                onChange={e => setManualKeyItem(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddManualKeyItem())}
+                                placeholder="Add manual key item"
+                                style={{ ...inputBase, flex: 1, minWidth: 0 }}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleAddManualKeyItem}
+                                style={{ padding: '0 14px', borderRadius: 10, border: '1.5px solid #325fec', background: '#EEF4FF', color: '#325fec', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0 }}
+                            >
+                                Add
                             </button>
-                        );
-                    })}
-                    {selectedCategoryItems.length === 0 && <Empty label="No key items available for this category." />}
+                        </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 10 }}>
+                        {filteredCategoryItems.map(item => {
+                            const itemName = getKeyItemName(item);
+                            const checked = pendingKeyItems.some(k => k.toLowerCase() === itemName.toLowerCase());
+                            return (
+                                <button
+                                    key={item.id || itemName}
+                                    type="button"
+                                    onClick={() => handleTogglePendingKeyItem(itemName)}
+                                    style={{
+                                        minHeight: 72,
+                                        padding: 12,
+                                        borderRadius: 12,
+                                        border: `1.5px solid ${checked ? '#325fec' : '#E2E8F5'}`,
+                                        background: checked ? '#EEF4FF' : '#fff',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        gap: 10,
+                                        textAlign: 'left',
+                                        fontFamily: 'var(--font)'
+                                    }}
+                                >
+                                    <span style={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${checked ? '#325fec' : '#CBD5E1'}`, background: checked ? '#325fec' : '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                                        {checked && <Icon name="check" size={15} color="#fff" />}
+                                    </span>
+                                    <div style={{ minWidth: 0 }}>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{itemName}</div>
+                                        {item.description && <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.4, marginTop: 3 }}>{item.description}</div>}
+                                    </div>
+                                </button>
+                            );
+                        })}
+                        {selectedCategoryItems.length === 0 && <Empty label="No saved key items for this category. Add a manual key item above." />}
+                        {selectedCategoryItems.length > 0 && filteredCategoryItems.length === 0 && <Empty label="No key item matches your search." />}
+                    </div>
                 </div>
             </Modal>
 

@@ -66,6 +66,7 @@ import {
     getShopsForAds,
     getAdsStatistics
 } from '../../services/shopAd';
+import { compressImageForUpload, formatFileSize } from '../../utils/imageUpload';
 
 export default function ShopAds() {
     const [loading, setLoading] = useState(false);
@@ -103,6 +104,8 @@ export default function ShopAds() {
     
     const [imageFile, setImageFile] = useState(null);
     const [imageChanged, setImageChanged] = useState(false);
+    const [imageProcessing, setImageProcessing] = useState(false);
+    const [imageMeta, setImageMeta] = useState(null);
     
     // Refs for abort controllers
     const abortControllerRef = useRef(null);
@@ -180,28 +183,58 @@ export default function ShopAds() {
         loadAds();
     }, [loadAds]);
 
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
+    const handleImageChange = async (e) => {
+        const file = e.target.files?.[0];
         if (file) {
-            // Validate file size (max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                showSnackbar('Image size should be less than 5MB', 'error');
+            // Validate file size before browser-side compression.
+            if (file.size > 15 * 1024 * 1024) {
+                showSnackbar('Image size should be less than 15MB', 'error');
+                e.target.value = '';
                 return;
             }
             
             // Validate file type
             if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
                 showSnackbar('Please upload a valid image (JPEG, PNG, WEBP, GIF)', 'error');
+                e.target.value = '';
                 return;
             }
-            
-            setImageFile(file);
-            setImageChanged(true);
-            setFormData({
-                ...formData,
-                image: file,
-                image_preview: URL.createObjectURL(file)
-            });
+
+            setImageProcessing(true);
+            try {
+                const compressedFile = await compressImageForUpload(file);
+                const previewUrl = URL.createObjectURL(compressedFile);
+                const meta = {
+                    compressed: compressedFile !== file,
+                    originalSize: file.size,
+                    finalSize: compressedFile.size,
+                };
+
+                if (formData.image_preview && formData.image_preview.startsWith('blob:')) {
+                    URL.revokeObjectURL(formData.image_preview);
+                }
+
+                setImageFile(compressedFile);
+                setImageChanged(true);
+                setImageMeta(meta);
+                setFormData(prev => ({
+                    ...prev,
+                    image: compressedFile,
+                    image_preview: previewUrl
+                }));
+
+                showSnackbar(
+                    meta.compressed
+                        ? `Image compressed to ${formatFileSize(meta.finalSize)}`
+                        : `Image ready: ${formatFileSize(meta.finalSize)}`,
+                    'success'
+                );
+            } catch (error) {
+                showSnackbar(error.message || 'Failed to compress image', 'error');
+            } finally {
+                setImageProcessing(false);
+                e.target.value = '';
+            }
         }
     };
 
@@ -221,6 +254,10 @@ export default function ShopAds() {
         }
         if (editingAd && !imageFile && !imageChanged && !formData.image_preview) {
             showSnackbar('Please upload an image', 'error');
+            return;
+        }
+        if (imageProcessing) {
+            showSnackbar('Please wait, image is still compressing', 'error');
             return;
         }
 
@@ -299,6 +336,8 @@ export default function ShopAds() {
             });
             setImageFile(null);
             setImageChanged(false);
+            setImageMeta(null);
+            setImageProcessing(false);
         } else {
             setEditingAd(null);
             setFormData({
@@ -312,6 +351,8 @@ export default function ShopAds() {
             });
             setImageFile(null);
             setImageChanged(false);
+            setImageMeta(null);
+            setImageProcessing(false);
         }
         setOpenDialog(true);
     };
@@ -334,6 +375,8 @@ export default function ShopAds() {
         });
         setImageFile(null);
         setImageChanged(false);
+        setImageMeta(null);
+        setImageProcessing(false);
         setDialogLoading(false);
     };
 
@@ -627,7 +670,7 @@ export default function ShopAds() {
                             value={formData.shop_id} 
                             onChange={(e) => setFormData({ ...formData, shop_id: e.target.value })} 
                             label="Select Shop *"
-                            disabled={dialogLoading}
+                            disabled={dialogLoading || imageProcessing}
                         >
                             {shops.map((shop) => (
                                 <MenuItem key={shop.id} value={shop.id}>
@@ -643,7 +686,7 @@ export default function ShopAds() {
                         value={formData.title} 
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
                         sx={{ mb: 2 }}
-                        disabled={dialogLoading}
+                        disabled={dialogLoading || imageProcessing}
                         required
                     />
                     
@@ -655,7 +698,7 @@ export default function ShopAds() {
                         value={formData.description} 
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
                         sx={{ mb: 2 }}
-                        disabled={dialogLoading}
+                        disabled={dialogLoading || imageProcessing}
                     />
                     
                     <FormControl fullWidth sx={{ mb: 2 }}>
@@ -664,7 +707,7 @@ export default function ShopAds() {
                             value={formData.duration} 
                             onChange={(e) => setFormData({ ...formData, duration: e.target.value })} 
                             label="Duration *"
-                            disabled={dialogLoading}
+                            disabled={dialogLoading || imageProcessing}
                         >
                             <MenuItem value="30days">30 Days</MenuItem>
                             <MenuItem value="3months">3 Months</MenuItem>
@@ -677,7 +720,7 @@ export default function ShopAds() {
                             value={formData.priority} 
                             onChange={(e) => setFormData({ ...formData, priority: e.target.value })} 
                             label="Priority"
-                            disabled={dialogLoading}
+                            disabled={dialogLoading || imageProcessing}
                         >
                             <MenuItem value="low">Low</MenuItem>
                             <MenuItem value="normal">Normal</MenuItem>
@@ -692,9 +735,9 @@ export default function ShopAds() {
                         startIcon={<CloudUploadIcon />} 
                         fullWidth 
                         sx={{ mb: 2, py: 1.5 }}
-                        disabled={dialogLoading}
+                        disabled={dialogLoading || imageProcessing}
                     >
-                        {editingAd && !imageFile ? 'Change Ad Image' : 'Upload Ad Image *'}
+                        {imageProcessing ? 'Compressing image...' : (editingAd && !imageFile ? 'Change Ad Image' : 'Upload Ad Image *')}
                         <input 
                             type="file" 
                             hidden 
@@ -713,20 +756,26 @@ export default function ShopAds() {
                             {imageFile && (
                                 <Typography variant="caption" display="block" color="#6b7280">
                                     New image selected: {imageFile.name}
+                                    {imageMeta ? ` (${formatFileSize(imageMeta.finalSize)})` : ''}
+                                </Typography>
+                            )}
+                            {imageMeta?.compressed && (
+                                <Typography variant="caption" display="block" color="#16a34a">
+                                    Compressed from {formatFileSize(imageMeta.originalSize)} to {formatFileSize(imageMeta.finalSize)}
                                 </Typography>
                             )}
                         </Box>
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleCloseDialog} disabled={dialogLoading}>Cancel</Button>
+                    <Button onClick={handleCloseDialog} disabled={dialogLoading || imageProcessing}>Cancel</Button>
                     <Button 
                         onClick={handleCreateAd} 
                         variant="contained" 
-                        disabled={dialogLoading}
+                        disabled={dialogLoading || imageProcessing}
                         startIcon={dialogLoading && <CircularProgress size={20} />}
                     >
-                        {dialogLoading ? 'Saving...' : (editingAd ? 'Update' : 'Create')}
+                        {imageProcessing ? 'Compressing...' : dialogLoading ? 'Saving...' : (editingAd ? 'Update' : 'Create')}
                     </Button>
                 </DialogActions>
             </Dialog>
