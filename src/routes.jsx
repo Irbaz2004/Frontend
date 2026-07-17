@@ -123,9 +123,9 @@ function WebsiteSplash({ onComplete }) {
                         alt="NearZO"
                         sx={{
                             width: { 
-                                xs: 'clamp(100px, 60vw, 160px)', 
-                                sm: 'clamp(140px, 55vw, 200px)', 
-                                md: 'clamp(180px, 45vw, 250px)' 
+                                xs: 'clamp(130px, 64vw, 200px)', 
+                                sm: 'clamp(170px, 58vw, 245px)', 
+                                md: 'clamp(220px, 48vw, 310px)' 
                             },
                             height: 'auto',
                             objectFit: 'contain',

@@ -153,7 +153,7 @@ function LandingPage() {
       <DownloadCTA />
       <Footer />
 
-      <Dialog
+      {/* <Dialog
         open={installDialogOpen}
         onClose={handleCloseInstallDialog}
         PaperProps={{
@@ -303,7 +303,7 @@ function LandingPage() {
 
 
         </Box>
-      </Dialog>
+      </Dialog> */}
 
  
       {/* ── Already Installed ── */}

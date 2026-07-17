@@ -683,14 +683,14 @@ function AppLayout() {
                     {!sidebarCollapsed && (
                         <Box
                             component="img" src={logo} alt="NearZO"
-                            sx={{ width: 100, height: 'auto', cursor: 'pointer', objectFit: 'contain' }}
+                            sx={{ width: 124, height: 'auto', cursor: 'pointer', objectFit: 'contain' }}
                             onClick={() => { haptic('tap'); navigate('/'); }}
                         />
                     )}
                     {sidebarCollapsed && (
                         <Box
                             component="img" src={logo} alt="NearZO"
-                            sx={{ width: 32, height: 'auto', cursor: 'pointer', objectFit: 'contain' }}
+                            sx={{ width: 40, height: 'auto', cursor: 'pointer', objectFit: 'contain' }}
                             onClick={() => { haptic('tap'); navigate('/'); }}
                         />
                     )}
@@ -1099,7 +1099,7 @@ function AppLayout() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
                     <Box
                         component="img" src={logo} alt="NearZO"
-                        sx={{ width: 90, height: 'auto', objectFit: 'contain', cursor: 'pointer' }}
+                        sx={{ width: 112, height: 'auto', objectFit: 'contain', cursor: 'pointer' }}
                         onClick={() => { haptic('tap'); navigate('/'); }}
                     />
                 </Box>

@@ -108,7 +108,7 @@ const Navbar = () => {
                             src={helozologo}
                             alt="Logo"
                             sx={{
-                                height: 35,
+                                height: { xs: 42, md: 46 },
                                 width: 'auto',
                                 cursor: 'pointer',
                                 transition: 'all 0.3s ease',

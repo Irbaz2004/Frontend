@@ -558,7 +558,7 @@ const Footer = () => {
                         {/* Logo & About */}
                         <Grid item xs={12} md={6}>
                             <Stack spacing={{ xs: 2, md: 3 }}>
-                                <img src={helozologo} style={{ height: '35px', width: '130px' }} alt="HeloZO Logo" />
+                                <img src={helozologo} style={{ height: '44px', width: 'auto', objectFit: 'contain' }} alt="HeloZO Logo" />
                                 <Typography sx={{
                                     color: '#5a6e8a',
                                     maxWidth: 400,
