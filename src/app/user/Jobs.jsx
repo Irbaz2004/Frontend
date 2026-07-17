@@ -55,6 +55,7 @@ import {
 } from '@mui/icons-material';
 import { getJobsByLocation, getJobById, getJobFilterOptions, incrementJobViewCount } from '../../services/jobs';
 import { useAuth } from '../context/AuthContext';
+import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
 
 // ─── Design Tokens (same theme as Shops / Houses) ──────────────────────────
 const C = {
@@ -798,6 +799,7 @@ export default function Jobs() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const viewedJobsRef = useRef(new Set());
+    const initialLocation = useMemo(() => getCachedUserLocation(), []);
 
     const [loading, setLoading] = useState(true);
     const [jobs, setJobs] = useState([]);
@@ -806,8 +808,8 @@ export default function Jobs() {
     const [currentPage, setCurrentPage] = useState(1);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    const [userLocation, setUserLocation] = useState(null);
-    const [gettingLocation, setGettingLocation] = useState(true);
+    const [userLocation, setUserLocation] = useState(initialLocation);
+    const [gettingLocation, setGettingLocation] = useState(!initialLocation);
     const [filterOptions, setFilterOptions] = useState({ job_types: [], min_salary: 0, max_salary: 100000, job_titles: [] });
     const [locationDialogOpen, setLocationDialogOpen] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
@@ -873,9 +875,13 @@ export default function Jobs() {
                 return;
             }
             navigator.geolocation.getCurrentPosition(
-                (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+                (position) => {
+                    const nextLocation = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+                    saveCachedUserLocation(nextLocation);
+                    resolve(nextLocation);
+                },
                 (error) => reject(error),
-                { enableHighAccuracy: true, timeout: 10000 }
+                { enableHighAccuracy: true, timeout: 6000, maximumAge: 300000 }
             );
         });
     };
@@ -929,13 +935,16 @@ export default function Jobs() {
     // ── Effects ──
     useEffect(() => {
         const initializeLocation = async () => {
-            setGettingLocation(true);
+            setGettingLocation(!initialLocation);
             try {
                 const coords = await getCurrentLocationCoords();
                 setUserLocation(coords);
             } catch (err) {
                 console.log('Could not get location automatically');
-                setLocationDialogOpen(true);
+                if (!initialLocation) {
+                    setLocationDialogOpen(true);
+                    setUserLocation(DEFAULT_USER_LOCATION);
+                }
                 setGettingLocation(false);
             } finally {
                 setGettingLocation(false);
@@ -986,6 +995,7 @@ export default function Jobs() {
 
     const handleView = async (job) => {
         setSelectedJob(null);
+        setSelectedJob(job);
         setLoadingDetails(true);
         setDetailsOpen(true);
 

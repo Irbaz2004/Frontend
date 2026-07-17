@@ -138,6 +138,24 @@ const Navbar = () => {
                         >
                             {isInstallAvailable ? 'Install App' : 'Login'}
                         </Button>
+                            {/* <Button
+                            variant="contained"
+                            sx={{
+                                borderRadius: '100px',
+                                px: 3,
+                                fontWeight: 700,
+                                fontFamily: '"Inter", sans-serif',
+                                backgroundColor: '#325fec',
+                                color: 'white',
+                                // boxShadow: '0 10px 25px rgba(50,95,236,0.22)',
+                                '&:hover': {
+                                    backgroundColor: '#274fcb',
+                                    transform: 'translateY(-2px)',
+                                },
+                            }}
+                        >
+                            Stay Tuned
+                        </Button> */}
                     </Box>
                 </Toolbar>
             </AppBar>

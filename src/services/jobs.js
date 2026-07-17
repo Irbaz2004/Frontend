@@ -1,4 +1,6 @@
 // services/jobs.js - Add new functions
+import { cachedJson } from './fastCache';
+
 const API_BASE = import.meta.env.VITE_API_URL;
 
 function authHeaders() {
@@ -10,7 +12,8 @@ function authHeaders() {
 }
 
 async function apiCall(endpoint, options = {}) {
-    try {
+    const method = (options.method || 'GET').toUpperCase();
+    const run = async () => {
         const response = await fetch(`${API_BASE}${endpoint}`, {
             headers: authHeaders(),
             ...options,
@@ -18,6 +21,14 @@ async function apiCall(endpoint, options = {}) {
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'API call failed');
         return data;
+    };
+
+    try {
+        if (method === 'GET') {
+            const ttl = endpoint.includes('/filters') ? 60000 : 12000;
+            return cachedJson(`nearzo:api:jobs:${endpoint}`, run, ttl);
+        }
+        return run();
     } catch (error) {
         console.error(`API Error (${endpoint}):`, error);
         throw error;

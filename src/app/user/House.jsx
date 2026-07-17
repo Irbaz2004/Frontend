@@ -55,6 +55,7 @@ import {
 } from '@mui/icons-material';
 import { getHousesByLocation, getHouseById, getHouseFilterOptions, incrementHouseViewCount } from '../../services/house';
 import { useNavigate } from 'react-router-dom';
+import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
 
 // ─── Design Tokens (same theme, unchanged) ─────────────────────────────────
 const C = {
@@ -712,12 +713,13 @@ export default function Houses() {
     }, []);
 
     const [loading, setLoading] = useState(true);
+    const initialLocation = useMemo(() => getCachedUserLocation(), []);
     const [houses, setHouses] = useState([]);
     const [totalPages, setTotalPages] = useState(1);
     const [currentPage, setCurrentPage] = useState(1);
     const [error, setError] = useState('');
-    const [userLocation, setUserLocation] = useState(null);
-    const [gettingLocation, setGettingLocation] = useState(true);
+    const [userLocation, setUserLocation] = useState(initialLocation);
+    const [gettingLocation, setGettingLocation] = useState(!initialLocation);
     const [filterOptions, setFilterOptions] = useState({ min_rent: 0, max_rent: 100000, rooms: [], furnished: [] });
 
     const [radius, setRadius] = useState(10);
@@ -744,24 +746,26 @@ export default function Houses() {
     }, [userLocation, radius, rentRange, rooms, furnished, searchTerm, currentPage, selectedTenantType, selectedPriceRange]);
 
     const getCurrentLocation = () => {
-        setGettingLocation(true);
+        setGettingLocation(!userLocation);
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    setUserLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+                    const nextLocation = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+                    saveCachedUserLocation(nextLocation);
+                    setUserLocation(nextLocation);
                     setGettingLocation(false);
                 },
                 () => {
                     setError('Unable to get your location.');
                     setGettingLocation(false);
-                    setUserLocation({ latitude: 12.9165, longitude: 79.1325 });
+                    if (!userLocation) setUserLocation(DEFAULT_USER_LOCATION);
                 },
-                { enableHighAccuracy: true, timeout: 10000 }
+                { enableHighAccuracy: true, timeout: 6000, maximumAge: 300000 }
             );
         } else {
             setError('Geolocation not supported.');
             setGettingLocation(false);
-            setUserLocation({ latitude: 12.9165, longitude: 79.1325 });
+            if (!userLocation) setUserLocation(DEFAULT_USER_LOCATION);
         }
     };
 
@@ -804,6 +808,7 @@ export default function Houses() {
 
     const handleHouseClick = async (house) => {
         setSelectedHouse(null);
+        setSelectedHouse(house);
         setLoadingDetails(true);
         setDetailsOpen(true);
 

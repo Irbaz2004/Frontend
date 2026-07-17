@@ -935,6 +935,20 @@ export default function Home() {
 
     useEffect(() => {
         const init = async () => {
+            const savedCity = normalizeLocationName(localStorage.getItem('nearzo_user_city') || user?.city || '');
+            if (savedCity) {
+                await loadHomeData(savedCity, false);
+                getCurrentLocationCity()
+                    .then((city) => {
+                        const detected = normalizeLocationName(city);
+                        if (detected && detected !== savedCity) {
+                            loadHomeData(detected, true);
+                        }
+                    })
+                    .catch(() => {});
+                return;
+            }
+
             try {
                 const city = await getCurrentLocationCity();
                 await loadHomeData(city, false);

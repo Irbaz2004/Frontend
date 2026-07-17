@@ -1,5 +1,15 @@
 // services/profile.js
+import { clearFastCache } from './fastCache';
+
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+function clearUserDataCaches() {
+    clearFastCache('nearzo:api:home:');
+    clearFastCache('nearzo:api:shops:');
+    clearFastCache('nearzo:api:houses:');
+    clearFastCache('nearzo:api:jobs:');
+    clearFastCache('nearzo:api:map:');
+}
 
 function authHeaders() {
     const token = localStorage.getItem('nearzo_token');
@@ -19,6 +29,9 @@ async function apiCall(endpoint, options = {}) {
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'API call failed');
+        if ((options.method || 'GET').toUpperCase() !== 'GET') {
+            clearUserDataCaches();
+        }
         return data;
     } catch (error) {
         console.error(`API Error (${endpoint}):`, error);
@@ -319,6 +332,7 @@ export async function createShop(data) {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.message || 'API call failed');
+    clearUserDataCaches();
     return result;
 }
 
@@ -358,6 +372,7 @@ export async function updateShop(id, data) {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.message || 'API call failed');
+    clearUserDataCaches();
     return result;
 }
 
@@ -391,6 +406,7 @@ export async function createHouse(data) {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.message || 'API call failed');
+    clearUserDataCaches();
     return result;
 }
 
@@ -420,6 +436,7 @@ export async function updateHouse(id, data) {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.message || 'API call failed');
+    clearUserDataCaches();
     return result;
 }
 
@@ -454,6 +471,7 @@ export async function updateJob(id, data) {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.message || 'API call failed');
+    clearUserDataCaches();
     return result;
 }
 

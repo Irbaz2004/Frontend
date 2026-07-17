@@ -1,4 +1,5 @@
 // services/homeUser.js
+import { cachedJson } from './fastCache';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -11,7 +12,8 @@ function getAuthHeaders() {
 }
 
 async function apiCall(endpoint, options = {}) {
-    try {
+    const method = (options.method || 'GET').toUpperCase();
+    const run = async () => {
         const response = await fetch(`${API_URL}${endpoint}`, {
             headers: getAuthHeaders(),
             ...options,
@@ -21,6 +23,13 @@ async function apiCall(endpoint, options = {}) {
             throw new Error(data.message || 'API call failed');
         }
         return data;
+    };
+
+    try {
+        if (method === 'GET') {
+            return cachedJson(`nearzo:api:home:${endpoint}`, run, 12000);
+        }
+        return run();
     } catch (error) {
         console.error(`API Error (${endpoint}):`, error);
         throw error;

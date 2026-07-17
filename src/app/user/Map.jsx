@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAllNearby } from '../../services/map';
+import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
@@ -527,8 +528,9 @@ const injectCSS = () => {
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function Map() {
-  const [phase, setPhase]                   = useState('locating');
-  const [userLocation, setUserLocation]     = useState(null);
+  const initialLocation = getCachedUserLocation();
+  const [phase, setPhase]                   = useState(initialLocation ? 'ready' : 'locating');
+  const [userLocation, setUserLocation]     = useState(initialLocation);
   const [shops, setShops]                   = useState([]);
   const [houses, setHouses]                 = useState([]);
   const [jobs, setJobs]                     = useState([]);
@@ -567,14 +569,19 @@ export default function Map() {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setUserLocation({ latitude: 12.9165, longitude: 79.1325 });
+      if (!userLocation) setUserLocation(DEFAULT_USER_LOCATION);
       setPhase('ready');
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (p) => { setUserLocation({ latitude: p.coords.latitude, longitude: p.coords.longitude }); setPhase('ready'); },
-      ()  => { setUserLocation({ latitude: 12.9165, longitude: 79.1325 }); setPhase('ready'); },
-      { enableHighAccuracy: true, timeout: 10000 }
+      (p) => {
+        const nextLocation = { latitude: p.coords.latitude, longitude: p.coords.longitude };
+        saveCachedUserLocation(nextLocation);
+        setUserLocation(nextLocation);
+        setPhase('ready');
+      },
+      ()  => { if (!userLocation) setUserLocation(DEFAULT_USER_LOCATION); setPhase('ready'); },
+      { enableHighAccuracy: true, timeout: 6000, maximumAge: 300000 }
     );
   }, []);
 

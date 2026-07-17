@@ -48,6 +48,7 @@ import {
     ArrowBackIosNew as ArrowBackIcon,
 } from '@mui/icons-material';
 import { getShopsByLocation, getShopById, getShopCategoriesWithCount, incrementShopViewCount } from '../../services/shops';
+import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
 
 // ─── Design tokens (unchanged — same theme) ──────────────────────────────────
 const C = {
@@ -942,13 +943,14 @@ export default function Shops() {
     const theme    = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const viewedShopsRef = useRef(new Set());
+    const initialLocation = useMemo(() => getCachedUserLocation(), []);
 
     const [loading,          setLoading]          = useState(true);
     const [shops,            setShops]            = useState([]);
     const [categories,       setCategories]       = useState([]);
     const [error,            setError]            = useState('');
-    const [userLocation,     setUserLocation]     = useState(null);
-    const [gettingLocation,  setGettingLocation]  = useState(true);
+    const [userLocation,     setUserLocation]     = useState(initialLocation);
+    const [gettingLocation,  setGettingLocation]  = useState(!initialLocation);
     const [radius,           setRadius]           = useState(10);
     const [selectedCategory, setSelectedCategory] = useState('');
     const [searchTerm,       setSearchTerm]       = useState('');
@@ -972,24 +974,26 @@ export default function Shops() {
     }, [userLocation, radius, selectedCategory, searchTerm]);
 
     const getCurrentLocation = () => {
-        setGettingLocation(true);
+        setGettingLocation(!userLocation);
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    setUserLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+                    const nextLocation = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+                    saveCachedUserLocation(nextLocation);
+                    setUserLocation(nextLocation);
                     setGettingLocation(false);
                 },
                 () => {
                     setError('Unable to get your location.');
                     setGettingLocation(false);
-                    setUserLocation({ latitude: 12.9165, longitude: 79.1325 });
+                    if (!userLocation) setUserLocation(DEFAULT_USER_LOCATION);
                 },
-                { enableHighAccuracy: true, timeout: 10000 }
+                { enableHighAccuracy: true, timeout: 6000, maximumAge: 300000 }
             );
         } else {
             setError('Geolocation not supported.');
             setGettingLocation(false);
-            setUserLocation({ latitude: 12.9165, longitude: 79.1325 });
+            if (!userLocation) setUserLocation(DEFAULT_USER_LOCATION);
         }
     };
 
@@ -1025,6 +1029,7 @@ export default function Shops() {
 
     const handleShopClick = useCallback(async (shop) => {
         setSelectedShop(null);
+        setSelectedShop(shop);
         setLoadingDetails(true);
         setDetailsOpen(true);
 
