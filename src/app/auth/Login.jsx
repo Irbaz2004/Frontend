@@ -13,7 +13,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../../services/auth';
 import { useAuth } from '../context/AuthContext';
-import logo from '../../assets/nearzologo.png';
+import logo from '../../assets/helozologo.png';
 
 function Login() {
     const navigate = useNavigate();

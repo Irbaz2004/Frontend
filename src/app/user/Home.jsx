@@ -223,7 +223,7 @@ const CityHeader = ({ city, onCityClick, onRefresh }) => (
         borderBottom: `1px solid ${T.border}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     }}>
-        <Box onClick={onCityClick} sx={{ display: 'flex', alignItems: 'center', gap: 0.8, cursor: 'pointer' }}>
+        <Box  sx={{ display: 'flex', alignItems: 'center', gap: 0.8, cursor: 'pointer' }}>
             <Box sx={{
                 width: 32, height: 32, borderRadius: '9px',
                 background: 'linear-gradient(135deg, #2952E8, #5B7EFF)',
@@ -240,7 +240,7 @@ const CityHeader = ({ city, onCityClick, onRefresh }) => (
                     <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: { xs: '1.1rem', sm: '1.18rem' }, color: T.text, letterSpacing: '-0.03em', lineHeight: 1.1 }}>
                         {city || 'Loading…'}
                     </Typography>
-                    <ArrowDownIcon sx={{ fontSize: '1rem', color: T.textMuted, mt: '1px' }} />
+                    {/* <ArrowDownIcon sx={{ fontSize: '1rem', color: T.textMuted, mt: '1px' }} /> */}
                 </Box>
             </Box>
         </Box>

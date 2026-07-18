@@ -87,6 +87,7 @@ const C = {
 
 const FONT = '"Inter", sans-serif';
 const BOTTOM_NAV_OFFSET = 150;
+const APP_HEADER_OFFSET = 64;
 
 // Smooth sheet motion — expo-out on the way in, quick ease-in on the way out
 const SHEET_EASE_ENTER = 'cubic-bezier(0.16, 1, 0.3, 1)';
@@ -799,6 +800,7 @@ export default function Jobs() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const viewedJobsRef = useRef(new Set());
+    const headerRef = useRef(null);
     const initialLocation = useMemo(() => getCachedUserLocation(), []);
 
     const [loading, setLoading] = useState(true);
@@ -828,8 +830,26 @@ export default function Jobs() {
     const [selectedJob, setSelectedJob] = useState(null);
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [loadingDetails, setLoadingDetails] = useState(false);
+    const [headerHeight, setHeaderHeight] = useState(180);
 
     const scrollRef = useRef(null);
+
+    useEffect(() => {
+        const measure = () => {
+            if (!headerRef.current) return;
+            const h = headerRef.current.getBoundingClientRect().height;
+            if (h > 0) setHeaderHeight(h);
+        };
+        const t = setTimeout(measure, 50);
+        const ro = new ResizeObserver(measure);
+        if (headerRef.current) ro.observe(headerRef.current);
+        window.addEventListener('resize', measure);
+        return () => {
+            clearTimeout(t);
+            ro.disconnect();
+            window.removeEventListener('resize', measure);
+        };
+    }, []);
 
     // ── Helper Functions ──
     const getCityFromCoordinates = async (latitude, longitude) => {
@@ -1077,9 +1097,17 @@ export default function Jobs() {
             </Snackbar>
 
             {/* ── STICKY HEADER ── */}
-            <Box sx={{
-                position: 'sticky', top: 0, zIndex: 100, background: C.surface,
+            <Box ref={headerRef} sx={{
+                position: isMobile ? 'fixed' : 'sticky',
+                top: isMobile ? `${APP_HEADER_OFFSET}px` : 0,
+                left: 0,
+                right: 0,
+                width: '100%',
+                maxWidth: '100vw',
+                zIndex: 1000,
+                background: C.surface,
                 px: 2, pt: 1.5, pb: 1.5, borderBottom: `1px solid ${C.border}`,
+                boxShadow: isMobile ? `0 8px 24px ${C.shadowMd}` : 'none',
             }}>
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
                     <Box>
@@ -1173,6 +1201,8 @@ export default function Jobs() {
                     }}
                 />
             </Box>
+
+            {isMobile && <Box sx={{ height: headerHeight }} />}
 
             {error && (
                 <Fade in={!!error}>

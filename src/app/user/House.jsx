@@ -87,6 +87,7 @@ const C = {
 
 const FONT = '"Inter", sans-serif';
 const BOTTOM_NAV_OFFSET = 150;
+const APP_HEADER_OFFSET = 64;
 
 // Smooth sheet motion — expo-out on the way in, quick ease-in on the way out
 const SHEET_EASE_ENTER = 'cubic-bezier(0.16, 1, 0.3, 1)';
@@ -874,10 +875,17 @@ export default function Houses() {
 
             {/* ── STICKY HEADER ── */}
             <Box ref={headerRef} sx={{
-                position: 'sticky', top: 0, zIndex: 1000,
+                position: isMobile ? 'fixed' : 'sticky',
+                top: isMobile ? `${APP_HEADER_OFFSET}px` : 0,
+                left: 0,
+                right: 0,
+                width: '100%',
+                maxWidth: '100vw',
+                zIndex: 1000,
                 background: C.surface,
                 px: 2, pt: 2, pb: 1.5,
                 borderBottom: `1px solid ${C.border}`,
+                boxShadow: isMobile ? `0 8px 24px ${C.shadowMd}` : 'none',
             }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                     <Box>
@@ -1001,6 +1009,8 @@ export default function Houses() {
                     }}
                 />
             </Box>
+
+            {isMobile && <Box sx={{ height: headerHeight }} />}
 
             {/* Results count + sort */}
             <Box sx={{ px: 2, pt: 1.5, pb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

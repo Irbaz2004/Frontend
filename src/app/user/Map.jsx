@@ -433,12 +433,12 @@ const injectCSS = () => {
       flex-shrink: 0;
       width: 100%;
       padding-top: env(safe-area-inset-top, 0px);
-      background: ${C.surfaceAlt};
+      background: ${C.surface};
       border-bottom: 1px solid ${C.borderLight};
     }
     .detail-hero-topbar {
       display: flex; align-items: center;
-      padding: 14px 14px 0;
+      padding: 12px 14px 0;
     }
     .detail-hero-btn {
       width: 40px; height: 40px;
@@ -450,45 +450,100 @@ const injectCSS = () => {
       cursor: pointer; flex-shrink: 0;
     }
     .detail-hero-body {
-      padding: 18px 20px 24px;
+      padding: 14px 18px 20px;
       display: flex; align-items: flex-start; gap: 14px;
     }
+    .detail-type-icon {
+      width: 56px; height: 56px; border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 14px;
+    }
+    .detail-title {
+      font-weight: 800; font-size: 19px; color: ${C.text};
+      line-height: 1.2; letter-spacing: 0; margin-bottom: 5px;
+      overflow-wrap: anywhere;
+    }
+    .detail-subline {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      min-width: 0;
+    }
+    .detail-subline span { min-width: 0; overflow-wrap: anywhere; }
 
     /* Action buttons row */
+    .detail-action-wrap {
+      padding: 16px 18px 18px;
+      background: ${C.surface};
+    }
     .detail-actions {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: var(--detail-action-columns, repeat(3, minmax(0, 1fr)));
       gap: 10px;
     }
     .detail-action-btn {
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: 7px; padding: 16px 8px;
+      gap: 7px; min-height: 64px; padding: 13px 7px;
       border-radius: 16px; cursor: pointer;
       border: 1px solid ${C.border};
       background: ${C.surface};
       color: ${C.textSub};
       font-family: 'Inter', sans-serif;
-      font-size: 11.5px; font-weight: 700;
+      font-size: 10.5px; font-weight: 800;
       text-transform: uppercase; letter-spacing: .04em;
+      min-width: 0;
+      box-shadow: 0 8px 22px ${C.shadowSm};
+      transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
     }
     .detail-action-btn.primary {
       background: ${C.accent}; color: #fff; border-color: ${C.accent};
+      box-shadow: 0 12px 24px ${C.shadow};
+    }
+    .detail-action-btn span {
+      max-width: 100%;
+      line-height: 1.15;
+      text-align: center;
+      overflow-wrap: anywhere;
     }
 
     /* Info rows */
-    .info-row {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 13px 18px; gap: 8px;
-      border-bottom: 1px solid ${C.borderLight};
+    .detail-section {
+      padding: 18px;
+      border-top: 8px solid ${C.surfaceAlt};
     }
-    .info-row:last-child { border-bottom: none; }
+    .detail-section.compact { padding-top: 16px; padding-bottom: 16px; }
+    .info-row {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center; gap: 10px;
+      padding: 13px 14px;
+      border: 1px solid ${C.borderLight};
+      background: ${C.surface};
+      border-radius: 14px;
+    }
+    .info-row + .info-row { margin-top: 10px; }
+    .info-row-main {
+      display: flex; align-items: center; gap: 10px; min-width: 0;
+    }
+    .info-row-label {
+      color: ${C.textSub}; font-size: 13px; font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+    .info-row-value {
+      color: ${C.text}; font-weight: 800; font-size: 13px;
+      text-align: right; overflow-wrap: anywhere; max-width: 100%;
+    }
+    .info-row > span:last-child {
+      max-width: 100% !important;
+      overflow-wrap: anywhere;
+      font-size: 13px !important;
+      font-weight: 800 !important;
+    }
 
     /* Stat grid for house */
-    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .stat-card {
       background: ${C.surfaceAlt}; border: 1px solid ${C.borderLight};
       border-radius: 14px; padding: 14px 12px;
+      min-width: 0;
     }
 
     /* Radius pills */
@@ -508,16 +563,53 @@ const injectCSS = () => {
 
     /* Key item chip — clickable, links to Google search */
     .keyword-chip {
-      padding: 6px 14px 6px 12px; border-radius: 100px; font-size: 13px;
+      padding: 7px 12px; border-radius: 100px; font-size: 12px;
       background: ${C.surfaceAlt}; color: ${C.textSub}; font-weight: 600;
       border: 1px solid ${C.borderLight};
       display: flex; align-items: center; gap: 5px;
       cursor: pointer; font-family: 'Inter', sans-serif;
+      min-width: 0; max-width: 100%;
+      overflow-wrap: anywhere;
+      line-height: 1.2;
+      text-align: left;
     }
+    .keyword-chip svg { flex-shrink: 0; }
     .keyword-chip:hover {
       background: ${C.accentLight}; border-color: ${C.accentMid}; color: ${C.accentDark};
     }
     .keyword-chip:focus-visible { outline: 2px solid ${C.accent}; outline-offset: 2px; }
+
+    .detail-contact-card {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 14px;
+      background: ${C.surfaceAlt}; border-radius: 14px;
+      border: 1px solid ${C.borderLight};
+      text-decoration: none;
+      min-width: 0;
+    }
+    .detail-contact-copy { min-width: 0; }
+    .detail-contact-value {
+      font-size: 14px; font-weight: 800; color: ${C.text};
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 320px) {
+      .detail-hero-body { padding: 12px 12px 16px; gap: 10px; }
+      .detail-hero-topbar { padding-left: 10px; padding-right: 10px; }
+      .detail-type-icon { width: 46px; height: 46px; border-radius: 13px; margin-top: 10px; }
+      .detail-title { font-size: 17px; }
+      .detail-action-wrap { padding: 12px; }
+      .detail-actions { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px; }
+      .detail-action-btn.primary { grid-column: 1 / -1; }
+      .detail-action-btn { min-height: 58px; border-radius: 13px; padding: 11px 6px; }
+      .detail-section { padding: 14px 12px; border-top-width: 6px; }
+      .info-row { grid-template-columns: 1fr; align-items: start; gap: 8px; padding: 12px; }
+      .info-row-value,
+      .info-row > span:last-child { text-align: left !important; padding-left: 42px; }
+      .stat-grid { gap: 8px; }
+      .stat-card { padding: 12px 10px; }
+      .keyword-chip { font-size: 11px; padding: 6px 10px; }
+    }
 
     @media (prefers-reduced-motion: reduce) {
       * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
@@ -1459,7 +1551,11 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
         background: C.surface,
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
-        marginTop: 60, marginRight: 12,
+        marginTop: 60,
+        marginRight: 0,
+        width: '100%',
+        maxWidth: '100vw',
+        boxSizing: 'border-box',
       }}
     >
 
@@ -1476,12 +1572,9 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
             initial={{ scale: 0.7, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ ...SPRING_SNAPPY, delay: 0.05 }}
+            className="detail-type-icon"
             style={{
-              width: 56, height: 56, borderRadius: 16,
               background: m.bg, border: `1px solid ${m.mid}55`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-              marginTop: 18, marginRight: 12,
             }}>
             <IconC sx={{ fontSize: 26, color: m.color }} />
           </motion.div>
@@ -1511,13 +1604,9 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
               )}
             </div>
 
-            <div style={{
-              fontWeight: 800, fontSize: 19, color: C.text,
-              lineHeight: 1.2, letterSpacing: '-.3px', marginBottom: 4,
-              wordBreak: 'break-word',
-            }}>{name}</div>
+            <div className="detail-title">{name}</div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
+            <div className="detail-subline">
               {sub && <span style={{ color: C.textSub, fontSize: 13, fontWeight: 500 }}>{sub}</span>}
               {item.distance != null && (
                 <span style={{
@@ -1552,31 +1641,29 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
         )}
 
         {/* Action buttons */}
-        <div style={{ padding: price ? '14px 20px 20px' : '20px 20px 20px' }}>
+        <div className="detail-action-wrap" style={{ paddingTop: price ? 12 : undefined }}>
           <div className="detail-actions" style={{
-            gridTemplateColumns: phone ? 'repeat(3,1fr)' : 'repeat(2,1fr)',
+            '--detail-action-columns': phone ? 'repeat(3,minmax(0,1fr))' : 'repeat(2,minmax(0,1fr))',
           }}>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }} className="detail-action-btn primary" onClick={() => onRoute(item)}>
               <DirectionsIcon sx={{ fontSize: 22 }} />
-              Route
+              <span>Route</span>
             </motion.button>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }} className="detail-action-btn" onClick={() => openGoogleMaps(item)}>
               <OpenInNewIcon sx={{ fontSize: 22, color: C.textSub }} />
-              Google Maps
+              <span>Google Maps</span>
             </motion.button>
             {phone && (
               <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }} className="detail-action-btn" onClick={() => window.location.href = `tel:${phone}`}>
                 <PhoneIcon sx={{ fontSize: 22, color: C.textSub }} />
-                Call
+                <span>Call</span>
               </motion.button>
             )}
           </div>
         </div>
 
-        <div style={{ height: 1, background: C.borderLight }} />
-
         {/* Body content */}
-        <div style={{ padding: '0 20px' }}>
+        <div>
           {item._type === 'shop'  && <ShopBody  item={item} />}
           {item._type === 'house' && <HouseBody item={item} />}
           {item._type === 'job'   && <JobBody   item={item} />}
@@ -1585,8 +1672,7 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
         {/* Contact */}
         {(phone || item.owner_name || item.employer_name) && (
           <>
-            <div style={{ height: 8, background: C.surfaceAlt, marginTop: 8 }} />
-            <div style={{ padding: '20px 20px' }}>
+            <div className="detail-section compact">
               <div className="sec-label">Contact</div>
               {(item.owner_name || item.employer_name) && (
                 <div style={{ fontWeight: 700, fontSize: 15, color: C.text, marginBottom: 12 }}>
@@ -1595,13 +1681,7 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
               )}
               {phone && (
                 <motion.a whileHover={{ y: -2, boxShadow: `0 10px 24px ${C.shadowMd}` }} whileTap={{ scale: 0.98 }}
-                  href={`tel:${phone}`} style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '13px 15px',
-                  background: C.surfaceAlt, borderRadius: 14,
-                  border: `1px solid ${C.borderLight}`,
-                  textDecoration: 'none',
-                }}>
+                  href={`tel:${phone}`} className="detail-contact-card">
                   <div style={{
                     width: 38, height: 38, borderRadius: 11,
                     background: C.surface, border: `1px solid ${C.border}`,
@@ -1610,9 +1690,9 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
                   }}>
                     <PhoneIcon sx={{ fontSize: 18, color: C.accent }} />
                   </div>
-                  <div>
+                  <div className="detail-contact-copy">
                     <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>Tap to call</div>
-                    <div style={{ fontSize: 14.5, fontWeight: 700, color: C.text }}>{phone}</div>
+                    <div className="detail-contact-value">{phone}</div>
                   </div>
                 </motion.a>
               )}
@@ -1628,14 +1708,14 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
 function InfoRow({ label, value, icon, highlight }) {
   return (
     <div className="info-row">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="info-row-main">
         <div style={{
           width: 32, height: 32, borderRadius: 9, background: C.surfaceAlt,
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
           <span style={{ color: C.textSub, display: 'flex', fontSize: 0 }}>{icon}</span>
         </div>
-        <span style={{ color: C.textSub, fontSize: 13.5 }}>{label}</span>
+        <span className="info-row-label">{label}</span>
       </div>
       <span style={{
         color: highlight || C.text,
@@ -1652,9 +1732,9 @@ function ShopBody({ item }) {
   const isOpen = computeIsOpen(item);
 
   return (
-    <div style={{ paddingTop: 4 }}>
+    <div className="detail-section compact">
       {item.description && (
-        <div style={{ padding: '20px 0 4px' }}>
+        <div style={{ marginBottom: 14 }}>
           <div className="sec-label">About</div>
           <div style={{ color: C.textSub, fontSize: 14, lineHeight: 1.75 }}>{item.description}</div>
         </div>
@@ -1662,8 +1742,7 @@ function ShopBody({ item }) {
 
       {(openT || closeT) && (
         <>
-          {item.description && <div style={{ height: 1, background: C.borderLight, margin: '16px 0 0' }} />}
-          <div style={{ paddingTop: item.description ? 0 : 16 }}>
+          <div>
             <InfoRow
               label="Hours"
               value={openT && closeT ? `${openT} – ${closeT}` : openT || closeT}
@@ -1708,7 +1787,7 @@ function ShopBody({ item }) {
 
 function HouseBody({ item }) {
   return (
-    <div style={{ paddingTop: 20 }}>
+    <div className="detail-section compact">
       <div className="sec-label">Property Details</div>
       <div className="stat-grid" style={{ marginBottom: 16 }}>
         {[
@@ -1769,7 +1848,7 @@ function HouseBody({ item }) {
 
 function JobBody({ item }) {
   return (
-    <div style={{ paddingTop: 20 }}>
+    <div className="detail-section compact">
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <span style={{
           padding: '8px 16px', borderRadius: 100, fontSize: 13,

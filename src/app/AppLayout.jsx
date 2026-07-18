@@ -566,9 +566,9 @@ function AppLayout() {
             ));
         }
         setNotificationDialogOpen(false);
-        if (notification.reference_type === 'shop') navigate(`/app/shops/${notification.reference_id}`);
-        else if (notification.reference_type === 'house') navigate(`/app/houses/${notification.reference_id}`);
-        else if (notification.reference_type === 'job') navigate(`/app/jobs/${notification.reference_id}`);
+        if (notification.reference_type === 'shop') navigate(`/app/shops/`);
+        else if (notification.reference_type === 'house') navigate(`/app/houses/`);
+        else if (notification.reference_type === 'job') navigate(`/app/jobs/`);
     };
 
     const handleMarkAllRead = async () => {
@@ -1091,8 +1091,10 @@ function AppLayout() {
                     backdropFilter: 'blur(12px)',
                     WebkitBackdropFilter: 'blur(12px)',
                     borderBottom: `1px solid ${C.borderLight}`,
-                    position: 'sticky',
+                    position: isMobile ? 'fixed' : 'sticky',
                     top: 0,
+                    left: 0,
+                    right: 0,
                     zIndex: 1100,
                 }}
             >
@@ -1294,7 +1296,7 @@ function AppLayout() {
                             )}
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                            {notifications.length > 0 && unreadCount > 0 && (
+                            {/* {notifications.length > 0 && unreadCount > 0 && (
                                 <Button
                                     size="small"
                                     onClick={handleMarkAllRead}
@@ -1309,7 +1311,7 @@ function AppLayout() {
                                 >
                                     Mark all as read
                                 </Button>
-                            )}
+                            )} */}
                             <IconButton
                                 onClick={() => { haptic('tap'); setNotificationDialogOpen(false); }}
                                 size="small"
@@ -1650,8 +1652,10 @@ function AppLayout() {
                                 bgcolor: 'rgba(255,255,255,0.95)',
                                 backdropFilter: 'blur(12px)',
                                 borderBottom: `1px solid ${C.borderLight}`,
-                                position: 'sticky',
+                                position: { xs: 'fixed', md: 'sticky' },
                                 top: 0,
+                                left: { xs: 0, md: 'auto' },
+                                right: { xs: 0, md: 'auto' },
                                 zIndex: 1100,
                             }}
                         >
@@ -1766,7 +1770,7 @@ function AppLayout() {
                             </Box>
                         </Box>
 
-                        <Box sx={{ p: { xs: 1.5, md: 3 }, width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
+                        <Box sx={{ p: { xs: 1.5, md: 3 }, pt: { xs: `calc(${TOP_BAR_HEIGHT}px + 12px)`, md: 3 }, width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
                             <Outlet />
                         </Box>
                     </Box>
@@ -1795,7 +1799,7 @@ function AppLayout() {
                 }}
             >
                 {renderTopBar()}
-                <Box sx={{ flex: 1, minHeight: '100vh', width: '100%', maxWidth: '100%', overflowX: 'hidden', bgcolor: C.surface }}>
+                <Box sx={{ flex: 1, minHeight: '100vh', width: '100%', maxWidth: '100%', overflowX: 'hidden', bgcolor: C.surface, pt: { xs: `${TOP_BAR_HEIGHT}px`, md: 0 } }}>
                     <Outlet />
                 </Box>
             </Box>

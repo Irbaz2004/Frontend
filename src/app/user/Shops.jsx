@@ -82,6 +82,7 @@ const FONT = '"Inter", sans-serif';
 
 // Bottom nav height — must match AppLayout.jsx BOTTOM_NAV_HEIGHT
 const BOTTOM_NAV_OFFSET = 150;
+const APP_HEADER_OFFSET = 64;
 
 // Smooth sheet motion
 const SHEET_EASE_ENTER = 'cubic-bezier(0.16, 1, 0.3, 1)';
@@ -642,9 +643,12 @@ function ShopDetailsContent({ shop, isMobile }) {
                     mt: '-28px',
                     borderRadius: '28px 28px 0 0',
                     background: C.surface,
-                    px: 3,
+                    px: { xs: 2, sm: 3 },
                     pt: 3,
                     pb: 1,
+                    '@media (max-width: 300px)': {
+                        px: 1.5,
+                    },
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.2, flexWrap: 'wrap' }}>
@@ -669,13 +673,13 @@ function ShopDetailsContent({ shop, isMobile }) {
                     />
                 </Box>
 
-                <Typography variant="h5" sx={{ fontFamily: FONT, fontWeight: 800, color: C.text, mb: 0.6, letterSpacing: '-0.3px' }}>
+                <Typography variant="h5" sx={{ fontFamily: FONT, fontWeight: 800, color: C.text, mb: 0.6, letterSpacing: 0, overflowWrap: 'anywhere' }}>
                     {shop.business_name}
                 </Typography>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2.5 }}>
-                    <LocationIcon sx={{ fontSize: 15, color: C.textMuted }} />
-                    <Typography variant="body2" sx={{ fontFamily: FONT, color: C.textMuted, fontSize: 13 }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, mb: 2.5, minWidth: 0 }}>
+                    <LocationIcon sx={{ fontSize: 15, color: C.textMuted, flexShrink: 0, mt: '2px' }} />
+                    <Typography variant="body2" sx={{ fontFamily: FONT, color: C.textMuted, fontSize: 13, lineHeight: 1.35, overflowWrap: 'anywhere' }}>
                         {shop.area}, {shop.city}, {shop.state}
                     </Typography>
                 </Box>
@@ -683,19 +687,32 @@ function ShopDetailsContent({ shop, isMobile }) {
                 {/* Stat strip */}
                 <Box
                     sx={{
-                        display: 'flex',
-                        alignItems: 'center',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                        gap: 0.75,
                         background: C.surfaceAlt,
                         borderRadius: '16px',
-                        py: 1.6,
+                        p: 0.75,
                         mb: 2.5,
+                        '@media (max-width: 320px)': {
+                            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                        },
                     }}
                 >
                     {stats.map((s, i) => (
-                        <React.Fragment key={i}>
+                        <Box
+                            key={i}
+                            sx={{
+                                minWidth: 0,
+                                ...(i === 0 ? {
+                                    '@media (max-width: 320px)': {
+                                        gridColumn: '1 / -1',
+                                    },
+                                } : {}),
+                            }}
+                        >
                             <StatItem icon={s.icon} label={s.label} />
-                            {i < stats.length - 1 && <Box sx={{ width: '1px', height: 28, background: C.border, flexShrink: 0 }} />}
-                        </React.Fragment>
+                        </Box>
                     ))}
                 </Box>
 
@@ -752,7 +769,7 @@ function ShopDetailsContent({ shop, isMobile }) {
                 <SectionLabel>Contact</SectionLabel>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
                     <IconTile><PhoneIcon sx={{ fontSize: 16, color: C.accent }} /></IconTile>
-                    <Typography variant="body2" sx={{ fontFamily: FONT, color: C.text, fontWeight: 500 }}>
+                    <Typography variant="body2" sx={{ fontFamily: FONT, color: C.text, fontWeight: 500, minWidth: 0, overflowWrap: 'anywhere' }}>
                         {shop.additional_phone || shop.owner_phone || 'Not available'}
                     </Typography>
                 </Box>
@@ -762,19 +779,36 @@ function ShopDetailsContent({ shop, isMobile }) {
 }
 
 const StatItem = ({ icon, label }) => (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.6, px: 0.5, minWidth: 0 }}>
-        {icon}
+    <Box
+        sx={{
+            minHeight: 58,
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 0.55,
+            px: 0.5,
+            py: 0.75,
+            minWidth: 0,
+            borderRadius: '12px',
+            background: C.surface,
+            border: `1px solid ${C.borderLight}`,
+        }}
+    >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
+            {icon}
+        </Box>
         <Typography
             sx={{
                 fontFamily: FONT,
-                fontSize: 11.5,
+                fontSize: 11,
                 fontWeight: 700,
                 color: C.text,
                 textAlign: 'center',
-                lineHeight: 1.2,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                lineHeight: 1.25,
+                whiteSpace: 'normal',
+                overflowWrap: 'anywhere',
                 maxWidth: '100%',
             }}
         >
@@ -892,6 +926,11 @@ function ShopDetailsDrawer({ open, shop, loading, onClose, onRoute, onCall }) {
                         borderTop: `1px solid ${C.borderLight}`,
                         background: C.surface,
                         boxShadow: `0 -8px 24px ${C.shadowMd}`,
+                        '@media (max-width: 300px)': {
+                            gap: 1,
+                            p: 1.25,
+                            pb: isMobile ? 'calc(10px + env(safe-area-inset-bottom))' : 1.25,
+                        },
                     }}
                 >
                     <Tooltip title="Call shop" arrow>
@@ -905,6 +944,11 @@ function ShopDetailsDrawer({ open, shop, loading, onClose, onRoute, onCall }) {
                                 color: C.accent,
                                 flexShrink: 0,
                                 '&:hover': { bgcolor: C.accentLight },
+                                '@media (max-width: 300px)': {
+                                    width: 46,
+                                    height: 46,
+                                    borderRadius: '12px',
+                                },
                             }}
                         >
                             <PhoneIcon sx={{ fontSize: 22 }} />
@@ -926,6 +970,16 @@ function ShopDetailsDrawer({ open, shop, loading, onClose, onRoute, onCall }) {
                             py: 1.5,
                             boxShadow: `0 8px 20px ${C.shadow}`,
                             '&:hover': { background: C.accentDark },
+                            minWidth: 0,
+                            whiteSpace: 'nowrap',
+                            '@media (max-width: 300px)': {
+                                borderRadius: '12px',
+                                fontSize: 13,
+                                py: 1.2,
+                                '& .MuiButton-startIcon': {
+                                    mr: 0.5,
+                                },
+                            },
                         }}
                     >
                         Get Directions
@@ -943,6 +997,7 @@ export default function Shops() {
     const theme    = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const viewedShopsRef = useRef(new Set());
+    const headerRef = useRef(null);
     const initialLocation = useMemo(() => getCachedUserLocation(), []);
 
     const [loading,          setLoading]          = useState(true);
@@ -959,8 +1014,26 @@ export default function Shops() {
     const [detailsOpen,      setDetailsOpen]      = useState(false);
     const [loadingDetails,   setLoadingDetails]   = useState(false);
     const [snackbar,         setSnackbar]         = useState({ open: false, message: '' });
+    const [headerHeight,     setHeaderHeight]     = useState(210);
 
     const scrollRef = useRef(null);
+
+    useEffect(() => {
+        const measure = () => {
+            if (!headerRef.current) return;
+            const h = headerRef.current.getBoundingClientRect().height;
+            if (h > 0) setHeaderHeight(h);
+        };
+        const t = setTimeout(measure, 50);
+        const ro = new ResizeObserver(measure);
+        if (headerRef.current) ro.observe(headerRef.current);
+        window.addEventListener('resize', measure);
+        return () => {
+            clearTimeout(t);
+            ro.disconnect();
+            window.removeEventListener('resize', measure);
+        };
+    }, []);
 
     useEffect(() => {
         getCurrentLocation();
@@ -1130,6 +1203,7 @@ export default function Shops() {
         >
             {/* ══ STICKY HEADER ══ */}
             <Box
+                ref={headerRef}
                 sx={{
                     flexShrink: 0,
                     background: C.surface,
@@ -1137,7 +1211,14 @@ export default function Shops() {
                     pt: 1.5,
                     pb: 1.2,
                     borderBottom: `1px solid ${C.border}`,
-                    zIndex: 100,
+                    position: isMobile ? 'fixed' : 'sticky',
+                    top: isMobile ? `${APP_HEADER_OFFSET}px` : 0,
+                    left: 0,
+                    right: 0,
+                    width: '100%',
+                    maxWidth: '100vw',
+                    zIndex: 1000,
+                    boxShadow: isMobile ? `0 8px 24px ${C.shadowMd}` : 'none',
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
@@ -1278,6 +1359,8 @@ export default function Shops() {
                     setSelectedCategory={setSelectedCategory}
                 />
             </Box>
+
+            {isMobile && <Box sx={{ height: headerHeight, flexShrink: 0 }} />}
 
             {error && (
                 <Fade in={!!error}>
