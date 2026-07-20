@@ -2625,7 +2625,7 @@ export default function Profile() {
                         display: 'grid',
                         gap: 8,
                         position: 'sticky',
-                        top: 0,
+                        top: -15,
                         zIndex: 2,
                         background: '#fff',
                         margin: 'calc(var(--modal-py) * -1) calc(var(--modal-px) * -1) 0',
