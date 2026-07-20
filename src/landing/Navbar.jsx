@@ -119,7 +119,7 @@ const Navbar = () => {
                         />
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                        {/* <Button
+                        <Button
                             variant="contained"
                             sx={{
                                 borderRadius: '100px',
@@ -137,8 +137,8 @@ const Navbar = () => {
                             onClick={handlePrimaryAction}
                         >
                             {isInstallAvailable ? 'Install App' : 'Login'}
-                        </Button> */}
-                            <Button
+                        </Button>
+                            {/* <Button
                             variant="contained"
                             sx={{
                                 borderRadius: '100px',
@@ -155,7 +155,7 @@ const Navbar = () => {
                             }}
                         >
                             Stay Tuned
-                        </Button>
+                        </Button> */}
                     </Box>
                 </Toolbar>
             </AppBar>
