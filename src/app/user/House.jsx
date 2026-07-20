@@ -337,10 +337,6 @@ function HouseDetailsContent({ house, isMobile }) {
     }
 
     const isVerified = !!house.is_verified;
-    const furnishingLabel =
-        house.furnished === 'furnished' ? 'Fully Furnished'
-            : house.furnished === 'semi-furnished' ? 'Semi Furnished'
-            : 'Unfurnished';
 
     const stats = [
         { icon: <BedIcon sx={{ fontSize: 18, color: C.accent }} />, label: `${house.rooms} Beds` },
@@ -393,12 +389,6 @@ function HouseDetailsContent({ house, isMobile }) {
                         label={`${house.rooms} BHK`}
                         size="small"
                         sx={{ borderRadius: '6px', bgcolor: C.accentLight, color: C.accent, fontFamily: FONT, fontWeight: 700, fontSize: 12 }}
-                    />
-                    <Chip
-                        label={furnishingLabel}
-                        size="small"
-                        variant="outlined"
-                        sx={{ borderRadius: '6px', borderColor: C.border, color: C.textSub, fontFamily: FONT, fontWeight: 600, fontSize: 11.5 }}
                     />
                 </Box>
 

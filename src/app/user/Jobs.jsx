@@ -28,7 +28,6 @@ import {
     DialogActions,
     Tooltip,
     Snackbar,
-    Grid,
     Fade,
 } from '@mui/material';
 import {
@@ -48,10 +47,11 @@ import {
     Schedule as ScheduleIcon,
     Person as PersonIcon,
     CurrencyRupee as RupeeIcon,
-    Directions as DirectionsIcon,
     ArrowBackIosNew as ArrowBackIcon,
     School as SchoolIcon,
-    Map as MapIcon,
+    CalendarToday as CalendarIcon,
+    BookmarkBorder as BookmarkIcon,
+    WorkspacePremium as QualificationBadgeIcon,
 } from '@mui/icons-material';
 import { getJobsByLocation, getJobById, getJobFilterOptions, incrementJobViewCount } from '../../services/jobs';
 import { useAuth } from '../context/AuthContext';
@@ -300,60 +300,119 @@ function JobCard({ job, index, onApply, onView }) {
     );
 }
 
-const SectionLabel = ({ children }) => (
-    <Typography sx={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.text, mb: 1.5 }}>
-        {children}
-    </Typography>
-);
-
-const IconTile = ({ children, bg = C.accentLight }) => (
-    <Box sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        {children}
-    </Box>
-);
-
-const StatItem = ({ icon, label }) => (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.6, px: 0.5, minWidth: 0 }}>
-        {icon}
-        <Typography sx={{ fontFamily: FONT, fontSize: 11.5, fontWeight: 700, color: C.text, textAlign: 'center', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
-            {label}
+const SectionLabel = ({ children, icon = null, withBar = false }) => (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 1.8 }}>
+        {withBar && <Box sx={{ width: 5, height: 26, borderRadius: '6px', bgcolor: C.accent, flexShrink: 0 }} />}
+        {icon && (
+            <Box sx={{
+                width: 38,
+                height: 38,
+                borderRadius: '50%',
+                bgcolor: C.accentLight,
+                color: C.accent,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+            }}>
+                {icon}
+            </Box>
+        )}
+        <Typography sx={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: C.text, lineHeight: 1.2 }}>
+            {children}
         </Typography>
     </Box>
 );
 
-/* ─── Job Details content (skeleton-aware) ──────────────────────────────────
-   Same visual language as Shops/Houses: a clean gradient "hero" in place of
-   a photo, an overlapping company logo, a white card pulled up over it with
-   a quick stat strip, then details / qualification / contact. */
-function JobDetailsContent({ job, isMobile }) {
-    const heroHeight = isMobile ? 150 : 170;
+const IconTile = ({ children, bg = C.accentLight, size = 36, radius = 10 }) => (
+    <Box sx={{ width: size, height: size, borderRadius: typeof radius === 'number' ? `${radius}px` : radius, bgcolor: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {children}
+    </Box>
+);
 
+const StatItem = ({ icon, title, value }) => (
+    <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.8, minWidth: 0 }}>
+        <Box sx={{
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            bgcolor: C.accentLight,
+            color: C.accent,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+        }}>
+            {icon}
+        </Box>
+        <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontFamily: FONT, fontSize: 10.5, fontWeight: 600, color: C.textMuted, lineHeight: 1.2 }}>
+                {title}
+            </Typography>
+            <Typography sx={{ fontFamily: FONT, fontSize: 11.5, fontWeight: 700, color: C.text, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                {value}
+            </Typography>
+        </Box>
+    </Box>
+);
+
+const DetailInfoCard = ({ icon, bg, label, value }) => (
+    <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.2,
+        p: 1.3,
+        minHeight: 64,
+        borderRadius: '12px',
+        bgcolor: 'rgba(255,255,255,0.88)',
+        border: `1px solid ${C.border}`,
+        boxShadow: '0 14px 32px rgba(50,95,236,0.06)',
+    }}>
+        <IconTile bg={bg}>{icon}</IconTile>
+        <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontFamily: FONT, fontSize: 10.5, color: C.textMuted, fontWeight: 600, lineHeight: 1.2 }}>
+                {label}
+            </Typography>
+            <Typography sx={{ fontFamily: FONT, fontSize: 13, color: C.text, fontWeight: 700, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {value}
+            </Typography>
+        </Box>
+    </Box>
+);
+
+const SoftPanel = ({ children, sx = {} }) => (
+    <Box sx={{
+        bgcolor: 'rgba(255,255,255,0.88)',
+        border: `1px solid ${C.border}`,
+        borderRadius: '20px',
+        boxShadow: '0 14px 32px rgba(50,95,236,0.06)',
+        ...sx,
+    }}>
+        {children}
+    </Box>
+);
+
+/* ─── Job Details content (skeleton-aware) ────────────────────────────────── */
+function JobDetailsContent({ job, isMobile, onClose }) {
     if (!job) {
         return (
-            <Box sx={{ p: 0 }}>
-                <Skeleton variant="rectangular" width="100%" height={heroHeight} />
-                <Box sx={{ px: 3, pt: 5 }}>
-                    <Skeleton variant="text" width="70%" height={32} />
-                    <Skeleton variant="text" width="50%" height={20} sx={{ mb: 2.5 }} />
-                    <Skeleton variant="rounded" width="100%" height={64} sx={{ borderRadius: '16px', mb: 2.5 }} />
-                    <Skeleton variant="text" width="100%" height={18} />
-                    <Skeleton variant="text" width="90%" height={18} />
-                    <Skeleton variant="text" width="60%" height={18} sx={{ mb: 2.5 }} />
-                    <Skeleton variant="rounded" width="100%" height={48} sx={{ borderRadius: '12px' }} />
-                </Box>
+            <Box sx={{ px: 3, pt: isMobile ? 2 : 4, pb: 3 }}>
+                <Skeleton variant="rounded" width="100%" height={210} sx={{ borderRadius: '28px', mb: 2.8 }} />
+                <Skeleton variant="rounded" width="100%" height={92} sx={{ borderRadius: '22px', mb: 3.8 }} />
+                <Skeleton variant="text" width="45%" height={32} sx={{ mb: 1.5 }} />
+                <Skeleton variant="rounded" width="100%" height={116} sx={{ borderRadius: '20px', mb: 3 }} />
+                <Skeleton variant="rounded" width="100%" height={92} sx={{ borderRadius: '20px' }} />
             </Box>
         );
     }
 
     const isFullTime = job.job_type === 'full_time';
+    const distanceLabel = job.distance != null ? `${job.distance.toFixed(1)} km away` : '';
 
     const stats = [
-        { icon: <ScheduleIcon sx={{ fontSize: 18, color: C.accent }} />, label: timeAgo(job.created_at) || 'Recent' },
-        { icon: <LocationIcon sx={{ fontSize: 18, color: C.accent }} />, label: job.distance != null ? `${job.distance.toFixed(1)} km away` : job.area },
+        { icon: <CalendarIcon sx={{ fontSize: 22 }} />, title: 'Posted', value: timeAgo(job.created_at) || 'Recent' },
+        { icon: <VisibilityIcon sx={{ fontSize: 24 }} />, title: 'Views', value: `${job.views_count || 0} views` },
     ];
-    if (job.views_count !== undefined) {
-        stats.push({ icon: <VisibilityIcon sx={{ fontSize: 18, color: C.accent }} />, label: `${job.views_count} views` });
-    }
 
     const detailRows = [
         { icon: <PersonIcon sx={{ fontSize: 17, color: C.accent }} />, bg: C.accentLight, label: 'Employer', value: job.employer_name || job.shop_name || 'Company' },
@@ -361,123 +420,159 @@ function JobDetailsContent({ job, isMobile }) {
     ];
 
     return (
-        <>
-            {/* Gradient hero — stands in for a photo, just a job-type pill, nothing else */}
-            <Box sx={{ position: 'relative', flexShrink: 0, height: heroHeight, width: '100%', background: `linear-gradient(135deg, ${C.accent} 0%, ${C.accentDark} 100%)` }}>
-                <Chip
-                    label={isFullTime ? 'Full Time' : 'Part Time'}
-                    size="small"
+        <Box sx={{ px: { xs: 1.5, sm: 3 }, pt: isMobile ? 1.5 : 3, pb: 3 }}>
+            <Box sx={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                gap: { xs: 1.2, sm: 1.8 },
+                minHeight: { xs: 146, sm: 178 },
+                p: { xs: 1.5, sm: 3 },
+                pt: { xs: 5.5, sm: 6.5 },
+                mb: 2.8,
+                borderRadius: { xs: '20px', sm: '28px' },
+                bgcolor: C.surface,
+                border: `1px solid ${C.borderLight}`,
+                boxShadow: '0 24px 54px rgba(50,95,236,0.09)',
+                overflow: 'hidden',
+            }}>
+                <IconButton
+                    onClick={onClose}
                     sx={{
-                        position: 'absolute', top: 16, right: 16, zIndex: 3,
-                        bgcolor: 'rgba(255,255,255,0.22)', color: '#fff',
-                        fontFamily: FONT, fontWeight: 700, fontSize: 11.5,
+                        position: 'absolute',
+                        top: { xs: 10, sm: 16 },
+                        left: { xs: 10, sm: 16 },
+                        bgcolor: C.surface,
+                        borderRadius: { xs: '12px', sm: '16px' },
+                        width: { xs: 34, sm: 46 },
+                        height: { xs: 34, sm: 46 },
+                        zIndex: 3,
+                        border: `1px solid ${C.borderLight}`,
+                        boxShadow: '0 10px 24px rgba(50,95,236,0.08)',
+                        '&:hover': { bgcolor: C.accentLight },
                     }}
-                />
+                >
+                    <ArrowBackIcon sx={{ fontSize: { xs: 15, sm: 19 }, color: C.textSub }} />
+                </IconButton>
+                <Box sx={{
+                    width: { xs: 68, sm: 78 },
+                    height: { xs: 68, sm: 78 },
+                    borderRadius: { xs: '16px', sm: '22px' },
+                    border: `1px solid ${C.borderLight}`,
+                    boxShadow: '0 16px 34px rgba(15,23,42,0.08)',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    position: 'relative',
+                    zIndex: 1,
+                }}>
+                    <CompanyLogo src={job.shop_image} name={job.company_name || job.shop_name} size={isMobile ? 68 : 78} radius={isMobile ? 16 : 20} fontSize={12} colorIndex={(job.id || 0)} />
+                </Box>
+
+                <Box sx={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5, minWidth: 0 }}>
+                        <Typography noWrap sx={{ fontFamily: FONT, color: C.textMuted, fontSize: 13, fontWeight: 600, minWidth: 0 }}>
+                            {job.shop_name || job.company_name}
+                        </Typography>
+                        {job.shop_verified && (
+                            <Tooltip title="Verified Employer" arrow>
+                                <CheckCircleIcon sx={{ fontSize: 15, color: C.green, flexShrink: 0 }} />
+                            </Tooltip>
+                        )}
+                        <Chip
+                            label={isFullTime ? 'Full Time' : 'Part Time'}
+                            size="small"
+                            sx={{
+                                ml: 'auto',
+                                bgcolor: isFullTime ? C.greenLight : C.purpleLight,
+                                color: isFullTime ? C.green : C.purple,
+                                fontFamily: FONT,
+                                fontWeight: 800,
+                                fontSize: 11.5,
+                                height: 24,
+                                borderRadius: '8px',
+                                '& .MuiChip-label': { px: 1 },
+                            }}
+                        />
+                    </Box>
+
+                    <Typography noWrap sx={{ fontFamily: FONT, fontWeight: 800, fontSize: 21, color: C.text, mb: 0.6, lineHeight: 1.15, letterSpacing: '-0.3px' }}>
+                        {job.job_title}
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.4 }}>
+                        <LocationIcon sx={{ fontSize: 15, color: C.textMuted, mt: '1px', flexShrink: 0 }} />
+                        <Typography sx={{ fontFamily: FONT, color: C.textMuted, fontSize: 13, lineHeight: 1.25 }}>
+                            {job.area}, {job.city}, {job.state}
+                            {distanceLabel && (
+                                <Typography component="span" sx={{ fontFamily: FONT, color: C.textMuted, fontSize: 'inherit', fontWeight: 700 }}>
+                                    {` • ${distanceLabel}`}
+                                </Typography>
+                            )}
+                        </Typography>
+                    </Box>
+                </Box>
             </Box>
 
-            {/* Content card — pulled up over the gradient's bottom edge */}
-            <Box sx={{ position: 'relative', zIndex: 2, mt: '-28px', borderRadius: '28px 28px 0 0', background: C.surface, px: 3, pt: '44px', pb: 1 }}>
-                {/* Overlapping company logo */}
-                <Box sx={{
-                    position: 'absolute', top: '-32px', left: 24,
-                    width: 64, height: 64, borderRadius: '16px',
-                    border: `4px solid ${C.surface}`,
-                    boxShadow: `0 4px 14px ${C.shadowMd}`,
-                    overflow: 'hidden',
-                }}>
-                    <CompanyLogo src={job.shop_image} name={job.company_name || job.shop_name} size={56} radius={12} fontSize={11} colorIndex={(job.id || 0)} />
-                </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 0.6, flexWrap: 'wrap' }}>
-                    <Typography sx={{ fontFamily: FONT, color: C.textMuted, fontSize: 13, fontWeight: 600 }}>
-                        {job.shop_name || job.company_name}
-                    </Typography>
-                    {job.shop_verified && (
-                        <Tooltip title="Verified Employer" arrow>
-                            <CheckCircleIcon sx={{ fontSize: 15, color: C.green }} />
-                        </Tooltip>
-                    )}
-                </Box>
-
-                <Typography sx={{ fontFamily: FONT, fontWeight: 800, fontSize: 20, color: C.text, mb: 0.8, letterSpacing: '-0.3px', lineHeight: 1.25 }}>
-                    {job.job_title}
-                </Typography>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2.5 }}>
-                    <LocationIcon sx={{ fontSize: 15, color: C.textMuted }} />
-                    <Typography sx={{ fontFamily: FONT, color: C.textMuted, fontSize: 13 }}>
-                        {job.area}, {job.city}, {job.state}
-                    </Typography>
-                </Box>
-
-                {/* Stat strip — posted / distance / views at a glance */}
-                <Box sx={{ display: 'flex', alignItems: 'center', background: C.surfaceAlt, borderRadius: '16px', py: 1.6, mb: 2.5 }}>
-                    {stats.map((s, i) => (
-                        <React.Fragment key={i}>
-                            <StatItem icon={s.icon} label={s.label} />
-                            {i < stats.length - 1 && <Box sx={{ width: '1px', height: 28, background: C.border, flexShrink: 0 }} />}
-                        </React.Fragment>
-                    ))}
-                </Box>
-
-                <SectionLabel>Job Details</SectionLabel>
-                <Grid container spacing={1.2} sx={{ mb: 2.5 }}>
-                    {detailRows.map((item, i) => (
-                        <Grid item xs={6} key={i}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, p: 1.3, borderRadius: '12px', bgcolor: C.surfaceAlt }}>
-                                <IconTile bg={item.bg}>{item.icon}</IconTile>
-                                <Box sx={{ minWidth: 0 }}>
-                                    <Typography sx={{ fontFamily: FONT, fontSize: 10.5, color: C.textMuted, fontWeight: 600, lineHeight: 1.2 }}>
-                                        {item.label}
-                                    </Typography>
-                                    <Typography sx={{ fontFamily: FONT, fontSize: 13, color: C.text, fontWeight: 700, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {item.value}
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        </Grid>
-                    ))}
-                </Grid>
-
-                <Divider sx={{ mb: 2.5, borderColor: C.borderLight }} />
-
-                {job.qualification && (
-                    <>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                            <SchoolIcon sx={{ fontSize: 17, color: C.accent }} />
-                            <SectionLabel>Qualification Required</SectionLabel>
+            <SoftPanel sx={{ display: 'flex', alignItems: 'center', minHeight: 64, mb: 2.5, overflow: 'hidden' }}>
+                {stats.map((s, i) => (
+                    <React.Fragment key={s.title}>
+                        <Box sx={{ flex: 1, px: 1, minWidth: 0 }}>
+                            <StatItem icon={s.icon} title={s.title} value={s.value} />
                         </Box>
-                        <Typography variant="body2" sx={{ fontFamily: FONT, color: C.textSub, lineHeight: 1.65, mb: 2.5, mt: -1.5 }}>
+                        {i < stats.length - 1 && <Box sx={{ width: '1px', height: 32, bgcolor: C.border, flexShrink: 0 }} />}
+                    </React.Fragment>
+                ))}
+            </SoftPanel>
+
+            <SectionLabel withBar>Job Details</SectionLabel>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1.2, mb: 2.5 }}>
+                {detailRows.map((item, i) => (
+                    <Box key={i} sx={{ minWidth: 0 }}>
+                        <DetailInfoCard icon={item.icon} bg={item.bg} label={item.label} value={item.value} />
+                    </Box>
+                ))}
+            </Box>
+
+            {job.qualification && (
+                <>
+                    <SectionLabel icon={<SchoolIcon sx={{ fontSize: 20 }} />}>Qualification Required</SectionLabel>
+                    <SoftPanel sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.6, minHeight: 78, mb: 2.5 }}>
+                        <QualificationBadgeIcon sx={{ fontSize: 24, color: C.accent, flexShrink: 0 }} />
+                        <Typography variant="body2" sx={{ fontFamily: FONT, color: C.textSub, fontSize: 13, lineHeight: 1.65 }}>
                             {job.qualification}
                         </Typography>
-                        <Divider sx={{ mb: 2.5, borderColor: C.borderLight }} />
-                    </>
-                )}
+                    </SoftPanel>
+                </>
+            )}
 
-                <SectionLabel>Contact</SectionLabel>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-                    <IconTile><PhoneIcon sx={{ fontSize: 17, color: C.accent }} /></IconTile>
-                    <Typography variant="body2" sx={{ fontFamily: FONT, color: C.text, fontWeight: 600 }}>
+            <SectionLabel icon={<PhoneIcon sx={{ fontSize: 20 }} />}>Contact</SectionLabel>
+            <SoftPanel sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, minHeight: 78 }}>
+                <IconTile><PhoneIcon sx={{ fontSize: 17, color: C.accent }} /></IconTile>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ fontFamily: FONT, color: C.text, fontSize: 13, fontWeight: 700 }}>
                         {job.employer_phone || job.contact_phone || 'Not available'}
                     </Typography>
+                    <Typography sx={{ fontFamily: FONT, color: C.textMuted, fontSize: 12, mt: 0.3 }}>
+                        Call for more details
+                    </Typography>
                 </Box>
-            </Box>
-        </>
+                <IconButton
+                    onClick={() => window.location.href = `tel:${cleanPhoneNumber(job.employer_phone || job.contact_phone)}`}
+                    sx={{ width: 48, height: 48, borderRadius: '14px', bgcolor: C.accent, color: '#fff', '&:hover': { bgcolor: C.accentDark } }}
+                >
+                    <PhoneIcon sx={{ fontSize: 24 }} />
+                </IconButton>
+            </SoftPanel>
+        </Box>
     );
 }
 
 /* ─── Full Screen / Bottom-sheet Job Details Drawer ─────────────────────────
    Stays mounted via the `open` prop so closing always plays the smooth
    slide-down animation instead of disappearing abruptly. */
-function JobDetailsDrawer({ open, job, onClose, onCall, userLocation }) {
+function JobDetailsDrawer({ open, job, onClose, onCall }) {
     const theme    = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-    const handleDirections = () => {
-        if (!job) return;
-        const url = buildGoogleMapsUrl(job, userLocation);
-        window.open(url, '_blank');
-    };
 
     return (
         <Drawer
@@ -489,14 +584,14 @@ function JobDetailsDrawer({ open, job, onClose, onCall, userLocation }) {
             ModalProps={{ keepMounted: false }}
             PaperProps={{
                 sx: isMobile
-                    ? { width: '100%', height: '100%', maxHeight: '100%', borderRadius: 0, m: 0, background: C.surface, display: 'flex', flexDirection: 'column', overflow: 'hidden' }
+                    ? { width: '100%', height: '100%', maxHeight: '100%', borderRadius: 0, m: 0, background: '#F7FAFF', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
                     : {
-                          maxWidth: 560,
+                          maxWidth: 620,
                           width: 'calc(100% - 32px)',
                           mx: 'auto',
                           maxHeight: '88vh',
                           borderRadius: '24px 24px 0 0',
-                          background: C.surface,
+                          background: '#F7FAFF',
                           display: 'flex',
                           flexDirection: 'column',
                           overflow: 'hidden',
@@ -510,26 +605,8 @@ function JobDetailsDrawer({ open, job, onClose, onCall, userLocation }) {
                 <Box sx={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: '10px auto 0', flexShrink: 0, position: 'relative', zIndex: 5 }} />
             )}
 
-            {/* Back / close — top-left, on the gradient hero */}
-            <IconButton
-                onClick={onClose}
-                sx={{
-                    position: 'absolute',
-                    top: 16,
-                    left: 16,
-                    bgcolor: 'rgba(255,255,255,0.22)',
-                    borderRadius: '50%',
-                    width: 38,
-                    height: 38,
-                    zIndex: 10,
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.32)' },
-                }}
-            >
-                <ArrowBackIcon sx={{ fontSize: 16, color: '#fff' }} />
-            </IconButton>
-
             <Box sx={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                <JobDetailsContent job={job} isMobile={isMobile} />
+                <JobDetailsContent job={job} isMobile={isMobile} onClose={onClose} />
             </Box>
 
             {/* Sticky footer — salary on the left, actions on the right */}
@@ -537,65 +614,71 @@ function JobDetailsDrawer({ open, job, onClose, onCall, userLocation }) {
                 <Box
                     sx={{
                         flexShrink: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1.2,
                         p: 2,
                         pb: isMobile ? 'calc(16px + env(safe-area-inset-bottom))' : 2,
-                        borderTop: `1px solid ${C.borderLight}`,
-                        background: C.surface,
-                        boxShadow: `0 -8px 24px ${C.shadowMd}`,
+                        background: '#F7FAFF',
                     }}
                 >
-                    <Box sx={{ flexShrink: 0, minWidth: 0 }}>
-                        <Typography sx={{ fontFamily: FONT, fontSize: 10.5, color: C.textMuted, fontWeight: 700, lineHeight: 1.2 }}>
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        p: { xs: 1.2, sm: 2 },
+                        borderRadius: { xs: '16px', sm: '24px' },
+                        background: C.surface,
+                        border: `1px solid ${C.borderLight}`,
+                        boxShadow: '0 -10px 34px rgba(50,95,236,0.08)',
+                    }}>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontFamily: FONT, fontSize: 13, color: C.textMuted, fontWeight: 600, lineHeight: 1.2, mb: 0.5 }}>
                             Salary
                         </Typography>
-                        <Typography sx={{ fontFamily: FONT, fontSize: 17, color: C.text, fontWeight: 800, lineHeight: 1.3, whiteSpace: 'nowrap' }}>
-                            ₹{(job.salary || 0).toLocaleString()}
-                            <Typography component="span" sx={{ fontFamily: FONT, fontSize: 11, color: C.textMuted, fontWeight: 600 }}>
+                            <Typography sx={{ fontFamily: FONT, fontSize: { xs: 20, sm: 29 }, color: C.accent, fontWeight: 800, lineHeight: 1.15, whiteSpace: 'nowrap' }}>
+                            ₹{Number(job.salary || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <Typography component="span" sx={{ fontFamily: FONT, fontSize: 14, color: C.textMuted, fontWeight: 600 }}>
                                 /{job.salary_type === 'month' ? 'mo' : 'day'}
                             </Typography>
                         </Typography>
                     </Box>
 
-                    <Tooltip title="Get directions" arrow>
-                        <IconButton
-                            onClick={handleDirections}
-                            sx={{ 
-                                width: 48, height: 48, borderRadius: '14px', 
-                                border: `1.5px solid ${C.accent}`, 
-                                color: C.accent, 
-                                flexShrink: 0, 
-                                ml: 'auto', 
-                                '&:hover': { bgcolor: C.accentLight } 
-                            }}
-                        >
-                            <DirectionsIcon sx={{ fontSize: 20 }} />
-                        </IconButton>
-                    </Tooltip>
+                        <Box sx={{ width: '1px', height: { xs: 42, sm: 58 }, bgcolor: C.border, flexShrink: 0 }} />
+                    <IconButton
+                        sx={{
+                            width: { xs: 44, sm: 56 },
+                            height: { xs: 44, sm: 56 },
+                            borderRadius: { xs: '14px', sm: '18px' },
+                            bgcolor: C.surface,
+                            color: C.accent,
+                            border: `1px solid ${C.border}`,
+                            flexShrink: 0,
+                            '&:hover': { bgcolor: C.accentLight }
+                        }}
+                    >
+                        <BookmarkIcon sx={{ fontSize: { xs: 20, sm: 26 } }} />
+                    </IconButton>
                     <Button
                         variant="contained"
-                        startIcon={<PhoneIcon sx={{ fontSize: 18 }} />}
+                        startIcon={<PhoneIcon sx={{ fontSize: 23 }} />}
                         onClick={() => onCall(job.employer_phone || job.contact_phone)}
                         disableElevation
                         sx={{
                             fontFamily: FONT,
                             textTransform: 'none',
-                            borderRadius: '14px',
+                                borderRadius: { xs: '14px', sm: '18px' },
                             background: C.accent,
-                            fontWeight: 700,
-                            fontSize: 14,
-                            px: 2.2,
-                            py: 1.3,
+                            fontWeight: 800,
+                                fontSize: { xs: 12, sm: 17 },
+                                px: { xs: 1.4, sm: 3 },
+                                height: { xs: 48, sm: 64 },
                             flexShrink: 0,
                             whiteSpace: 'nowrap',
-                            boxShadow: `0 8px 20px ${C.shadow}`,
+                            boxShadow: `0 12px 24px ${C.shadow}`,
                             '&:hover': { background: C.accentDark },
                         }}
                     >
                         Call Now
                     </Button>
+                    </Box>
                 </Box>
             )}
         </Drawer>
@@ -1327,7 +1410,6 @@ export default function Jobs() {
                 job={selectedJob}
                 onClose={() => setDetailsOpen(false)}
                 onCall={handleCall}
-                userLocation={userLocation}
             />
         </Box>
     );

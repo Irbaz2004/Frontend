@@ -1,5 +1,5 @@
 // AppLayout.jsx — Aligned with the Shops/Houses/Jobs design system
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     Box,
@@ -363,6 +363,15 @@ function AppLayout() {
 
     // ─── Polling interval for notifications ──────────────────────────────────
     const pollingInterval = useRef(null);
+    const bottomNavTrackRef = useRef(null);
+    const bottomNavItemRefs = useRef([]);
+    const [bottomNavIndicator, setBottomNavIndicator] = useState({
+        left: 0,
+        width: 0,
+        ready: false,
+    });
+    const previousBottomNavIndexRef = useRef(0);
+    const [bottomNavDirection, setBottomNavDirection] = useState(1);
 
     useEffect(() => {
         setSeenNotificationIds(readSeenNotificationIds(notificationSeenStorageKey));
@@ -641,6 +650,46 @@ function AppLayout() {
 
     const isActivePath = (path) =>
         location.pathname === path || location.pathname.startsWith(path + '/');
+
+    const currentNavIndex = navItems.findIndex(item => isActivePath(item.path));
+    const activeNavIndex = currentNavIndex >= 0 ? currentNavIndex : 0;
+
+    useLayoutEffect(() => {
+        if (isAdmin || !isMobile || navItems.length === 0) return;
+
+        const previousIndex = previousBottomNavIndexRef.current;
+        if (activeNavIndex !== previousIndex) {
+            setBottomNavDirection(activeNavIndex > previousIndex ? 1 : -1);
+            previousBottomNavIndexRef.current = activeNavIndex;
+        }
+
+        const updateIndicator = () => {
+            const track = bottomNavTrackRef.current;
+            const activeItem = bottomNavItemRefs.current[activeNavIndex];
+            if (!track || !activeItem) return;
+
+            const trackRect = track.getBoundingClientRect();
+            const itemRect = activeItem.getBoundingClientRect();
+            setBottomNavIndicator({
+                left: itemRect.left - trackRect.left,
+                width: itemRect.width,
+                ready: true,
+            });
+        };
+
+        updateIndicator();
+        const frameId = requestAnimationFrame(updateIndicator);
+        const midTimer = window.setTimeout(updateIndicator, 160);
+        const endTimer = window.setTimeout(updateIndicator, 340);
+        window.addEventListener('resize', updateIndicator);
+
+        return () => {
+            cancelAnimationFrame(frameId);
+            window.clearTimeout(midTimer);
+            window.clearTimeout(endTimer);
+            window.removeEventListener('resize', updateIndicator);
+        };
+    }, [activeNavIndex, isAdmin, isMobile, navItems.length]);
 
     const markNotificationsSeenLocally = useCallback((notificationsToMark = notifications) => {
         const nextSeenIds = new Set(seenNotificationIds);
@@ -950,27 +999,13 @@ function AppLayout() {
     // ─── BOTTOM NAV (User/Business) ──────────────────────────────────────────
     const renderBottomNav = () => {
         if (isAdmin) return null;
-
-        const currentIndex = navItems.findIndex(item =>
-            location.pathname === item.path || location.pathname.startsWith(item.path + '/')
-        );
-        const activeIndex = currentIndex >= 0 ? currentIndex : 0;
+        const primaryColor = theme.palette.primary?.main || C.accent;
+        const primaryContrastText = theme.palette.primary?.contrastText || '#ffffff';
 
         return (
             <>
                 <style>{`
                     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-                    @keyframes pillPop {
-                        0%   { transform: scale(0.88); opacity: 0.5; }
-                        55%  { transform: scale(1.05); opacity: 1; }
-                        100% { transform: scale(1);    opacity: 1; }
-                    }
-
-                    @keyframes labelSlide {
-                        0%   { opacity: 0; transform: translateX(-4px); }
-                        100% { opacity: 1; transform: translateX(0); }
-                    }
 
                     .nearzo-bottom-nav-item {
                         -webkit-tap-highlight-color: transparent;
@@ -980,18 +1015,13 @@ function AppLayout() {
                         transform: scale(0.88) !important;
                     }
 
-                    .nearzo-active-pill {
-                        animation: pillPop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-                    }
-
-                    .nearzo-active-label {
-                        animation: labelSlide 0.22s ease both;
-                        animation-delay: 0.06s;
-                    }
-
-                    .nearzo-bottom-nav-item:active .nearzo-active-pill {
-                        transform: scale(0.93) !important;
-                        transition: transform 0.08s ease !important;
+                    @media (prefers-reduced-motion: reduce) {
+                        .nearzo-moving-pill,
+                        .nearzo-bottom-nav-item,
+                        .nearzo-nav-inner,
+                        .nearzo-nav-label {
+                            transition: none !important;
+                        }
                     }
                 `}</style>
 
@@ -1010,10 +1040,12 @@ function AppLayout() {
                     }}
                 >
                     <Box
+                        ref={bottomNavTrackRef}
                         sx={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: '4px',
+                            position: 'relative',
                             pointerEvents: 'all',
                             bgcolor: C.surface,
                             borderRadius: '100px',
@@ -1025,13 +1057,35 @@ function AppLayout() {
                             boxShadow: `0 4px 20px ${C.shadowMd}, 0 1px 2px rgba(0,0,0,0.05)`,
                         }}
                     >
+                        <Box
+                            className="nearzo-moving-pill"
+                            sx={{
+                                position: 'absolute',
+                                left: 0,
+                                top: '6px',
+                                height: '44px',
+                                width: `${bottomNavIndicator.width}px`,
+                                borderRadius: '100px',
+                                bgcolor: primaryColor,
+                                boxShadow: `0 4px 14px ${C.shadow}`,
+                                opacity: bottomNavIndicator.ready ? 1 : 0,
+                                transform: `translateX(${bottomNavIndicator.left}px)`,
+                                transition: 'transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), width 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.16s ease',
+                                pointerEvents: 'none',
+                            }}
+                        />
                         {navItems.map((item, index) => {
-                            const active = index === activeIndex;
+                            const active = index === activeNavIndex;
+                            const activeWidth = Math.min(118, Math.max(92, item.label.length * 8 + 60));
 
                             return (
                                 <Box
                                     key={item.label}
+                                    ref={(node) => {
+                                        bottomNavItemRefs.current[index] = node;
+                                    }}
                                     className="nearzo-bottom-nav-item"
+                                    data-active={active ? 'true' : 'false'}
                                     onClick={() => {
                                         haptic(active ? 'tap' : 'select');
                                         navigate(item.path);
@@ -1040,67 +1094,60 @@ function AppLayout() {
                                         cursor: 'pointer',
                                         userSelect: 'none',
                                         WebkitUserSelect: 'none',
+                                        position: 'relative',
+                                        zIndex: 1,
+                                        width: active ? `${activeWidth}px` : '44px',
+                                        height: '44px',
+                                        transition: 'width 0.32s cubic-bezier(0.22, 1, 0.36, 1)',
                                     }}
                                 >
-                                    {active ? (
-                                        <Box
-                                            className="nearzo-active-pill"
-                                            sx={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '7px',
-                                                px: '14px',
-                                                height: '44px',
-                                                borderRadius: '100px',
-                                                bgcolor: C.accent,
-                                                boxShadow: `0 4px 14px ${C.shadow}`,
-                                            }}
-                                        >
-                                            <Box sx={{
-                                                color: '#ffffff',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                '& svg': { fontSize: '1.15rem' }
-                                            }}>
-                                                {item.icon}
-                                            </Box>
-                                            <Typography
-                                                className="nearzo-active-label"
-                                                sx={{
-                                                    fontFamily: FONT,
-                                                    fontWeight: 700,
-                                                    fontSize: '0.82rem',
-                                                    color: '#ffffff',
-                                                    letterSpacing: '-0.015em',
-                                                    whiteSpace: 'nowrap',
-                                                    lineHeight: 1,
-                                                }}
-                                            >
-                                                {item.label}
-                                            </Typography>
-                                        </Box>
-                                    ) : (
-                                        <Box
-                                            className="nearzo-nav-inner"
-                                            sx={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                width: '44px',
-                                                height: '44px',
-                                                borderRadius: '100px',
-                                                transition: 'all 0.18s ease',
-                                                color: C.textMuted,
-                                                '&:hover': {
-                                                    bgcolor: C.accentLight,
-                                                    color: C.accent,
-                                                },
-                                                '& svg': { fontSize: '1.22rem' }
-                                            }}
-                                        >
+                                    <Box
+                                        className="nearzo-nav-inner"
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: active ? '7px' : 0,
+                                            width: '100%',
+                                            height: '44px',
+                                            px: active ? '14px' : 0,
+                                            borderRadius: '100px',
+                                            bgcolor: active && !bottomNavIndicator.ready ? primaryColor : 'transparent',
+                                            color: active ? primaryContrastText : C.textMuted,
+                                            transition: 'background-color 0.2s ease, color 0.24s ease, gap 0.28s ease, padding 0.28s ease, transform 0.1s ease',
+                                            '&:hover': {
+                                                bgcolor: active ? primaryColor : C.accentLight,
+                                                color: active ? primaryContrastText : primaryColor,
+                                            },
+                                            '& svg': {
+                                                fontSize: active ? '1.15rem' : '1.22rem',
+                                                transition: 'font-size 0.24s ease',
+                                            }
+                                        }}
+                                    >
+                                        <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                                             {item.icon}
                                         </Box>
-                                    )}
+                                        <Typography
+                                            className="nearzo-nav-label"
+                                            sx={{
+                                                fontFamily: FONT,
+                                                fontWeight: 700,
+                                                fontSize: '0.82rem',
+                                                color: 'inherit',
+                                                letterSpacing: 0,
+                                                whiteSpace: 'nowrap',
+                                                lineHeight: 1,
+                                                overflow: 'hidden',
+                                                maxWidth: active ? '74px' : 0,
+                                                opacity: active ? 1 : 0,
+                                                transform: active ? 'translateX(0)' : `translateX(${bottomNavDirection * 8}px)`,
+                                                transition: 'max-width 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease 0.06s, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
+                                            }}
+                                        >
+                                            {item.label}
+                                        </Typography>
+                                    </Box>
                                 </Box>
                             );
                         })}
