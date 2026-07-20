@@ -293,24 +293,67 @@ export default function ShopCategory() {
     };
 
     const handleBulkImportItems = async () => {
-        const items = bulkItemText.split('\n')
-            .map(line => line.trim())
-            .filter(line => line)
-            .map(line => ({ item_name: line, display_order: 0 }));
-        
-        if (items.length === 0) {
-            showSnackbar('Please enter at least one item', 'error');
+        if (!selectedCategory?.id) {
+            showSnackbar('Please select a category before importing items', 'error');
             return;
         }
 
-        try {
-            await bulkImportKeyItems(selectedCategory.id, items);
-            showSnackbar(`${items.length} items imported successfully`);
+        const existingItemNames = new Set(
+            keyItems.map(item => item.item_name?.trim().toLowerCase()).filter(Boolean)
+        );
+        const duplicateInputNames = new Set();
+        const seenInputNames = new Set();
+        const itemNames = bulkItemText.split('\n')
+            .map(line => line.trim())
+            .filter(line => line)
+            .filter(line => {
+                const normalizedName = line.toLowerCase();
+                if (seenInputNames.has(normalizedName)) {
+                    duplicateInputNames.add(line);
+                    return false;
+                }
+                seenInputNames.add(normalizedName);
+                return !existingItemNames.has(normalizedName);
+            });
+
+        const nextDisplayOrder = keyItems.reduce((maxOrder, item) => {
+            const order = Number(item.display_order);
+            return Number.isFinite(order) ? Math.max(maxOrder, order) : maxOrder;
+        }, 0) + 1;
+
+        const items = itemNames.map((itemName, index) => ({
+            item_name: itemName,
+            display_order: nextDisplayOrder + index,
+            is_active: true
+        }));
+        
+        if (items.length === 0) {
+            showSnackbar('Please enter at least one new item', 'error');
+            return;
+        }
+
+        const skippedExistingCount = seenInputNames.size - itemNames.length;
+        const skippedParts = [];
+        if (skippedExistingCount > 0) skippedParts.push(`${skippedExistingCount} existing skipped`);
+        if (duplicateInputNames.size > 0) skippedParts.push(`${duplicateInputNames.size} duplicate skipped`);
+        const successMessage = `${items.length} items imported successfully${skippedParts.length ? ` (${skippedParts.join(', ')})` : ''}`;
+        const finishImport = () => {
+            showSnackbar(successMessage);
             setOpenBulkItemDialog(false);
             setBulkItemText('');
             loadKeyItems(selectedCategory.id);
+        };
+
+        try {
+            await bulkImportKeyItems(selectedCategory.id, items);
+            finishImport();
         } catch (error) {
-            showSnackbar(error.message, 'error');
+            try {
+                await Promise.all(items.map(item => createKeyItem(selectedCategory.id, item)));
+                finishImport();
+            } catch (fallbackError) {
+                showSnackbar(fallbackError.message || error.message, 'error');
+            }
         }
     };
 

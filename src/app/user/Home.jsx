@@ -495,7 +495,7 @@ const GRID_ITEMS = [
     { label: 'Shop Finder',  sub: 'Discover local stores', icon: StorefrontIcon,  route: '/app/shops',   img: shopImagePlaceholder,  accent: '#2952E8', accentEnd: '#5B7EFF' },
     { label: 'Rent a Home',  sub: 'PGs & flats near you',  icon: HomeWorkIcon,    route: '/app/houses',  img: houseImagePlaceholder, accent: '#16A34A', accentEnd: '#4ADE80' },
     { label: 'Get Hired',    sub: 'Browse local openings', icon: WorkOutlineIcon, route: '/app/jobs',    img: jobImagePlaceholder,   accent: '#F05A00', accentEnd: '#FBBF24' },
-    { label: 'Map View',     sub: 'Explore on map',        icon: MapIcon,         route: '/map',         img: mapImagePlaceholder,   accent: '#7C3AED', accentEnd: '#A78BFA' },
+    { label: 'Map View',     sub: 'Explore on map',        icon: MapIcon,         route: '/app/map',         img: mapImagePlaceholder,   accent: '#7C3AED', accentEnd: '#A78BFA' },
 ];
 
 const FeatureGrid = ({ onNavigate }) => (
@@ -662,43 +662,9 @@ const LocationPermissionDialog = ({ open, onClose, onAllow, onManualCity, loadin
                         {error}
                     </Alert>
                 )}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <Box sx={{ flex: 1, height: 1, bgcolor: T.border }} />
-                    <Typography sx={{ fontSize: '0.7rem', color: T.textMuted, fontFamily: '"Inter", sans-serif' }}>or type your city</Typography>
-                    <Box sx={{ flex: 1, height: 1, bgcolor: T.border }} />
-                </Box>
-                <TextField
-                    placeholder="e.g. Mumbai, Vellore, Chennai…"
-                    value={manualCity}
-                    onChange={(e) => setManualCity(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
-                    size="small" fullWidth
-                    sx={{
-                        mb: 1.5,
-                        '& .MuiOutlinedInput-root': {
-                            borderRadius: '11px', fontFamily: '"Inter", sans-serif', fontSize: '0.86rem',
-                            '&.Mui-focused fieldset': { borderColor: T.primary },
-                        }
-                    }}
-                />
-                <Button fullWidth variant="outlined"
-                    onClick={handleManualSubmit}
-                    disabled={!manualCity.trim() || loading}
-                    sx={{
-                        borderRadius: '11px', py: 1.1, textTransform: 'none',
-                        fontFamily: '"Inter", sans-serif', fontWeight: 700, fontSize: '0.84rem',
-                        borderColor: T.primary, color: T.primary,
-                        '&:hover': { bgcolor: T.primaryLight, borderColor: T.primaryDark },
-                    }}
-                >
-                    Search This City
-                </Button>
+              
             </DialogContent>
-            <DialogActions sx={{ px: 2.5, pb: 2.5, pt: 1.2, justifyContent: 'center' }}>
-                <Button onClick={onClose} sx={{ color: T.textMuted, textTransform: 'none', fontFamily: '"Inter", sans-serif', fontSize: '0.78rem' }}>
-                    Skip for now
-                </Button>
-            </DialogActions>
+         
         </Dialog>
     );
 };

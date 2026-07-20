@@ -1,5 +1,5 @@
 // AppLayout.jsx — Aligned with the Shops/Houses/Jobs design system
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     Box,
@@ -53,9 +53,9 @@ import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import { LocationOnOutlined, HouseOutlined, StoreOutlined, GridViewOutlined } from '@mui/icons-material';
 import { PlaceOutlined } from '@mui/icons-material';
-import logo from '../assets/nearzologo.png';
+import logo from '../assets/helozologo.png';
 import loadingGif from '../assets/Radar.gif';
-import { getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead } from '../services/profile';
+import { getNotifications } from '../services/profile';
 import { useAuth } from './context/AuthContext';
 
 // ─── Design Tokens (same theme as Shops / Houses / Jobs) ───────────────────
@@ -96,15 +96,25 @@ const SlideUpTransition = React.forwardRef(function SlideUpTransition(props, ref
 
 // ─── HAPTIC UTILITY ──────────────────────────────────────────────────────────
 const HAPTIC_PATTERNS = {
-    tap: [4],
-    select: 12,
-    action: [10, 30, 10],
-    warning: [20, 60, 20],
-    success: [8, 20, 8, 20, 8],
+    tap: 3,
+    select: 5,
+    action: [4, 18, 4],
+    warning: [8, 28, 10],
+    success: [5, 18, 5],
 };
+
+let lastHapticAt = 0;
 
 const haptic = (type = 'tap') => {
     if (!navigator.vibrate) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+    const now = performance.now();
+    const minGap = type === 'tap' ? 45 : 75;
+    if (now - lastHapticAt < minGap) return;
+
+    lastHapticAt = now;
+    navigator.vibrate(0);
     navigator.vibrate(HAPTIC_PATTERNS[type] ?? HAPTIC_PATTERNS.tap);
 };
 // ─────────────────────────────────────────────────────────────────────────────
@@ -159,6 +169,65 @@ const normalizeUnreadCount = (payload) => {
     const notifications = Array.isArray(payload?.notifications) ? payload.notifications : [];
     return notifications.filter((notification) => !notification.is_read).length;
 };
+
+const getNotificationIdentity = (notification) => {
+    const stableId = notification?.id ?? notification?._id ?? notification?.notification_id;
+    if (stableId !== undefined && stableId !== null && stableId !== '') {
+        return String(stableId);
+    }
+
+    return [
+        notification?.type,
+        notification?.reference_type,
+        notification?.reference_id,
+        notification?.created_at,
+        notification?.title,
+    ].filter(Boolean).join(':');
+};
+
+const getStoredUser = () => {
+    try {
+        const storedUser = localStorage.getItem('nearzo_user');
+        return storedUser ? JSON.parse(storedUser) : null;
+    } catch {
+        return null;
+    }
+};
+
+const getNotificationSeenStorageKey = (user, role) => {
+    const scopedUser = user || getStoredUser();
+    const userKey = scopedUser?.id ?? scopedUser?.phone ?? scopedUser?.full_name ?? 'guest';
+    const roleKey = role || scopedUser?.role || 'user';
+    return `nearzo_seen_notifications:${roleKey}:${userKey}`;
+};
+
+const readSeenNotificationIds = (storageKey) => {
+    try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        return new Set(Array.isArray(saved) ? saved.map(String) : []);
+    } catch {
+        return new Set();
+    }
+};
+
+const saveSeenNotificationIds = (storageKey, seenIds) => {
+    try {
+        localStorage.setItem(storageKey, JSON.stringify(Array.from(seenIds).slice(-500)));
+    } catch {
+        // Ignore storage failures; the UI can still behave correctly for this session.
+    }
+};
+
+const countUnseenNotifications = (notifications, seenIds) =>
+    (Array.isArray(notifications) ? notifications : []).reduce((count, notification) => (
+        seenIds.has(getNotificationIdentity(notification)) ? count : count + 1
+    ), 0);
+
+const applyLocalSeenStatus = (notifications, seenIds) =>
+    (Array.isArray(notifications) ? notifications : []).map((notification) => ({
+        ...notification,
+        is_read: seenIds.has(getNotificationIdentity(notification)),
+    }));
 
 // ─── Avatar initial — always the person's NAME, never a phone digit ────────
 const looksLikePhoneNumber = (str) => /^[+\d\s().-]+$/.test(str.trim());
@@ -265,6 +334,10 @@ function AppLayout() {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+    const notificationSeenStorageKey = useMemo(
+        () => getNotificationSeenStorageKey(user, role),
+        [user, role]
+    );
     
     // ─── Menu States ──────────────────────────────────────────────────────────
     const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
@@ -276,6 +349,9 @@ function AppLayout() {
     const [filteredNotifications, setFilteredNotifications] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [unreadCount, setUnreadCount] = useState(0);
+    const [seenNotificationIds, setSeenNotificationIds] = useState(() =>
+        readSeenNotificationIds(notificationSeenStorageKey)
+    );
     const [notificationsLoading, setNotificationsLoading] = useState(false);
     const [userCity, setUserCity] = useState(null);
     const [cityLoading, setCityLoading] = useState(true);
@@ -287,6 +363,10 @@ function AppLayout() {
 
     // ─── Polling interval for notifications ──────────────────────────────────
     const pollingInterval = useRef(null);
+
+    useEffect(() => {
+        setSeenNotificationIds(readSeenNotificationIds(notificationSeenStorageKey));
+    }, [notificationSeenStorageKey]);
 
     useEffect(() => {
         const handler = (e) => {
@@ -350,12 +430,11 @@ function AppLayout() {
         }
     }, [role]);
 
-    // ─── Load notifications with city filter (or all for admin) ──────────────
-    const loadNotifications = useCallback(async () => {
+    const fetchNotificationsForCurrentScope = useCallback(async () => {
         const isAdmin = role === 'admin';
-        
+
         console.log(`📬 Loading notifications - Role: ${role}, isAdmin: ${isAdmin}, userCity: ${userCity}`);
-        
+
         // For non-admin, wait for city detection
         if (!isAdmin && !userCity) {
             console.log('⏳ Waiting for city detection before loading notifications');
@@ -365,56 +444,77 @@ function AppLayout() {
                 setUserCity(savedCity);
             } else {
                 await getUserCityLocation();
-                return;
+                return null;
             }
         }
 
+        if (isAdmin) {
+            console.log('👑 Admin loading all notifications');
+            const data = await getNotifications(100, 0);
+            console.log(`📬 Admin loaded ${data.notifications?.length || 0} notifications (all cities)`);
+            return data;
+        }
+
+        const cityToUse = userCity || localStorage.getItem('nearzo_user_city');
+        console.log(`📍 Loading notifications for city: ${cityToUse}`);
+        const data = await getNotifications(100, 0, cityToUse);
+        console.log(`📬 Loaded ${data.notifications?.length || 0} notifications for city: ${cityToUse}`);
+        return data;
+    }, [userCity, role, getUserCityLocation]);
+
+    const syncNotificationState = useCallback((nextNotifications, nextSeenIds = seenNotificationIds) => {
+        const scopedNotifications = Array.isArray(nextNotifications) ? nextNotifications : [];
+        const withLocalSeen = applyLocalSeenStatus(scopedNotifications, nextSeenIds);
+        setNotifications(withLocalSeen);
+        setFilteredNotifications(withLocalSeen);
+        setUnreadCount(countUnseenNotifications(scopedNotifications, nextSeenIds));
+    }, [seenNotificationIds]);
+
+    // ─── Load notifications with city filter (or all for admin) ──────────────
+    const loadNotifications = useCallback(async () => {
         setNotificationsLoading(true);
         try {
-            let data;
-            if (isAdmin) {
-                console.log('👑 Admin loading all notifications');
-                data = await getNotifications(100, 0);
-                console.log(`📬 Admin loaded ${data.notifications?.length || 0} notifications (all cities)`);
-            } else {
-                const cityToUse = userCity || localStorage.getItem('nearzo_user_city');
-                console.log(`📍 Loading notifications for city: ${cityToUse}`);
-                data = await getNotifications(100, 0, cityToUse);
-                console.log(`📬 Loaded ${data.notifications?.length || 0} notifications for city: ${cityToUse}`);
+            const data = await fetchNotificationsForCurrentScope();
+            if (!data) {
+                return [];
             }
-            setNotifications(data.notifications || []);
-            setFilteredNotifications(data.notifications || []);
+            const nextNotifications = data.notifications || [];
+            syncNotificationState(nextNotifications);
+            return nextNotifications;
         } catch (err) {
             console.error('Failed to load notifications:', err);
             try {
                 console.log('📬 Trying fallback - loading all notifications');
                 const fallbackData = await getNotifications(100, 0);
-                setNotifications(fallbackData.notifications || []);
-                setFilteredNotifications(fallbackData.notifications || []);
+                const fallbackNotifications = fallbackData.notifications || [];
+                syncNotificationState(fallbackNotifications);
                 console.log(`📬 Loaded ${fallbackData.notifications?.length || 0} fallback notifications (no city filter)`);
+                return fallbackNotifications;
             } catch (fallbackErr) {
                 console.error('Fallback notification load failed:', fallbackErr);
+                return [];
             }
         } finally {
             setNotificationsLoading(false);
         }
-    }, [userCity, role, getUserCityLocation]);
+    }, [fetchNotificationsForCurrentScope, syncNotificationState]);
 
-    // ─── Load unread count for the badge. Keep this unfiltered for all roles. ──────────────
+    // ─── Load per-user unopened count for the badge. ──────────────
     const loadUnreadCount = useCallback(async () => {
         try {
-            const data = await getUnreadCount();
-            setUnreadCount(normalizeUnreadCount(data));
+            const data = await fetchNotificationsForCurrentScope();
+            const nextNotifications = data?.notifications || [];
+            setUnreadCount(countUnseenNotifications(nextNotifications, seenNotificationIds));
         } catch (err) {
             console.error('Failed to load unread count:', err);
             try {
                 const fallbackData = await getNotifications(100, 0);
-                setUnreadCount(normalizeUnreadCount(fallbackData));
+                setUnreadCount(countUnseenNotifications(fallbackData.notifications || [], seenNotificationIds));
             } catch (fallbackErr) {
                 console.error('Failed to load unread count fallback:', fallbackErr);
             }
         }
-    }, []);
+    }, [fetchNotificationsForCurrentScope, seenNotificationIds]);
 
     // ─── Filter notifications by search query ──────────────────────────────
     const filterNotifications = useCallback((query) => {
@@ -519,16 +619,6 @@ function AppLayout() {
         };
     }, [role, notificationDialogOpen, loadNotifications, loadUnreadCount]);
 
-    // ─── Reload notifications when dialog opens ──────────────────────────────
-    useEffect(() => {
-        if (notificationDialogOpen) {
-            loadNotifications();
-            // Clear search when dialog opens
-            setSearchQuery('');
-            setFilteredNotifications(notifications);
-        }
-    }, [notificationDialogOpen, loadNotifications]);
-
     const handleLogoutRedirect = () => {
         localStorage.removeItem('nearzo_token');
         localStorage.removeItem('nearzo_role');
@@ -552,43 +642,46 @@ function AppLayout() {
     const isActivePath = (path) =>
         location.pathname === path || location.pathname.startsWith(path + '/');
 
+    const markNotificationsSeenLocally = useCallback((notificationsToMark = notifications) => {
+        const nextSeenIds = new Set(seenNotificationIds);
+        const scopedNotificationsToMark = Array.isArray(notificationsToMark) ? notificationsToMark : [];
+        let hasNewSeenId = false;
+        scopedNotificationsToMark.forEach((notification) => {
+            const notificationId = getNotificationIdentity(notification);
+            if (notificationId) {
+                hasNewSeenId = hasNewSeenId || !nextSeenIds.has(notificationId);
+                nextSeenIds.add(notificationId);
+            }
+        });
+
+        if (!hasNewSeenId) {
+            return;
+        }
+
+        const countSource = scopedNotificationsToMark.length > 1 ? scopedNotificationsToMark : notifications;
+        saveSeenNotificationIds(notificationSeenStorageKey, nextSeenIds);
+        setSeenNotificationIds(nextSeenIds);
+        setNotifications(prev => applyLocalSeenStatus(prev, nextSeenIds));
+        setFilteredNotifications(prev => applyLocalSeenStatus(prev, nextSeenIds));
+        setUnreadCount(countUnseenNotifications(countSource, nextSeenIds));
+    }, [notifications, notificationSeenStorageKey, seenNotificationIds]);
+
     const handleNotificationClick = async (notification) => {
         haptic('select');
-        if (!notification.is_read) {
-            await markNotificationRead(notification.id);
-            setUnreadCount(prev => Math.max(0, prev - 1));
-            // Update local state to reflect read status
-            setNotifications(prev => prev.map(n => 
-                n.id === notification.id ? { ...n, is_read: true } : n
-            ));
-            setFilteredNotifications(prev => prev.map(n => 
-                n.id === notification.id ? { ...n, is_read: true } : n
-            ));
-        }
+        markNotificationsSeenLocally([notification]);
         setNotificationDialogOpen(false);
         if (notification.reference_type === 'shop') navigate(`/app/shops/`);
         else if (notification.reference_type === 'house') navigate(`/app/houses/`);
         else if (notification.reference_type === 'job') navigate(`/app/jobs/`);
     };
 
-    const handleMarkAllRead = async () => {
-        haptic('success');
-        try {
-            // Get city filter
-            const cityToUse = !isAdmin ? (userCity || localStorage.getItem('nearzo_user_city')) : null;
-            await markAllNotificationsRead(cityToUse);
-            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-            setFilteredNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-            await loadUnreadCount();
-        } catch (err) {
-            console.error('Failed to mark all as read:', err);
-        }
-    };
-
     const openNotificationsDialog = async () => {
         haptic('action');
         setNotificationDialogOpen(true);
-        await loadNotifications();
+        setSearchQuery('');
+        markNotificationsSeenLocally(notifications);
+        const loadedNotifications = await loadNotifications();
+        markNotificationsSeenLocally(loadedNotifications);
     };
 
     // ─── Profile Menu Handlers ──────────────────────────────────────────────────
@@ -1296,22 +1389,6 @@ function AppLayout() {
                             )}
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                            {/* {notifications.length > 0 && unreadCount > 0 && (
-                                <Button
-                                    size="small"
-                                    onClick={handleMarkAllRead}
-                                    sx={{
-                                        textTransform: 'none',
-                                        fontFamily: FONT,
-                                        fontSize: '0.75rem',
-                                        color: C.accent,
-                                        fontWeight: 700,
-                                        '&:active': { transform: 'scale(0.92)' },
-                                    }}
-                                >
-                                    Mark all as read
-                                </Button>
-                            )} */}
                             <IconButton
                                 onClick={() => { haptic('tap'); setNotificationDialogOpen(false); }}
                                 size="small"
