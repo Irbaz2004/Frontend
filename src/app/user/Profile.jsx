@@ -214,6 +214,9 @@ const GLOBAL_STYLE = `
     padding: var(--modal-py) var(--modal-px) calc(var(--modal-py) - 4px);
     border-bottom: 1px solid var(--border-light);
     flex-shrink: 0;
+    position: relative;
+    z-index: 3;
+    background: #fff;
   }
 
   .modal-body {
@@ -221,6 +224,7 @@ const GLOBAL_STYLE = `
     overflow-y: auto;
     overflow-x: hidden;
     padding: var(--modal-py) var(--modal-px) 6px;
+    background: #fff;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
@@ -2617,7 +2621,17 @@ export default function Profile() {
 
             <Modal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} title="Select Category" fullScreen>
                 <div style={{ display: 'grid', gap: 12 }}>
-                    <div style={{ display: 'grid', gap: 8, position: 'sticky', top: 0, zIndex: 2, background: '#fff', paddingBottom: 6 }}>
+                    <div style={{
+                        display: 'grid',
+                        gap: 8,
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 2,
+                        background: '#fff',
+                        margin: 'calc(var(--modal-py) * -1) calc(var(--modal-px) * -1) 0',
+                        padding: 'var(--modal-py) var(--modal-px) 8px',
+                        boxShadow: '0 8px 18px rgba(255,255,255,.96)'
+                    }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                             <div>
                                 <div style={{ fontSize: 13, fontWeight: 800, color: '#0F172A' }}>Filter categories</div>
