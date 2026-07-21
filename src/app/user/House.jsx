@@ -889,14 +889,7 @@ export default function Houses() {
                         )}
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Tooltip title="Refresh location" arrow>
-                            <IconButton
-                                onClick={getCurrentLocation}
-                                sx={{ width: 34, height: 34, borderRadius: '10px', bgcolor: C.surfaceAlt, color: C.textMuted, '&:hover': { bgcolor: C.accentLight, color: C.accent } }}
-                            >
-                                <RefreshIcon sx={{ fontSize: 18 }} />
-                            </IconButton>
-                        </Tooltip>
+                      
                         <Tooltip title="Filters" arrow>
                             <Box sx={{ position: 'relative' }}>
                                 <IconButton
@@ -1007,11 +1000,7 @@ export default function Houses() {
                 <Typography sx={{ fontFamily: FONT, fontSize: 12, fontWeight: 600, color: C.textMuted }}>
                     {houses.length} house{houses.length === 1 ? '' : 's'} found
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                    <Typography sx={{ fontFamily: FONT, fontSize: 12, color: C.textMuted }}>Sort by:</Typography>
-                    <Typography sx={{ fontFamily: FONT, fontSize: 12, color: C.accent, fontWeight: 700 }}>Relevance</Typography>
-                    <SortIcon sx={{ fontSize: 15, color: C.accent }} />
-                </Box>
+              
             </Box>
 
             {error && (

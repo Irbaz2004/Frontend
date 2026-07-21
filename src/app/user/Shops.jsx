@@ -1234,20 +1234,7 @@ export default function Shops() {
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Tooltip title="Refresh location" arrow>
-                            <IconButton
-                                onClick={refreshLocation}
-                                sx={{
-                                    width: 34, height: 34,
-                                    borderRadius: '10px',
-                                    bgcolor: C.surfaceAlt,
-                                    color: C.textMuted,
-                                    '&:hover': { bgcolor: C.accentLight, color: C.accent },
-                                }}
-                            >
-                                <RefreshIcon sx={{ fontSize: 18 }} />
-                            </IconButton>
-                        </Tooltip>
+                   
                         <Tooltip title="Filters" arrow>
                             <Box sx={{ position: 'relative' }}>
                                 <IconButton
