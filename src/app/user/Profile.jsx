@@ -336,7 +336,7 @@ class LocationService {
         try {
             const r = await fetch(
                 `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=en`,
-                { headers: { 'User-Agent': 'NearZO-App/1.0' } }
+                { headers: { 'User-Agent': 'HeloZO-App/1.0' } }
             );
             const d = await r.json();
             if (d?.address) {
@@ -1244,36 +1244,40 @@ const LocationSection = ({ lat, lng, city, area, state, cities, areas, locating,
 // ─────────────────────────────────────────────────────────────────────────────
 // ABOUT — clean, single-column layout built around the real product
 // definition. No filler stats, no duplicated copy — one clear story:
-// what NearZO is, what it does, and the line that sums it up.
+// what HeloZO is, what it does, and the line that sums it up.
 // ─────────────────────────────────────────────────────────────────────────────
-const AboutNearZOContent = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+const AboutHeloZOContent = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         {/* Hero */}
         <div style={{
-            background: 'linear-gradient(135deg, #325fec 0%, #5B7CF2 55%, #7C3AED 100%)',
-            borderRadius: 18, padding: '26px 22px', textAlign: 'center', color: '#fff'
+            background: '#325fec',
+            borderRadius: 18, padding: '24px 22px', color: '#fff',
+            boxShadow: '0 16px 34px rgba(50, 95, 236, .22)'
         }}>
-            <div style={{
-                width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,.16)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 12px'
-            }}>
-                <Icon name="location_on" size={26} color="#fff" />
-            </div>
-            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-.2px', marginBottom: 6 }}>NearZO</div>
-            <div style={{ fontSize: 14, fontWeight: 600, opacity: 0.95 }}>
-                "Everything Around You, In One Place."
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                    width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,.16)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                }}>
+                    <Icon name="location_on" size={26} color="#fff" />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 5 }}>HeloZO</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, opacity: 0.94, lineHeight: 1.45 }}>
+                        Everything around you, in one place.
+                    </div>
+                </div>
             </div>
         </div>
 
         {/* What it is */}
-        <div>
+        <div style={{ background: '#F8FAFF', border: '1px solid #DCE6FF', borderRadius: 16, padding: '16px' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 8 }}>
-                What NearZO Is
+                What HeloZO Is
             </div>
             <p style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.7 }}>
-                NearZO is a hyperlocal discovery platform built to help people find everything around them in one place — nearby shops, local job opportunities, rental homes, and everyday essential services, all connected in real time.
+                HeloZO is a hyperlocal discovery platform built to help people find everything around them in one place — nearby shops, local job opportunities, rental homes, and everyday essential services, all connected in real time.
             </p>
             <p style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.7, marginTop: 10 }}>
                 It brings users, local businesses, and property owners onto one fast, reliable, location-based platform — making it easier for communities to discover, connect, and grow together.
@@ -1287,14 +1291,14 @@ const AboutNearZOContent = () => (
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {[
-                    { icon: 'storefront', color: '#325fec', bg: '#EEF4FF', title: 'Local Shops', desc: 'Discover shops and businesses right in your neighborhood, with real-time location data.' },
-                    { icon: 'home', color: '#16A34A', bg: '#DCFCE7', title: 'Rental Homes', desc: 'Browse verified house and flat listings near you — no brokers, no hidden charges.' },
-                    { icon: 'work', color: '#D97706', bg: '#FFEDD5', title: 'Local Jobs', desc: 'Find job opportunities posted by businesses in your area and apply directly.' },
-                    { icon: 'verified', color: '#7C3AED', bg: '#EDE9FE', title: 'Verified Listings', desc: 'Every shop and house is GPS-verified, so you know exactly where it is before you visit.' },
-                ].map(item => (
-                    <div key={item.title} style={{ display: 'flex', gap: 12, padding: '11px 0', borderBottom: '1px solid #EBF0F9' }}>
-                        <div style={{ width: 38, height: 38, borderRadius: 10, background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <Icon name={item.icon} size={18} color={item.color} />
+                    { icon: 'storefront', title: 'Local Shops', desc: 'Discover shops and businesses right in your neighborhood, with real-time location data.' },
+                    { icon: 'home', title: 'Rental Homes', desc: 'Browse verified house and flat listings near you — no brokers, no hidden charges.' },
+                    { icon: 'work', title: 'Local Jobs', desc: 'Find job opportunities posted by businesses in your area and apply directly.' },
+                    { icon: 'verified', title: 'Verified Listings', desc: 'Every shop and house is GPS-verified, so you know exactly where it is before you visit.' },
+                ].map((item, index) => (
+                    <div key={item.title} style={{ display: 'flex', gap: 12, padding: '11px 0', borderBottom: index === 3 ? 'none' : '1px solid #EBF0F9' }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: '#EEF4FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <Icon name={item.icon} size={18} color="#325fec" />
                         </div>
                         <div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 2 }}>{item.title}</div>
@@ -1326,7 +1330,7 @@ const AboutNearZOContent = () => (
 // ─────────────────────────────────────────────────────────────────────────────
 const SupportContent = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ background: 'linear-gradient(135deg, #4F8EF7 0%, #325fec 100%)', borderRadius: 16, padding: '18px', textAlign: 'center', color: '#fff' }}>
+        <div style={{ background: '#325fec', borderRadius: 16, padding: '18px', textAlign: 'center', color: '#fff' }}>
             <div style={{ fontSize: 28, marginBottom: 4 }}>🤝</div>
             <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>We're here to help!</div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>Reach out to us through any of these channels</div>
@@ -1334,9 +1338,8 @@ const SupportContent = () => (
         <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Contact Us</div>
             {[
-                { icon: 'call', color: '#16A34A', bg: '#DCFCE7', label: 'Phone / WhatsApp', value: '+91 98765 43210', sub: 'Mon–Sat, 9 AM – 6 PM', href: 'tel:+919876543210' },
-                { icon: 'email', color: '#325fec', bg: '#EEF4FF', label: 'Email Support', value: 'support@nearzo.in', sub: 'We reply within 24 hours', href: 'mailto:support@nearzo.in' },
-                { icon: 'language', color: '#7C3AED', bg: '#EDE9FE', label: 'Website', value: 'www.nearzo.in', sub: 'Visit our website', href: 'https://nearzo.in' },
+                { icon: 'call', color: '#325fec', bg: '#EEF4FF', label: 'Phone / WhatsApp', value: '+91 82170 80680', sub: 'Mon–Sat, 9 AM – 6 PM', href: 'tel:+918217080680' },
+                { icon: 'language', color: '#325fec', bg: '#EEF4FF', label: 'Website', value: 'helozo.in', sub: 'Visit our website', href: 'https://helozo.in' },
             ].map(item => (
                 <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid #EBF0F9', textDecoration: 'none' }}>
                     <div style={{ width: 40, height: 40, borderRadius: 12, background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1354,11 +1357,11 @@ const SupportContent = () => (
 
         <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Follow Us</div>
-            <a href="https://instagram.com/nearzo.in" target="_blank" rel="noopener noreferrer" style={{ padding: '10px 12px', background: '#FDF2F8', borderRadius: 12, border: '1px solid #E1306C22', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Icon name="photo_camera" size={20} color="#E1306C" />
+            <a href="https://www.instagram.com/helozo2026/" target="_blank" rel="noopener noreferrer" style={{ padding: '10px 12px', background: '#EEF4FF', borderRadius: 12, border: '1px solid #DCE6FF', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Icon name="photo_camera" size={20} color="#325fec" />
                 <div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>Instagram</div>
-                    <div style={{ fontSize: 11, color: '#64748B' }}>@nearzo.in</div>
+                    <div style={{ fontSize: 11, color: '#64748B' }}>@helozo2026</div>
                 </div>
             </a>
         </div>
@@ -1366,16 +1369,16 @@ const SupportContent = () => (
         {/* Advertise with us */}
         <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Advertise With Us</div>
-            <a href="tel:+919363466343" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px', background: '#FFF7ED', borderRadius: 12, border: '1px solid #FFEDD5', textDecoration: 'none' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: '#FFEDD5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon name="campaign" size={19} color="#D97706" />
+            <a href="tel:+91 9363466343" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px', background: '#EEF4FF', borderRadius: 12, border: '1px solid #DCE6FF', textDecoration: 'none' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: '#DCE6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name="campaign" size={19} color="#325fec" />
                 </div>
                 <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#B45309', textTransform: 'uppercase', letterSpacing: '.3px' }}>Advertisement Enquiries</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>+91 93634 66343</div>
-                    <div style={{ fontSize: 11, color: '#94A3B8' }}>Promote your business on NearZO</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#325fec', textTransform: 'uppercase', letterSpacing: '.3px' }}>Advertisement Enquiries</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>+91 9363466343</div>
+                    <div style={{ fontSize: 11, color: '#94A3B8' }}>Promote your business on HeloZO</div>
                 </div>
-                <Icon name="call" size={16} color="#D97706" />
+                <Icon name="call" size={16} color="#325fec" />
             </a>
         </div>
 
@@ -2341,7 +2344,7 @@ export default function Profile() {
                         {/* Profile Card */}
                         <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #E2E8F5', padding: 'clamp(16px,4vw,24px) clamp(14px,4vw,20px) 18px', boxShadow: 'var(--shadow-sm)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                                <div style={{ width: 66, height: 66, borderRadius: '50%', background: 'linear-gradient(135deg,#325fec,#7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                                <div style={{ width: 66, height: 66, borderRadius: '50%', background: '#325fec', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                                     {getAvatarInitial(profile)}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -2392,7 +2395,7 @@ export default function Profile() {
                         <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F5', padding: '4px 16px', boxShadow: 'var(--shadow-sm)' }}>
                             <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', padding: '10px 0 2px', textTransform: 'uppercase', letterSpacing: '.6px' }}>Other</div>
                             <DetailRow iconName="help_outline" iconColor="#325fec" iconBg="#EEF4FF" label="Help & Support" onClick={() => setModal('support')} />
-                            <DetailRow iconName="info_outline" iconColor="#7C3AED" iconBg="#F5F3FF" label="About NearZO" onClick={() => setModal('about')} last />
+                            <DetailRow iconName="info_outline" iconColor="#325fec" iconBg="#EEF4FF" label="About HeloZO" onClick={() => setModal('about')} last />
                         </div>
 
                         {/* Settings */}
@@ -2970,9 +2973,9 @@ export default function Profile() {
                 </FormGrid>
             </Modal>
 
-            {/* About NearZO */}
-            <Modal open={modal === 'about'} onClose={closeModal} title="About NearZO">
-                <AboutNearZOContent />
+            {/* About HeloZO */}
+            <Modal open={modal === 'about'} onClose={closeModal} title="About HeloZO">
+                <AboutHeloZOContent />
             </Modal>
 
             {/* Help & Support */}

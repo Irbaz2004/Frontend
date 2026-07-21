@@ -38,10 +38,10 @@ import 'slick-carousel/slick/slick-theme.css';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import HomeWorkIcon from '@mui/icons-material/HomeWork';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
-import shopImagePlaceholder from '../../assets/shop.png';
-import houseImagePlaceholder from '../../assets/house.png';
-import jobImagePlaceholder from '../../assets/job.png';
-import mapImagePlaceholder from '../../assets/map.png';
+import shopFinderCardBg from '../../assets/home/shop-finder-bg.jpeg';
+import rentHomeCardBg from '../../assets/home/rent-home-bg.jpeg';
+import jobsCardBg from '../../assets/home/jobs-bg.jpeg';
+import mapCardBg from '../../assets/home/map-bg.jpeg';
 
 const GEO_TIMEOUT_MS = 12000;
 const GEO_MAX_AGE_MS = 0;
@@ -492,10 +492,10 @@ const JobCard = ({ job, onClick, index = 0 }) => (
 
 // ── Feature Grid ──────────────────────────────────────────────────────────────
 const GRID_ITEMS = [
-    { label: 'Shop Finder',  sub: 'Discover local stores', icon: StorefrontIcon,  route: '/app/shops',   img: shopImagePlaceholder,  accent: '#2952E8', accentEnd: '#5B7EFF' },
-    { label: 'Rent a Home',  sub: 'PGs & flats near you',  icon: HomeWorkIcon,    route: '/app/houses',  img: houseImagePlaceholder, accent: '#16A34A', accentEnd: '#4ADE80' },
-    { label: 'Get Hired',    sub: 'Browse local openings', icon: WorkOutlineIcon, route: '/app/jobs',    img: jobImagePlaceholder,   accent: '#F05A00', accentEnd: '#FBBF24' },
-    { label: 'Map View',     sub: 'Explore on map',        icon: MapIcon,         route: '/app/map',         img: mapImagePlaceholder,   accent: '#7C3AED', accentEnd: '#A78BFA' },
+    { label: 'Shop Finder',  sub: 'Discover local stores', icon: StorefrontIcon,  route: '/app/shops',   img: shopFinderCardBg, accent: '#2952E8', accentEnd: '#2952E8', position: 'center' },
+    { label: 'Rent a Home',  sub: 'PGs & flats near you',  icon: HomeWorkIcon,    route: '/app/houses',  img: rentHomeCardBg, accent: '#2952E8', accentEnd: '#2952E8', position: 'center' },
+    { label: 'Get Hired',    sub: 'Browse local openings', icon: WorkOutlineIcon, route: '/app/jobs',    img: jobsCardBg,     accent: '#2952E8', accentEnd: '#2952E8', position: 'center' },
+    { label: 'Map View',     sub: 'Explore on map',        icon: MapIcon,         route: '/app/map',     img: mapCardBg,      accent: '#2952E8', accentEnd: '#2952E8', position: 'center' },
 ];
 
 const FeatureGrid = ({ onNavigate }) => (
@@ -505,46 +505,84 @@ const FeatureGrid = ({ onNavigate }) => (
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
         gap: { xs: 1.2, sm: 1.5 },
+        position: 'relative',
+        zIndex: 1,
     }}>
-        {GRID_ITEMS.map((item) => {
+        {GRID_ITEMS.map((item, index) => {
             const Icon = item.icon;
+            const hasImage = Boolean(item.img);
             return (
                 <Box
                     key={item.label}
+                    className="helozo-feature-card"
                     onClick={() => item.route && onNavigate(item.route)}
                     sx={{
                         borderRadius: T.radius, overflow: 'hidden',
                         position: 'relative', cursor: 'pointer',
-                        height: { xs: 115, sm: 136 },
-                        backgroundImage: `url(${item.img})`,
-                        backgroundSize: 'cover', backgroundPosition: 'center',
-                        boxShadow: T.shadowMd,
-                        transition: 'transform 0.18s, box-shadow 0.18s',
+                        height: { xs: 126, sm: 148 },
+                        bgcolor: hasImage ? '#0F1729' : T.primary,
+                        boxShadow: '0 8px 24px rgba(15,23,41,0.12), 0 1px 4px rgba(15,23,41,0.08)',
+                        transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+                        animation: 'fadeInCard 0.48s ease both, featureCardFloat 6s ease-in-out infinite',
+                        animationDelay: `${index * 0.08}s, ${index * 0.55}s`,
                         '&:active': { transform: 'scale(0.96)' },
-                        '&:hover': { boxShadow: T.shadowLg, transform: 'translateY(-1px)' },
+                        '&:hover': { boxShadow: T.shadowLg, transform: 'translateY(-3px)' },
+                        '&::before': hasImage ? {
+                            content: '""',
+                            position: 'absolute',
+                            inset: 0,
+                            backgroundImage: `url(${item.img})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: item.position,
+                            transform: 'scale(1.05)',
+                            animation: 'featureImagePan 13s ease-in-out infinite alternate',
+                            transition: 'transform 0.45s ease',
+                        } : {
+                            content: '""',
+                            position: 'absolute',
+                            inset: 0,
+                            backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.18), transparent 42%), repeating-linear-gradient(120deg, rgba(255,255,255,0.13) 0 1px, transparent 1px 16px)',
+                            animation: 'featurePatternMove 9s linear infinite',
+                            opacity: 0.8,
+                        },
+                        '&::after': {
+                            content: '""',
+                            position: 'absolute',
+                            inset: 0,
+                            background: hasImage
+                                ? 'linear-gradient(180deg, rgba(9,18,46,0.16) 0%, rgba(9,18,46,0.52) 58%, rgba(9,18,46,0.78) 100%)'
+                                : 'linear-gradient(180deg, rgba(41,82,232,0.08) 0%, rgba(26,59,184,0.34) 100%)',
+                        },
+                        '&:hover::before': {
+                            transform: hasImage ? 'scale(1.1)' : 'none',
+                        },
                     }}
                 >
-                    <Box sx={{
-                        position: 'absolute', inset: 0,
-                        backdropFilter: 'blur(2px) brightness(0.48)',
-                        WebkitBackdropFilter: 'blur(2px) brightness(0.48)',
-                    }} />
+                    {!hasImage && (
+                        <>
+                            <Box sx={{ position: 'absolute', top: 16, right: 16, width: 34, height: 34, borderRadius: '50%', border: '8px solid rgba(255,255,255,0.24)', zIndex: 1, animation: 'featurePulse 2.8s ease-in-out infinite' }} />
+                            <Box sx={{ position: 'absolute', left: 14, bottom: 18, width: 58, height: 3, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.28)', zIndex: 1, animation: 'featureRouteSlide 4.2s ease-in-out infinite' }} />
+                            <Box sx={{ position: 'absolute', left: 42, bottom: 38, width: 42, height: 3, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.18)', zIndex: 1, transform: 'rotate(-28deg)', animation: 'featureRouteSlide 4.2s ease-in-out infinite .4s' }} />
+                        </>
+                    )}
                     <Box sx={{
                         position: 'absolute', bottom: 0, left: 0, right: 0, height: 4,
                         background: `linear-gradient(90deg, ${item.accent}, ${item.accentEnd}, transparent)`,
+                        zIndex: 2,
                     }} />
                     <Box sx={{
-                        position: 'relative', zIndex: 1,
+                        position: 'relative', zIndex: 3,
                         p: { xs: '13px 12px', sm: '16px 14px' },
                         height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                     }}>
                         <Box sx={{
                             width: 36, height: 36, borderRadius: '10px',
-                            bgcolor: 'rgba(255,255,255,0.16)',
-                            backdropFilter: 'blur(8px)',
-                            WebkitBackdropFilter: 'blur(8px)',
-                            border: '1px solid rgba(255,255,255,0.28)',
+                            bgcolor: hasImage ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.2)',
+                            backdropFilter: 'blur(10px)',
+                            WebkitBackdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.3)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 8px 18px rgba(0,0,0,0.14)',
                         }}>
                             <Icon sx={{ fontSize: { xs: '1.05rem', sm: '1.15rem' }, color: '#fff' }} />
                         </Box>
@@ -597,7 +635,7 @@ const BoostBanner = ({ onLearnMore }) => (
                         </Typography>
                     </Box>
                     <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: { xs: '1.12rem', sm: '1.25rem' }, color: '#fff', lineHeight: 1.2, mb: 0.5, letterSpacing: '-0.025em' }}>
-                        NearZO Boost
+                        HeloZO Boost
                     </Typography>
                     <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: { xs: '0.71rem', sm: '0.77rem' }, color: 'rgba(255,255,255,0.78)', lineHeight: 1.5 }}>
                         Get 10× more views with premium placement & real-time analytics
@@ -738,7 +776,7 @@ const AdCarousel = ({ ads, onNavigate }) => {
         dots: true, infinite: true, speed: 600,
         slidesToShow: 1, slidesToScroll: 1, autoplay: true,
         autoplaySpeed: 4500, arrows: false, pauseOnHover: true,
-        dotsClass: 'slick-dots nearzo-dots', adaptiveHeight: false,
+        dotsClass: 'slick-dots HeloZO-dots', adaptiveHeight: false,
     };
 
     return (
@@ -749,7 +787,7 @@ const AdCarousel = ({ ads, onNavigate }) => {
                 // Responsive height: taller on desktop
                 height: { xs: 210, sm: 290, md: 380, lg: 460 },
                 position: 'relative',
-            }} className="nearzo-ad-slider">
+            }} className="HeloZO-ad-slider">
                 <Slider {...adSliderSettings} style={{ height: '100%' }}>
                     {ads.map((ad) => (
                         <Box key={ad.id}
@@ -778,9 +816,9 @@ const AdCarousel = ({ ads, onNavigate }) => {
 // ── Stats Bar ─────────────────────────────────────────────────────────────────
 const StatsBar = ({ shops, houses, jobs, city }) => {
     const items = [
-        { count: shops?.length || 0, label: 'Shops', color: T.primary },
-        { count: houses?.length || 0, label: 'Houses', color: T.green },
-        { count: jobs?.length || 0, label: 'Jobs', color: T.orange },
+        { count: shops?.length || 0, label: 'Shops', icon: StorefrontIcon2, color: T.primary, bg: T.primaryLight },
+        { count: houses?.length || 0, label: 'Houses', icon: HomeWorkIcon2, color: T.primary, bg: T.primaryLight },
+        { count: jobs?.length || 0, label: 'Jobs', icon: WorkOutlineIcon2, color: T.primary, bg: T.primaryLight },
     ];
     return (
         <Box sx={{
@@ -788,24 +826,61 @@ const StatsBar = ({ shops, houses, jobs, city }) => {
             borderRadius: T.radius,
             bgcolor: '#fff',
             border: `1px solid ${T.border}`,
-            boxShadow: T.shadow,
+            boxShadow: '0 8px 24px rgba(15,23,41,0.08), 0 1px 4px rgba(15,23,41,0.05)',
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
             overflow: 'hidden',
+            position: 'relative',
+            '&::before': {
+                content: '""',
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: 'repeating-linear-gradient(135deg, rgba(41,82,232,0.035) 0 1px, transparent 1px 18px)',
+                animation: 'featurePatternMove 18s linear infinite',
+                pointerEvents: 'none',
+            },
         }}>
-            {items.map((item, i) => (
-                <Box key={i} sx={{
-                    py: '11px', px: 1,
-                    textAlign: 'center',
-                    borderRight: i < 2 ? `1px solid ${T.border}` : 'none',
-                }}>
-                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: { xs: '1.05rem', sm: '1.15rem' }, color: item.color, lineHeight: 1, letterSpacing: '-0.02em' }}>
-                        {item.count}+
-                    </Typography>
-                    <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.62rem', color: T.textMuted, fontWeight: 500, mt: 0.15 }}>
-                        {item.label}
-                    </Typography>
-                </Box>
-            ))}
+            {items.map((item, i) => {
+                const Icon = item.icon;
+                return (
+                    <Box key={i} sx={{
+                        py: { xs: '11px', sm: '13px' },
+                        px: { xs: 0.8, sm: 1.4 },
+                        borderRight: i < 2 ? `1px solid ${T.border}` : 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: { xs: 0.65, sm: 1 },
+                        minWidth: 0,
+                        position: 'relative',
+                        zIndex: 1,
+                    }}>
+                        <Box sx={{
+                            width: { xs: 30, sm: 34 },
+                            height: { xs: 30, sm: 34 },
+                            borderRadius: '10px',
+                            bgcolor: item.bg,
+                            border: `1px solid rgba(41,82,232,0.14)`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            boxShadow: '0 6px 14px rgba(41,82,232,0.12)',
+                            animation: 'statIconFloat 4.8s ease-in-out infinite',
+                            animationDelay: `${i * 0.35}s`,
+                        }}>
+                            <Icon sx={{ fontSize: { xs: '0.95rem', sm: '1.05rem' }, color: item.color }} />
+                        </Box>
+                        <Box sx={{ minWidth: 0 }}>
+                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 900, fontSize: { xs: '1rem', sm: '1.14rem' }, color: item.color, lineHeight: 1, letterSpacing: '-0.02em' }}>
+                                {item.count}+
+                            </Typography>
+                            <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: { xs: '0.58rem', sm: '0.64rem' }, color: T.textMuted, fontWeight: 700, mt: 0.2, whiteSpace: 'nowrap' }}>
+                                {item.label}
+                            </Typography>
+                        </Box>
+                    </Box>
+                );
+            })}
         </Box>
     );
 };
@@ -956,17 +1031,49 @@ export default function Home() {
                     from { opacity: 0; transform: translateX(20px); }
                     to   { opacity: 1; transform: translateX(0); }
                 }
+                @keyframes featureCardFloat {
+                    0%, 100% { translate: 0 0; }
+                    50%      { translate: 0 -3px; }
+                }
+                @keyframes featureImagePan {
+                    from { background-position: center center; }
+                    to   { background-position: 58% 44%; }
+                }
+                @keyframes featurePatternMove {
+                    from { background-position: 0 0, 0 0; }
+                    to   { background-position: 0 0, 46px 28px; }
+                }
+                @keyframes featurePulse {
+                    0%, 100% { transform: scale(1); opacity: 0.72; }
+                    50%      { transform: scale(1.12); opacity: 0.42; }
+                }
+                @keyframes featureRouteSlide {
+                    0%, 100% { transform: translateX(0); opacity: 0.32; }
+                    50%      { transform: translateX(12px); opacity: 0.66; }
+                }
+                @keyframes homeGridDrift {
+                    from { background-position: 0 0; }
+                    to   { background-position: 72px 72px; }
+                }
+                @keyframes homeSoftSweep {
+                    0%, 100% { transform: translateX(-18%); opacity: 0.2; }
+                    50%      { transform: translateX(18%); opacity: 0.38; }
+                }
+                @keyframes statIconFloat {
+                    0%, 100% { transform: translateY(0); }
+                    50%      { transform: translateY(-2px); }
+                }
 
-                .nearzo-ad-slider .slick-slide > div { height: 100%; }
-                .nearzo-ad-slider .slick-list       { height: 100%; }
-                .nearzo-ad-slider .slick-track      { height: 100%; display: flex; }
-                .nearzo-ad-slider .slick-slide      { height: inherit; }
-                .nearzo-dots { bottom: 14px !important; }
-                .nearzo-dots li button:before {
+                .HeloZO-ad-slider .slick-slide > div { height: 100%; }
+                .HeloZO-ad-slider .slick-list       { height: 100%; }
+                .HeloZO-ad-slider .slick-track      { height: 100%; display: flex; }
+                .HeloZO-ad-slider .slick-slide      { height: inherit; }
+                .HeloZO-dots { bottom: 14px !important; }
+                .HeloZO-dots li button:before {
                     color: rgba(255,255,255,0.7) !important;
                     font-size: 7px !important; opacity: 1 !important;
                 }
-                .nearzo-dots li.slick-active button:before {
+                .HeloZO-dots li.slick-active button:before {
                     color: #fff !important; font-size: 9px !important;
                 }
             `}</style>
@@ -993,7 +1100,39 @@ export default function Home() {
                 </Alert>
             </Snackbar>
 
-            <Box sx={{ bgcolor: T.surface, minHeight: '100vh', pb: 8 }}>
+            <Box sx={{
+                bgcolor: T.surface,
+                minHeight: '100vh',
+                pb: 8,
+                position: 'relative',
+                overflow: 'hidden',
+                '&::before': {
+                    content: '""',
+                    position: 'fixed',
+                    inset: 0,
+                    pointerEvents: 'none',
+                    backgroundImage: 'repeating-linear-gradient(90deg, rgba(41,82,232,0.035) 0 1px, transparent 1px 36px), repeating-linear-gradient(0deg, rgba(41,82,232,0.03) 0 1px, transparent 1px 36px)',
+                    animation: 'homeGridDrift 24s linear infinite',
+                    zIndex: 0,
+                },
+                '&::after': {
+                    content: '""',
+                    position: 'fixed',
+                    top: '12%',
+                    left: '-20%',
+                    width: '70%',
+                    height: '38%',
+                    pointerEvents: 'none',
+                    background: 'linear-gradient(115deg, transparent 0%, rgba(41,82,232,0.08) 48%, transparent 100%)',
+                    filter: 'blur(18px)',
+                    animation: 'homeSoftSweep 18s ease-in-out infinite',
+                    zIndex: 0,
+                },
+                '& > *': {
+                    position: 'relative',
+                    zIndex: 1,
+                },
+            }}>
 
                 {/* 1 ── City Header */}
                 <CityHeader
@@ -1019,10 +1158,26 @@ export default function Home() {
                 <FeatureHighlightsStrip />
 
                 {/* 5 ── Feature Grid */}
-                <Box sx={{ bgcolor: '#fff', mt: 2, pb: 0.5 }}>
+                <Box sx={{
+                    bgcolor: 'rgba(255,255,255,0.92)',
+                    mt: 2,
+                    pb: 0.5,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundImage: 'repeating-linear-gradient(135deg, rgba(41,82,232,0.045) 0 1px, transparent 1px 18px)',
+                        animation: 'featurePatternMove 16s linear infinite',
+                        pointerEvents: 'none',
+                    },
+                }}>
                     <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: 2.5, pb: 1 }}>
                         <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: { xs: '1.05rem', sm: '1.1rem' }, color: T.text, letterSpacing: '-0.025em' }}>
-                            Explore NearZO
+                            Explore HeloZO
                         </Typography>
                         <Typography sx={{ fontFamily: '"Inter", sans-serif', fontSize: '0.68rem', color: T.textMuted, mt: 0.2 }}>
                             Everything local, in one place

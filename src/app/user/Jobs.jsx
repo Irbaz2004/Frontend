@@ -642,20 +642,7 @@ function JobDetailsDrawer({ open, job, onClose, onCall }) {
                     </Box>
 
                         <Box sx={{ width: '1px', height: { xs: 42, sm: 58 }, bgcolor: C.border, flexShrink: 0 }} />
-                    <IconButton
-                        sx={{
-                            width: { xs: 44, sm: 56 },
-                            height: { xs: 44, sm: 56 },
-                            borderRadius: { xs: '14px', sm: '18px' },
-                            bgcolor: C.surface,
-                            color: C.accent,
-                            border: `1px solid ${C.border}`,
-                            flexShrink: 0,
-                            '&:hover': { bgcolor: C.accentLight }
-                        }}
-                    >
-                        <BookmarkIcon sx={{ fontSize: { xs: 20, sm: 26 } }} />
-                    </IconButton>
+                  
                     <Button
                         variant="contained"
                         startIcon={<PhoneIcon sx={{ fontSize: 23 }} />}
@@ -820,7 +807,7 @@ const LocationPermissionDialog = ({ open, onClose, onAllow, onManualCity, loadin
             </DialogTitle>
             <DialogContent>
                 <Typography sx={{ fontFamily: FONT, fontSize: '0.85rem', color: C.textMuted, mb: 2 }}>
-                    NearZO needs your location to show jobs near you.
+                    HeloZO needs your location to show jobs near you.
                     We don't store your precise location.
                 </Typography>
 
@@ -939,7 +926,7 @@ export default function Jobs() {
         try {
             const response = await fetch(
                 `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`,
-                { headers: { 'User-Agent': 'NearZO-App/1.0' } }
+                { headers: { 'User-Agent': 'HeloZO-App/1.0' } }
             );
             const data = await response.json();
             if (data && data.address) {
