@@ -785,82 +785,82 @@ function FilterPanel({ radius, setRadius, jobType, setJobType, salaryRange, setS
 }
 
 // ── Location Permission Dialog ─────────────────────────────────────────────
-const LocationPermissionDialog = ({ open, onClose, onAllow, onManualCity, loading }) => {
-    const [manualCity, setManualCity] = useState('');
+// const LocationPermissionDialog = ({ open, onClose, onAllow, onManualCity, loading }) => {
+//     const [manualCity, setManualCity] = useState('');
 
-    const handleManualSubmit = () => {
-        if (manualCity.trim()) {
-            onManualCity(manualCity.trim());
-            setManualCity('');
-        }
-    };
+//     const handleManualSubmit = () => {
+//         if (manualCity.trim()) {
+//             onManualCity(manualCity.trim());
+//             setManualCity('');
+//         }
+//     };
 
-    return (
-        <Dialog
-            open={open}
-            onClose={onClose}
-            transitionDuration={{ enter: 280, exit: 200 }}
-            PaperProps={{ sx: { borderRadius: '24px', maxWidth: '340px', width: '90%', p: 1 } }}
-        >
-            <DialogTitle sx={{ fontFamily: FONT, fontWeight: 700, fontSize: '1.2rem', color: C.text, pb: 1, pt: 2.5 }}>
-                Allow Location Access
-            </DialogTitle>
-            <DialogContent>
-                <Typography sx={{ fontFamily: FONT, fontSize: '0.85rem', color: C.textMuted, mb: 2 }}>
-                    HeloZO needs your location to show jobs near you.
-                    We don't store your precise location.
-                </Typography>
+//     return (
+//         <Dialog
+//             open={open}
+//             onClose={onClose}
+//             transitionDuration={{ enter: 280, exit: 200 }}
+//             PaperProps={{ sx: { borderRadius: '24px', maxWidth: '340px', width: '90%', p: 1 } }}
+//         >
+//             <DialogTitle sx={{ fontFamily: FONT, fontWeight: 700, fontSize: '1.2rem', color: C.text, pb: 1, pt: 2.5 }}>
+//                 Allow Location Access
+//             </DialogTitle>
+//             <DialogContent>
+//                 <Typography sx={{ fontFamily: FONT, fontSize: '0.85rem', color: C.textMuted, mb: 2 }}>
+//                     HeloZO needs your location to show jobs near you.
+//                     We don't store your precise location.
+//                 </Typography>
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Button
-                        fullWidth
-                        variant="contained"
-                        startIcon={loading ? null : <GpsFixedIcon />}
-                        onClick={onAllow}
-                        disabled={loading}
-                        disableElevation
-                        sx={{
-                            background: C.accent, borderRadius: '14px', py: 1.2, textTransform: 'none',
-                            fontFamily: FONT, fontWeight: 700, fontSize: '0.85rem',
-                            '&:hover': { background: C.accentDark },
-                        }}
-                    >
-                        {loading ? <CircularProgress size={20} color="inherit" /> : 'Allow Location'}
-                    </Button>
+//                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+//                     <Button
+//                         fullWidth
+//                         variant="contained"
+//                         startIcon={loading ? null : <GpsFixedIcon />}
+//                         onClick={onAllow}
+//                         disabled={loading}
+//                         disableElevation
+//                         sx={{
+//                             background: C.accent, borderRadius: '14px', py: 1.2, textTransform: 'none',
+//                             fontFamily: FONT, fontWeight: 700, fontSize: '0.85rem',
+//                             '&:hover': { background: C.accentDark },
+//                         }}
+//                     >
+//                         {loading ? <CircularProgress size={20} color="inherit" /> : 'Allow Location'}
+//                     </Button>
 
-                    <Typography sx={{ textAlign: 'center', color: C.textMuted, fontSize: '0.75rem', fontFamily: FONT }}>OR</Typography>
+//                     <Typography sx={{ textAlign: 'center', color: C.textMuted, fontSize: '0.75rem', fontFamily: FONT }}>OR</Typography>
 
-                    <TextField
-                        placeholder="Enter your city name"
-                        value={manualCity}
-                        onChange={(e) => setManualCity(e.target.value)}
-                        size="small"
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '14px', fontFamily: FONT } }}
-                    />
+//                     <TextField
+//                         placeholder="Enter your city name"
+//                         value={manualCity}
+//                         onChange={(e) => setManualCity(e.target.value)}
+//                         size="small"
+//                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '14px', fontFamily: FONT } }}
+//                     />
 
-                    <Button
-                        fullWidth
-                        variant="outlined"
-                        onClick={handleManualSubmit}
-                        disabled={!manualCity.trim() || loading}
-                        sx={{
-                            borderRadius: '14px', py: 1, textTransform: 'none', fontFamily: FONT, fontWeight: 700, fontSize: '0.85rem',
-                            borderColor: C.border, color: C.textSub,
-                            '&:hover': { borderColor: C.accent, color: C.accent },
-                        }}
-                    >
-                        Use this city
-                    </Button>
-                </Box>
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2.5 }}>
-                <Button onClick={onClose} sx={{ color: C.textMuted, textTransform: 'none', fontFamily: FONT, fontSize: '0.8rem' }}>
-                    Skip for now
-                </Button>
-            </DialogActions>
-        </Dialog>
-    );
-};
+//                     <Button
+//                         fullWidth
+//                         variant="outlined"
+//                         onClick={handleManualSubmit}
+//                         disabled={!manualCity.trim() || loading}
+//                         sx={{
+//                             borderRadius: '14px', py: 1, textTransform: 'none', fontFamily: FONT, fontWeight: 700, fontSize: '0.85rem',
+//                             borderColor: C.border, color: C.textSub,
+//                             '&:hover': { borderColor: C.accent, color: C.accent },
+//                         }}
+//                     >
+//                         Use this city
+//                     </Button>
+//                 </Box>
+//             </DialogContent>
+//             <DialogActions sx={{ px: 3, pb: 2.5 }}>
+//                 <Button onClick={onClose} sx={{ color: C.textMuted, textTransform: 'none', fontFamily: FONT, fontSize: '0.8rem' }}>
+//                     Skip for now
+//                 </Button>
+//             </DialogActions>
+//         </Dialog>
+//     );
+// };
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Main Component
@@ -1135,13 +1135,13 @@ export default function Jobs() {
 
     return (
         <Box sx={{ bgcolor: C.bg, minHeight: '100vh', pb: `${BOTTOM_NAV_OFFSET + 20}px`, fontFamily: FONT }}>
-            <LocationPermissionDialog
+            {/* <LocationPermissionDialog
                 open={locationDialogOpen}
                 onClose={handleSkipLocation}
                 onAllow={handleAllowLocation}
                 onManualCity={handleManualCity}
                 loading={locationLoading}
-            />
+            /> */}
 
             <Snackbar
                 open={showCitySnackbar}
@@ -1309,9 +1309,9 @@ export default function Jobs() {
                             <Button variant="contained" onClick={clearFilters} disableElevation sx={{ fontFamily: FONT, textTransform: 'none', borderRadius: '10px', background: C.accent, px: 3, fontWeight: 700 }}>
                                 Clear Filters
                             </Button>
-                            <Button variant="outlined" onClick={handleRefreshLocation} sx={{ fontFamily: FONT, textTransform: 'none', borderRadius: '10px', borderColor: C.accent, color: C.accent, fontWeight: 700 }}>
+                            {/* <Button variant="outlined" onClick={handleRefreshLocation} sx={{ fontFamily: FONT, textTransform: 'none', borderRadius: '10px', borderColor: C.accent, color: C.accent, fontWeight: 700 }}>
                                 Change Location
-                            </Button>
+                            </Button> */}
                         </Box>
                     </Box>
                 ) : (
