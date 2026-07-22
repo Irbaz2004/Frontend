@@ -60,9 +60,9 @@ const hoverLift      = { y: -2 };
 
 // ─── Design Tokens ─────────────────────────────────────────────────────────────
 const C = {
-  bg:          '#F0F4FF',
+  bg:          '#FFFFFF',
   surface:     '#FFFFFF',
-  surfaceAlt:  '#F5F7FE',
+  surfaceAlt:  '#F8FAFF',
   surfaceHover:'#EEF2FF',
   border:      '#E0E7FF',
   borderLight: '#EEF2FF',
@@ -72,15 +72,15 @@ const C = {
   shopMid:     '#BFCFFF',
   shopDark:    '#1A45C2',
 
-  house:       '#6C2BD9',
-  houseLight:  '#EDEBFE',
-  houseMid:    '#A78BFA',
-  houseDark:   '#4C1D95',
+  house:       '#325fec',
+  houseLight:  '#EEF4FF',
+  houseMid:    '#BFCFFF',
+  houseDark:   '#1A45C2',
 
-  job:         '#B45309',
-  jobLight:    '#FEF3C7',
-  jobMid:      '#FBBF24',
-  jobDark:     '#92400E',
+  job:         '#325fec',
+  jobLight:    '#EEF4FF',
+  jobMid:      '#BFCFFF',
+  jobDark:     '#1A45C2',
 
   accent:      '#325fec',
   accentLight: '#EEF4FF',
@@ -205,9 +205,12 @@ const esc     = (s) => s?.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':
 
 // ─── CSS ───────────────────────────────────────────────────────────────────────
 const injectCSS = () => {
-  if (document.getElementById('map-v6-css')) return;
-  const el = document.createElement('style');
-  el.id = 'map-v6-css';
+  let el = document.getElementById('map-v6-css');
+  if (!el) {
+    el = document.createElement('style');
+    el.id = 'map-v6-css';
+    document.head.appendChild(el);
+  }
   el.textContent = `
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -217,7 +220,7 @@ const injectCSS = () => {
       bottom: ${BOTTOM_NAV_H}px;
       left: 0; right: 0;
       font-family: 'Inter', sans-serif;
-      background: ${C.bg};
+      background: #ffffff;
       color: ${C.text};
       overflow: hidden;
       z-index: 10;
@@ -249,7 +252,23 @@ const injectCSS = () => {
     }
 
     /* Leaflet */
-    .leaflet-container { font-family: 'Inter', sans-serif !important; background: #E8EEF8 !important; }
+    .leaflet-container { font-family: 'Inter', sans-serif !important; background: #ffffff !important; }
+    .leaflet-tile-pane { background: #ffffff !important; }
+    .mv5-theme-tiles {
+      filter: grayscale(1) brightness(.98) contrast(1.18) sepia(.18) hue-rotate(182deg) saturate(2.8);
+      opacity: 1;
+    }
+    .leaflet-pane.leaflet-tile-pane::after {
+      content: "";
+      position: absolute;
+      inset: -80px;
+      pointer-events: none;
+      background:
+        linear-gradient(0deg, rgba(255,255,255,.12), rgba(255,255,255,.12)),
+        radial-gradient(circle at 30% 20%, rgba(26,59,184,.14), transparent 34%),
+        radial-gradient(circle at 78% 72%, rgba(26,59,184,.1), transparent 30%);
+      z-index: 500;
+    }
     .leaflet-popup-content-wrapper {
       background: ${C.surface} !important;
       border: 1px solid ${C.border} !important;
@@ -615,7 +634,6 @@ const injectCSS = () => {
       * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
     }
   `;
-  document.head.appendChild(el);
 };
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
@@ -683,7 +701,10 @@ export default function Map() {
       zoomControl: false, attributionControl: false,
       zoomAnimation: true, fadeAnimation: true,
     }).setView([userLocation.latitude, userLocation.longitude], 16);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 })
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      className: 'mv5-theme-tiles',
+    })
       .addTo(mapRef.current);
     L.control.zoom({ position: 'topright' }).addTo(mapRef.current);
     return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
@@ -759,7 +780,7 @@ export default function Map() {
         routeWhileDragging: true,
         showAlternatives: false,
         lineOptions: {
-          styles: [{ color: TYPE[item._type]?.color || C.accent, weight: 6, opacity: 0.9, lineCap: 'round' }],
+          styles: [{ color: C.accent, weight: 7, opacity: 1, lineCap: 'round' }],
           extendToWaypoints: true, missingRouteTolerance: 10,
         },
         createMarker: () => null, addWaypoints: false, fitSelectedRoutes: true,
@@ -806,7 +827,7 @@ export default function Map() {
     userCircleRef.current = L.circle([lat, lng], {
       radius: radius * 1000,
       color: C.accent, fillColor: C.accent,
-      fillOpacity: 0.04, weight: 1.5, dashArray: '6 8',
+      fillOpacity: 0.06, weight: 2, dashArray: '6 8',
     }).addTo(mapRef.current);
 
     const iconSVG = {

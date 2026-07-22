@@ -113,7 +113,7 @@ const pickSupportedCity = (address = {}, displayName = '') => {
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 const T = {
-    primary: '#2952E8',
+    primary: '#325fec',
     primaryDark: '#1A3BB8',
     primaryLight: '#EEF2FF',
     primaryGlow: 'rgba(41,82,232,0.12)',
@@ -123,7 +123,7 @@ const T = {
     greenLight: '#DCFCE7',
     purple: '#7C3AED',
     purpleLight: '#EDE9FE',
-    surface: '#F7F8FC',
+    surface: '#FFFFFF',
     surfaceAlt: '#F0F2F8',
     card: '#FFFFFF',
     text: '#0F1729',
@@ -306,7 +306,7 @@ const SectionHeader = ({ title, subtitle, badge, onSeeAll }) => (
 );
 
 // ── Section Divider ───────────────────────────────────────────────────────────
-const SectionDivider = () => <Box sx={{ height: 10, bgcolor: T.surface }} />;
+const SectionDivider = () => <Box sx={{ height: 10, bgcolor: '#ffffff' }} />;
 
 // ── Scroll Rail ───────────────────────────────────────────────────────────────
 const ScrollRail = ({ children }) => (
@@ -541,8 +541,7 @@ const FeatureGrid = ({ onNavigate }) => (
                             content: '""',
                             position: 'absolute',
                             inset: 0,
-                            backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.18), transparent 42%), repeating-linear-gradient(120deg, rgba(255,255,255,0.13) 0 1px, transparent 1px 16px)',
-                            animation: 'featurePatternMove 9s linear infinite',
+                            backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.18), transparent 42%)',
                             opacity: 0.8,
                         },
                         '&::after': {
@@ -561,8 +560,6 @@ const FeatureGrid = ({ onNavigate }) => (
                     {!hasImage && (
                         <>
                             <Box sx={{ position: 'absolute', top: 16, right: 16, width: 34, height: 34, borderRadius: '50%', border: '8px solid rgba(255,255,255,0.24)', zIndex: 1, animation: 'featurePulse 2.8s ease-in-out infinite' }} />
-                            <Box sx={{ position: 'absolute', left: 14, bottom: 18, width: 58, height: 3, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.28)', zIndex: 1, animation: 'featureRouteSlide 4.2s ease-in-out infinite' }} />
-                            <Box sx={{ position: 'absolute', left: 42, bottom: 38, width: 42, height: 3, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.18)', zIndex: 1, transform: 'rotate(-28deg)', animation: 'featureRouteSlide 4.2s ease-in-out infinite .4s' }} />
                         </>
                     )}
                     <Box sx={{
@@ -830,14 +827,6 @@ const StatsBar = ({ shops, houses, jobs, city }) => {
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
             overflow: 'hidden',
             position: 'relative',
-            '&::before': {
-                content: '""',
-                position: 'absolute',
-                inset: 0,
-                backgroundImage: 'repeating-linear-gradient(135deg, rgba(41,82,232,0.035) 0 1px, transparent 1px 18px)',
-                animation: 'featurePatternMove 18s linear infinite',
-                pointerEvents: 'none',
-            },
         }}>
             {items.map((item, i) => {
                 const Icon = item.icon;
@@ -865,8 +854,6 @@ const StatsBar = ({ shops, houses, jobs, city }) => {
                             justifyContent: 'center',
                             flexShrink: 0,
                             boxShadow: '0 6px 14px rgba(41,82,232,0.12)',
-                            animation: 'statIconFloat 4.8s ease-in-out infinite',
-                            animationDelay: `${i * 0.35}s`,
                         }}>
                             <Icon sx={{ fontSize: { xs: '0.95rem', sm: '1.05rem' }, color: item.color }} />
                         </Box>
@@ -1022,6 +1009,7 @@ export default function Home() {
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
                 * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+                html, body, #root { background: #ffffff !important; }
 
                 @keyframes fadeInCard {
                     from { opacity: 0; transform: translateY(12px); }
@@ -1039,31 +1027,10 @@ export default function Home() {
                     from { background-position: center center; }
                     to   { background-position: 58% 44%; }
                 }
-                @keyframes featurePatternMove {
-                    from { background-position: 0 0, 0 0; }
-                    to   { background-position: 0 0, 46px 28px; }
-                }
                 @keyframes featurePulse {
                     0%, 100% { transform: scale(1); opacity: 0.72; }
                     50%      { transform: scale(1.12); opacity: 0.42; }
                 }
-                @keyframes featureRouteSlide {
-                    0%, 100% { transform: translateX(0); opacity: 0.32; }
-                    50%      { transform: translateX(12px); opacity: 0.66; }
-                }
-                @keyframes homeGridDrift {
-                    from { background-position: 0 0; }
-                    to   { background-position: 72px 72px; }
-                }
-                @keyframes homeSoftSweep {
-                    0%, 100% { transform: translateX(-18%); opacity: 0.2; }
-                    50%      { transform: translateX(18%); opacity: 0.38; }
-                }
-                @keyframes statIconFloat {
-                    0%, 100% { transform: translateY(0); }
-                    50%      { transform: translateY(-2px); }
-                }
-
                 .HeloZO-ad-slider .slick-slide > div { height: 100%; }
                 .HeloZO-ad-slider .slick-list       { height: 100%; }
                 .HeloZO-ad-slider .slick-track      { height: 100%; display: flex; }
@@ -1101,37 +1068,11 @@ export default function Home() {
             </Snackbar>
 
             <Box sx={{
-                bgcolor: T.surface,
+                bgcolor: '#ffffff',
                 minHeight: '100vh',
                 pb: 8,
                 position: 'relative',
                 overflow: 'hidden',
-                '&::before': {
-                    content: '""',
-                    position: 'fixed',
-                    inset: 0,
-                    pointerEvents: 'none',
-                    backgroundImage: 'repeating-linear-gradient(90deg, rgba(41,82,232,0.035) 0 1px, transparent 1px 36px), repeating-linear-gradient(0deg, rgba(41,82,232,0.03) 0 1px, transparent 1px 36px)',
-                    animation: 'homeGridDrift 24s linear infinite',
-                    zIndex: 0,
-                },
-                '&::after': {
-                    content: '""',
-                    position: 'fixed',
-                    top: '12%',
-                    left: '-20%',
-                    width: '70%',
-                    height: '38%',
-                    pointerEvents: 'none',
-                    background: 'linear-gradient(115deg, transparent 0%, rgba(41,82,232,0.08) 48%, transparent 100%)',
-                    filter: 'blur(18px)',
-                    animation: 'homeSoftSweep 18s ease-in-out infinite',
-                    zIndex: 0,
-                },
-                '& > *': {
-                    position: 'relative',
-                    zIndex: 1,
-                },
             }}>
 
                 {/* 1 ── City Header */}
@@ -1159,21 +1100,11 @@ export default function Home() {
 
                 {/* 5 ── Feature Grid */}
                 <Box sx={{
-                    bgcolor: 'rgba(255,255,255,0.92)',
+                    bgcolor: '#ffffff',
                     mt: 2,
                     pb: 0.5,
                     position: 'relative',
                     overflow: 'hidden',
-                    backdropFilter: 'blur(10px)',
-                    WebkitBackdropFilter: 'blur(10px)',
-                    '&::before': {
-                        content: '""',
-                        position: 'absolute',
-                        inset: 0,
-                        backgroundImage: 'repeating-linear-gradient(135deg, rgba(41,82,232,0.045) 0 1px, transparent 1px 18px)',
-                        animation: 'featurePatternMove 16s linear infinite',
-                        pointerEvents: 'none',
-                    },
                 }}>
                     <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: 2.5, pb: 1 }}>
                         <Typography sx={{ fontFamily: '"Inter", sans-serif', fontWeight: 800, fontSize: { xs: '1.05rem', sm: '1.1rem' }, color: T.text, letterSpacing: '-0.025em' }}>

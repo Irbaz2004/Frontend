@@ -56,7 +56,7 @@ const SplashScreen = () => {
             sx={{
                 height: '100vh',
                 width: '100vw',
-                bgcolor: '#C00C0C',
+                bgcolor: '#ffffff',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -87,12 +87,12 @@ const SplashScreen = () => {
                     variant="h3"
                     sx={{
                         fontWeight: 900,
-                        color: '#C00C0C',
+                        color: '#325fec',
                         fontFamily: '"Outfit", sans-serif',
                         letterSpacing: '-2px'
                     }}
                 >
-                    N<span style={{ color: '#000' }}>Z</span>
+                    H<span style={{ color: '#000' }}>Z</span>
                 </Typography>
             </Box>
 
@@ -101,20 +101,20 @@ const SplashScreen = () => {
                 className="splash-text"
                 variant="h2"
                 sx={{
-                    color: 'white',
+                    color: '#325fec',
                     fontWeight: 900,
                     fontFamily: '"Outfit", sans-serif',
                     letterSpacing: '-1.5px'
                 }}
             >
-                Near<span style={{ color: '#000' }}>ZO</span>
+                Helo<span style={{ color: '#000' }}>ZO</span>
             </Typography>
 
             {/* Subtext */}
             <Typography
                 className="splash-text"
                 sx={{
-                    color: 'rgba(255,255,255,0.7)',
+                    color: '#64748b',
                     mt: 2,
                     fontWeight: 500,
                     letterSpacing: '2px',
@@ -132,7 +132,7 @@ const SplashScreen = () => {
                     bottom: 60,
                     width: '40px',
                     height: '4px',
-                    bgcolor: 'rgba(255,255,255,0.2)',
+                    bgcolor: 'rgba(50,95,236,0.15)',
                     borderRadius: '2px',
                     overflow: 'hidden'
                 }}
@@ -141,7 +141,7 @@ const SplashScreen = () => {
                     sx={{
                         width: '100%',
                         height: '100%',
-                        bgcolor: 'white',
+                        bgcolor: '#325fec',
                         animation: 'loading 2s infinite ease-in-out'
                     }}
                 />

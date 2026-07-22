@@ -4,8 +4,8 @@
   "description": "Discover Nearby Shops, Rental Houses and Local Jobs.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#325fec",
-  "theme_color": "#325fec",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "orientation": "portrait",
   "icons": [
     {
