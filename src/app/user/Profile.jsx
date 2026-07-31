@@ -148,7 +148,7 @@ const GLOBAL_STYLE = `
   .modal-overlay {
     position: fixed;
     inset: 0;
-    z-index: 10000 !important;
+    z-index: var(--modal-z-index, 10000) !important;
     background: rgba(15,23,42,.5);
     display: flex;
     align-items: flex-end;
@@ -548,7 +548,7 @@ const Toggle = ({ checked, onChange, label }) => (
 // ─────────────────────────────────────────────────────────────────────────────
 // MODAL
 // ─────────────────────────────────────────────────────────────────────────────
-const Modal = ({ open, onClose, title, children, footer, fullScreen = false }) => {
+const Modal = ({ open, onClose, title, children, footer, fullScreen = false, zIndex = 10000 }) => {
     const [rendered, setRendered] = useState(open);
     const [closing, setClosing] = useState(false);
     const closeTimer = useRef(null);
@@ -574,7 +574,11 @@ const Modal = ({ open, onClose, title, children, footer, fullScreen = false }) =
 
     if (!rendered) return null;
     return (
-        <div className={`modal-overlay${fullScreen ? ' full-screen' : ''}${closing ? ' closing' : ''}`} onClick={onClose}>
+        <div
+            className={`modal-overlay${fullScreen ? ' full-screen' : ''}${closing ? ' closing' : ''}`}
+            onClick={onClose}
+            style={{ '--modal-z-index': zIndex }}
+        >
             <div
                 className={`modal-sheet${fullScreen ? ' full-screen' : ''}${closing ? ' closing' : ''}`}
                 onClick={e => e.stopPropagation()}
@@ -615,7 +619,7 @@ const Toast = ({ msg, type = 'success' }) => {
     const colors = { success: { bg: '#DCFCE7', color: '#16A34A' }, error: { bg: '#FEE2E2', color: '#DC2626' } };
     return (
         <div style={{
-            position: 'fixed', top: 16, left: 0, right: 0, zIndex: 10002,
+            position: 'fixed', top: 16, left: 0, right: 0, zIndex: 10100,
             display: 'flex', justifyContent: 'center', padding: '0 16px',
             animation: 'fadeUp .25s ease', pointerEvents: 'none'
         }}>
@@ -1479,6 +1483,8 @@ export default function Profile() {
     const [creatingHouse, setCreatingHouse] = useState(false);
     const [creatingJob, setCreatingJob] = useState(false);
     const [updatingJob, setUpdatingJob] = useState(false);
+    const createActionInFlightRef = useRef({ shop: false, house: false, job: false });
+    const createdNotificationKeysRef = useRef(new Set());
 
     const emptyShop = { business_name: '', category: '', additional_phone: '', keywords: [], custom_keyword: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', opening_time: '', closing_time: '', shop_image: null, shop_image_preview: '' };
     const emptyHouse = { rooms: '', halls: '', kitchens: '', floor: '', rent_per_month: '', advance_amount: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', is_available: true, house_image: null, house_image_preview: '' };
@@ -1523,6 +1529,37 @@ export default function Profile() {
             console.error('Failed to fetch unread count:', error);
         }
     }, []);
+
+    const createNotificationOnce = useCallback(async (referenceType, referenceId, createNotification) => {
+        const key = `${referenceType}:${referenceId}`;
+        if (!referenceId || createdNotificationKeysRef.current.has(key)) return false;
+        createdNotificationKeysRef.current.add(key);
+
+        try {
+            try {
+                const data = await getNotifications(20, 0);
+                const existingNotifications = Array.isArray(data?.notifications) ? data.notifications : [];
+                const alreadyCreated = existingNotifications.some(notification => (
+                    notification.reference_type === referenceType &&
+                    String(notification.reference_id) === String(referenceId)
+                ));
+
+                if (alreadyCreated) {
+                    fetchUnreadCount();
+                    return false;
+                }
+            } catch (lookupError) {
+                console.warn('Could not check existing notifications before create:', lookupError);
+            }
+
+            await createNotification();
+            fetchUnreadCount();
+            return true;
+        } catch (error) {
+            createdNotificationKeysRef.current.delete(key);
+            throw error;
+        }
+    }, [fetchUnreadCount]);
 
     // ── Wait for web fonts (Inter + Material Icons) before first real paint ──
     useEffect(() => {
@@ -1743,15 +1780,24 @@ export default function Profile() {
 
     // ===================== UPDATED CREATE SHOP FUNCTION =====================
     const handleCreateShop = async () => {
+        if (createActionInFlightRef.current.shop) return;
+        createActionInFlightRef.current.shop = true;
+        setCreatingShop(true);
+
         if (!shopForm.business_name?.trim() || !shopForm.category || !shopForm.city || !shopForm.state) {
             showToast('Please fill all required fields', 'error');
+            createActionInFlightRef.current.shop = false;
+            setCreatingShop(false);
             return;
         }
         if (!shopLocationVerified) {
             const ok = await verifyShopLoc();
-            if (!ok) return;
+            if (!ok) {
+                createActionInFlightRef.current.shop = false;
+                setCreatingShop(false);
+                return;
+            }
         }
-        setCreatingShop(true);
         try {
             const fd = new FormData();
             ['business_name', 'category', 'additional_phone', 'area', 'city', 'state', 'description', 'opening_time', 'closing_time'].forEach(k => fd.append(k, shopForm[k] || ''));
@@ -1780,17 +1826,15 @@ export default function Profile() {
 
                 // ========== CREATE NOTIFICATION FOR SHOP ==========
                 try {
-                    await createShopNotification({
+                    const notificationCreated = await createNotificationOnce('shop', r.shop.id, () => createShopNotification({
                         id: r.shop.id,
                         business_name: r.shop.business_name,
                         category: r.shop.category,
                         area: r.shop.area || shopForm.area,
                         city: r.shop.city || shopForm.city,
                         shop_image: r.shop.shop_image || null
-                    });
-                    console.log('✅ Shop notification created successfully');
-                    // Refresh unread count after notification
-                    fetchUnreadCount();
+                    }));
+                    if (notificationCreated) console.log('Shop notification created successfully');
                 } catch (notifErr) {
                     console.error('Failed to create shop notification:', notifErr);
                     // Don't fail the main operation if notification fails
@@ -1810,6 +1854,7 @@ export default function Profile() {
             console.error('Create shop error:', err);
             showToast(err.message || 'Network error. Please check your connection.', 'error');
         } finally {
+            createActionInFlightRef.current.shop = false;
             setCreatingShop(false);
         }
     };
@@ -1905,15 +1950,24 @@ export default function Profile() {
 
     // ===================== UPDATED CREATE HOUSE FUNCTION =====================
     const handleCreateHouse = async () => {
+        if (createActionInFlightRef.current.house) return;
+        createActionInFlightRef.current.house = true;
+        setCreatingHouse(true);
+
         if (!houseForm.rooms || !houseForm.rent_per_month) {
             showToast('Rooms and rent amount are required', 'error');
+            createActionInFlightRef.current.house = false;
+            setCreatingHouse(false);
             return;
         }
         if (!houseLocationVerified) {
             const ok = await verifyHouseLoc();
-            if (!ok) return;
+            if (!ok) {
+                createActionInFlightRef.current.house = false;
+                setCreatingHouse(false);
+                return;
+            }
         }
-        setCreatingHouse(true);
         try {
             const fd = new FormData();
             ['rooms', 'halls', 'kitchens', 'floor', 'rent_per_month', 'advance_amount', 'latitude', 'longitude', 'area', 'city', 'state', 'description'].forEach(k => fd.append(k, houseForm[k] || ''));
@@ -1940,17 +1994,15 @@ export default function Profile() {
 
                 // ========== CREATE NOTIFICATION FOR HOUSE ==========
                 try {
-                    await createHouseNotification({
+                    const notificationCreated = await createNotificationOnce('house', r.house.id, () => createHouseNotification({
                         id: r.house.id,
                         rooms: r.house.rooms,
                         rent_per_month: r.house.rent_per_month,
                         area: r.house.area || houseForm.area,
                         city: r.house.city || houseForm.city,
                         house_image: r.house.house_image || null
-                    });
-                    console.log('✅ House notification created successfully');
-                    // Refresh unread count after notification
-                    fetchUnreadCount();
+                    }));
+                    if (notificationCreated) console.log('House notification created successfully');
                 } catch (notifErr) {
                     console.error('Failed to create house notification:', notifErr);
                     // Don't fail the main operation if notification fails
@@ -1969,6 +2021,7 @@ export default function Profile() {
             console.error('Create house error:', err);
             showToast(err.message || 'Network error. Please check your connection.', 'error');
         } finally {
+            createActionInFlightRef.current.house = false;
             setCreatingHouse(false);
         }
     };
@@ -2013,15 +2066,22 @@ export default function Profile() {
 
     // ===================== UPDATED CREATE JOB FUNCTION =====================
     const handleCreateJob = async () => {
+        if (createActionInFlightRef.current.job) return;
+        createActionInFlightRef.current.job = true;
+        setCreatingJob(true);
+
         if (!jobForm.company_name?.trim() || !jobForm.job_title?.trim() || !jobForm.salary) {
             showToast('Company name, job title, and salary are required', 'error');
+            createActionInFlightRef.current.job = false;
+            setCreatingJob(false);
             return;
         }
         if (!jobForm.contact_phone?.trim()) {
             showToast('Contact phone number is required', 'error');
+            createActionInFlightRef.current.job = false;
+            setCreatingJob(false);
             return;
         }
-        setCreatingJob(true);
         try {
             const r = await createJob({
                 ...jobForm,
@@ -2042,7 +2102,7 @@ export default function Profile() {
                         shopImage = shop?.shop_image || null;
                     }
 
-                    await createJobNotification({
+                    const notificationCreated = await createNotificationOnce('job', r.job.id, () => createJobNotification({
                         id: r.job.id,
                         job_title: r.job.job_title,
                         company_name: r.job.company_name,
@@ -2050,10 +2110,8 @@ export default function Profile() {
                         salary_type: r.job.salary_type,
                         city: r.job.city || jobForm.city,
                         shop_image: shopImage
-                    });
-                    console.log('✅ Job notification created successfully');
-                    // Refresh unread count after notification
-                    fetchUnreadCount();
+                    }));
+                    if (notificationCreated) console.log('Job notification created successfully');
                 } catch (notifErr) {
                     console.error('Failed to create job notification:', notifErr);
                     // Don't fail the main operation if notification fails
@@ -2070,6 +2128,7 @@ export default function Profile() {
             console.error('Create job error:', err);
             showToast(err.message || 'Failed to post job', 'error');
         } finally {
+            createActionInFlightRef.current.job = false;
             setCreatingJob(false);
         }
     };
@@ -2622,7 +2681,7 @@ export default function Profile() {
                 </div>
             </Modal>
 
-            <Modal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} title="Select Category" fullScreen>
+            <Modal open={categoryModalOpen} onClose={() => setCategoryModalOpen(false)} title="Select Category" fullScreen zIndex={10020}>
                 <div style={{ display: 'grid', gap: 12 }}>
                     <div style={{
                         display: 'grid',
@@ -2720,6 +2779,7 @@ export default function Profile() {
                 onClose={() => setKeyItemsModalOpen(false)}
                 title="Add Key Items"
                 fullScreen
+                zIndex={10020}
                 footer={<><Btn variant="secondary" onClick={() => setKeyItemsModalOpen(false)}>Cancel</Btn><Btn variant="primary" onClick={handleAddSelectedKeyItems}>Add Selected ({pendingKeyItems.length})</Btn></>}
             >
                 <div style={{ display: 'grid', gap: 12 }}>
