@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Box, Typography, Chip, Button, Alert, Skeleton,
     Dialog, DialogContent, DialogActions,
-    TextField, CircularProgress, Snackbar,
+    TextField, CircularProgress, Snackbar, IconButton,
 } from '@mui/material';
 import {
     LocationOn as LocationIcon,
@@ -768,12 +768,49 @@ const LoadingSkeleton = () => (
 );
 
 // ── Ad Carousel with responsive heights ───────────────────────────────────────
+const AdSliderArrow = ({ direction, onClick }) => (
+    <IconButton
+        aria-label={`${direction === 'left' ? 'Previous' : 'Next'} ad`}
+        onClick={onClick}
+        sx={{
+            position: 'absolute',
+            top: '50%',
+            [direction]: { xs: 8, sm: 12 },
+            transform: 'translateY(-50%)',
+            zIndex: 4,
+            width: { xs: 34, sm: 40 },
+            height: { xs: 34, sm: 40 },
+            borderRadius: '50%',
+            bgcolor: 'rgba(255,255,255,0.92)',
+            color: T.primary,
+            border: '1px solid rgba(255,255,255,0.72)',
+            boxShadow: '0 8px 22px rgba(15,23,41,0.22)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            '&:hover': {
+                bgcolor: '#fff',
+                boxShadow: '0 10px 26px rgba(15,23,41,0.28)',
+            },
+            '&:active': { transform: 'translateY(-50%) scale(0.92)' },
+        }}
+    >
+        <ChevronRightIcon
+            sx={{
+                fontSize: { xs: '1.25rem', sm: '1.45rem' },
+                transform: direction === 'left' ? 'rotate(180deg)' : 'none',
+            }}
+        />
+    </IconButton>
+);
+
 const AdCarousel = ({ ads, onNavigate }) => {
     const adSliderSettings = {
         dots: true, infinite: true, speed: 600,
         slidesToShow: 1, slidesToScroll: 1, autoplay: true,
-        autoplaySpeed: 4500, arrows: false, pauseOnHover: true,
+        autoplaySpeed: 4500, arrows: true, pauseOnHover: true,
         dotsClass: 'slick-dots HeloZO-dots', adaptiveHeight: false,
+        prevArrow: <AdSliderArrow direction="left" />,
+        nextArrow: <AdSliderArrow direction="right" />,
     };
 
     return (
@@ -781,8 +818,10 @@ const AdCarousel = ({ ads, onNavigate }) => {
             <Box sx={{
                 borderRadius: T.radius, overflow: 'hidden',
                 boxShadow: T.shadowLg,
-                // Responsive height: taller on desktop
-                height: { xs: 210, sm: 290, md: 380, lg: 460 },
+                aspectRatio: '16 / 9',
+                height: 'auto',
+                maxHeight: { xs: 210, sm: 290, md: 380, lg: 460 },
+                bgcolor: '#05070c',
                 position: 'relative',
             }} className="HeloZO-ad-slider">
                 <Slider {...adSliderSettings} style={{ height: '100%' }}>
@@ -794,8 +833,10 @@ const AdCarousel = ({ ads, onNavigate }) => {
                             <Box component="img" src={ad.image_url} alt={ad.title}
                                 sx={{
                                     width: '100%',
-                                    height: { xs: 210, sm: 290, md: 380, lg: 460 },
-                                    objectFit: 'cover', display: 'block',
+                                    height: '100%',
+                                    objectFit: 'contain',
+                                    display: 'block',
+                                    bgcolor: '#05070c',
                                 }}
                             />
                             <Box sx={{
@@ -811,11 +852,11 @@ const AdCarousel = ({ ads, onNavigate }) => {
 };
 
 // ── Stats Bar ─────────────────────────────────────────────────────────────────
-const StatsBar = ({ shops, houses, jobs, city }) => {
+const StatsBar = ({ shops, houses, jobs, onNavigate }) => {
     const items = [
-        { count: shops?.length || 0, label: 'Shops', icon: StorefrontIcon2, color: T.primary, bg: T.primaryLight },
-        { count: houses?.length || 0, label: 'Houses', icon: HomeWorkIcon2, color: T.primary, bg: T.primaryLight },
-        { count: jobs?.length || 0, label: 'Jobs', icon: WorkOutlineIcon2, color: T.primary, bg: T.primaryLight },
+        { count: shops?.length || 0, label: 'Shops', icon: StorefrontIcon2, color: T.primary, bg: T.primaryLight, route: '/app/shops' },
+        { count: houses?.length || 0, label: 'Houses', icon: HomeWorkIcon2, color: T.primary, bg: T.primaryLight, route: '/app/houses' },
+        { count: jobs?.length || 0, label: 'Jobs', icon: WorkOutlineIcon2, color: T.primary, bg: T.primaryLight, route: '/app/jobs' },
     ];
     return (
         <Box sx={{
@@ -831,18 +872,38 @@ const StatsBar = ({ shops, houses, jobs, city }) => {
             {items.map((item, i) => {
                 const Icon = item.icon;
                 return (
-                    <Box key={i} sx={{
-                        py: { xs: '11px', sm: '13px' },
-                        px: { xs: 0.8, sm: 1.4 },
-                        borderRight: i < 2 ? `1px solid ${T.border}` : 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: { xs: 0.65, sm: 1 },
-                        minWidth: 0,
-                        position: 'relative',
-                        zIndex: 1,
-                    }}>
+                    <Box
+                        key={item.label}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Open ${item.label}`}
+                        onClick={() => onNavigate(item.route)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                onNavigate(item.route);
+                            }
+                        }}
+                        sx={{
+                            py: { xs: '11px', sm: '13px' },
+                            px: { xs: 0.8, sm: 1.4 },
+                            borderRight: i < 2 ? `1px solid ${T.border}` : 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: { xs: 0.65, sm: 1 },
+                            minWidth: 0,
+                            position: 'relative',
+                            zIndex: 1,
+                            cursor: 'pointer',
+                            transition: 'background-color 0.15s ease, transform 0.15s ease',
+                            '&:hover': { bgcolor: T.primaryLight },
+                            '&:active': { transform: 'scale(0.98)' },
+                            '&:focus-visible': {
+                                outline: `2px solid ${T.primary}`,
+                                outlineOffset: '-2px',
+                            },
+                        }}>
                         <Box sx={{
                             width: { xs: 30, sm: 34 },
                             height: { xs: 30, sm: 34 },
@@ -1092,7 +1153,7 @@ export default function Home() {
                     shops={homeData.shops}
                     houses={homeData.houses}
                     jobs={homeData.jobs}
-                    city={displayCity}
+                    onNavigate={navigate}
                 />
 
                 {/* 4 ── Feature Highlights Strip */}
@@ -1130,7 +1191,7 @@ export default function Home() {
                         />
                         <ScrollRail>
                             {homeData.shops.map((shop, i) => (
-                                <ShopCard key={shop.id} shop={shop} index={i} onClick={() => navigate(`/app/shops/${shop.id}`)} />
+                                <ShopCard key={shop.id} shop={shop} index={i} onClick={() => navigate(`/app/shops/`)} />
                             ))}
                         </ScrollRail>
                         <Box sx={{ height: 12 }} />
