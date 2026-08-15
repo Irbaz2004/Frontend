@@ -1548,7 +1548,11 @@ export default function Profile() {
     const [jobForm, setJobForm] = useState(emptyJob);
     const [formData, setFormData] = useState(emptyProfile);
 
-    const API_URL = import.meta.env.VITE_API_URL || window.__NEARZO_API_URL__ || '';
+    const API_URL = (
+        window.__NEARZO_API_URL__ ||
+        import.meta.env.VITE_API_URL ||
+        ''
+    ).replace(/\/+$/, '');
 
     const showToast = useCallback((msg, type = 'success') => {
         setToast({ msg, type });
@@ -1588,22 +1592,6 @@ export default function Profile() {
         createdNotificationKeysRef.current.add(key);
 
         try {
-            try {
-                const data = await getNotifications(100, 0);
-                const existingNotifications = Array.isArray(data?.notifications) ? data.notifications : [];
-                const alreadyCreated = existingNotifications.some(notification => (
-                    notification.reference_type === referenceType &&
-                    String(notification.reference_id) === String(referenceId)
-                ));
-
-                if (alreadyCreated) {
-                    fetchUnreadCount();
-                    return false;
-                }
-            } catch (lookupError) {
-                console.warn('Could not check existing notifications before create:', lookupError);
-            }
-
             await createNotification();
             fetchUnreadCount();
             return true;
@@ -1889,7 +1877,7 @@ export default function Profile() {
                     if (notificationCreated) console.log('Shop notification created successfully');
                 } catch (notifErr) {
                     console.error('Failed to create shop notification:', notifErr);
-                    // Don't fail the main operation if notification fails
+                    showToast(`Shop created, but notification failed: ${notifErr.message || 'server error'}`, 'error');
                 }
 
                 closeModal();
@@ -2057,7 +2045,7 @@ export default function Profile() {
                     if (notificationCreated) console.log('House notification created successfully');
                 } catch (notifErr) {
                     console.error('Failed to create house notification:', notifErr);
-                    // Don't fail the main operation if notification fails
+                    showToast(`House listed, but notification failed: ${notifErr.message || 'server error'}`, 'error');
                 }
 
                 closeModal();
@@ -2166,7 +2154,7 @@ export default function Profile() {
                     if (notificationCreated) console.log('Job notification created successfully');
                 } catch (notifErr) {
                     console.error('Failed to create job notification:', notifErr);
-                    // Don't fail the main operation if notification fails
+                    showToast(`Job posted, but notification failed: ${notifErr.message || 'server error'}`, 'error');
                 }
 
                 closeModal();

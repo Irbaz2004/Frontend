@@ -1,7 +1,11 @@
 // services/profile.js
 import { clearFastCache } from './fastCache';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = (
+    globalThis.window?.__NEARZO_API_URL__ ||
+    import.meta.env.VITE_API_URL ||
+    'http://localhost:5000/api'
+).replace(/\/+$/, '');
 
 function clearUserDataCaches() {
     clearFastCache('nearzo:api:home:');
