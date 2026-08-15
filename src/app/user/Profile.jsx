@@ -640,6 +640,57 @@ const Toast = ({ msg, type = 'success' }) => {
 // NOTIFICATIONS PANEL — now opens as a true full-height / full-screen drawer
 // with a dimmed backdrop, matching the Modal's open/close animation pattern.
 // ─────────────────────────────────────────────────────────────────────────────
+const getNotificationIdentity = (notification) => {
+    const eventParts = [
+        notification?.type,
+        notification?.reference_type,
+        notification?.reference_id,
+    ];
+    if (eventParts.every((part) => part !== undefined && part !== null && part !== '')) {
+        return eventParts.map(String).join(':');
+    }
+
+    const stableId = notification?.id ?? notification?._id ?? notification?.notification_id;
+    if (stableId !== undefined && stableId !== null && stableId !== '') {
+        return String(stableId);
+    }
+
+    return [
+        notification?.type,
+        notification?.reference_type,
+        notification?.reference_id,
+        notification?.created_at,
+        notification?.title,
+    ].filter(Boolean).join(':');
+};
+
+const dedupeNotifications = (notifications) => {
+    const uniqueNotifications = [];
+    const seenNotificationKeys = new Map();
+
+    (Array.isArray(notifications) ? notifications : []).forEach((notification) => {
+        const identity = getNotificationIdentity(notification);
+        if (!identity) return;
+
+        const existingIndex = seenNotificationKeys.get(identity);
+        if (existingIndex === undefined) {
+            seenNotificationKeys.set(identity, uniqueNotifications.length);
+            uniqueNotifications.push(notification);
+            return;
+        }
+
+        uniqueNotifications[existingIndex] = {
+            ...uniqueNotifications[existingIndex],
+            is_read: Boolean(uniqueNotifications[existingIndex]?.is_read) && Boolean(notification?.is_read),
+        };
+    });
+
+    return uniqueNotifications;
+};
+
+const countUnreadNotifications = (notifications) =>
+    dedupeNotifications(notifications).filter((notification) => !notification.is_read).length;
+
 const NotificationsPanel = ({ isOpen, onClose, onUnreadCountChange }) => {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -679,17 +730,18 @@ const NotificationsPanel = ({ isOpen, onClose, onUnreadCountChange }) => {
             setLoading(true);
             const offset = reset ? 0 : page * limit;
             const data = await getNotifications(limit, offset);
+            const fetchedNotifications = Array.isArray(data.notifications) ? data.notifications : [];
 
-            if (reset) {
-                setNotifications(data.notifications);
-            } else {
-                setNotifications(prev => [...prev, ...data.notifications]);
-            }
+            const nextNotifications = reset
+                ? dedupeNotifications(fetchedNotifications)
+                : dedupeNotifications([...notifications, ...fetchedNotifications]);
 
-            const unread = data.unread || 0;
+            setNotifications(nextNotifications);
+
+            const unread = data.unread_count ?? data.unread ?? countUnreadNotifications(nextNotifications);
             setUnreadCount(unread);
             setTotalCount(data.total || 0);
-            setHasMore(data.notifications.length === limit);
+            setHasMore(fetchedNotifications.length === limit);
             if (reset) setPage(0);
 
             if (onUnreadCountChange) {
@@ -700,7 +752,7 @@ const NotificationsPanel = ({ isOpen, onClose, onUnreadCountChange }) => {
         } finally {
             setLoading(false);
         }
-    }, [page, onUnreadCountChange]);
+    }, [notifications, page, onUnreadCountChange]);
 
     useEffect(() => {
         if (isOpen) {
@@ -929,7 +981,7 @@ const NotificationsPanel = ({ isOpen, onClose, onUnreadCountChange }) => {
                     ) : (
                         notifications.map((notification) => (
                             <div
-                                key={notification.id}
+                                key={getNotificationIdentity(notification)}
                                 onClick={() => !notification.is_read && handleMarkRead(notification.id)}
                                 style={{
                                     padding: '14px 20px',
@@ -1537,7 +1589,7 @@ export default function Profile() {
 
         try {
             try {
-                const data = await getNotifications(20, 0);
+                const data = await getNotifications(100, 0);
                 const existingNotifications = Array.isArray(data?.notifications) ? data.notifications : [];
                 const alreadyCreated = existingNotifications.some(notification => (
                     notification.reference_type === referenceType &&

@@ -171,6 +171,15 @@ const normalizeUnreadCount = (payload) => {
 };
 
 const getNotificationIdentity = (notification) => {
+    const eventParts = [
+        notification?.type,
+        notification?.reference_type,
+        notification?.reference_id,
+    ];
+    if (eventParts.every((part) => part !== undefined && part !== null && part !== '')) {
+        return eventParts.map(String).join(':');
+    }
+
     const stableId = notification?.id ?? notification?._id ?? notification?.notification_id;
     if (stableId !== undefined && stableId !== null && stableId !== '') {
         return String(stableId);
@@ -183,6 +192,30 @@ const getNotificationIdentity = (notification) => {
         notification?.created_at,
         notification?.title,
     ].filter(Boolean).join(':');
+};
+
+const dedupeNotifications = (notifications) => {
+    const uniqueNotifications = [];
+    const seenNotificationKeys = new Map();
+
+    (Array.isArray(notifications) ? notifications : []).forEach((notification) => {
+        const identity = getNotificationIdentity(notification);
+        if (!identity) return;
+
+        const existingIndex = seenNotificationKeys.get(identity);
+        if (existingIndex === undefined) {
+            seenNotificationKeys.set(identity, uniqueNotifications.length);
+            uniqueNotifications.push(notification);
+            return;
+        }
+
+        uniqueNotifications[existingIndex] = {
+            ...uniqueNotifications[existingIndex],
+            is_read: Boolean(uniqueNotifications[existingIndex]?.is_read) && Boolean(notification?.is_read),
+        };
+    });
+
+    return uniqueNotifications;
 };
 
 const getStoredUser = () => {
@@ -219,12 +252,12 @@ const saveSeenNotificationIds = (storageKey, seenIds) => {
 };
 
 const countUnseenNotifications = (notifications, seenIds) =>
-    (Array.isArray(notifications) ? notifications : []).reduce((count, notification) => (
+    dedupeNotifications(notifications).reduce((count, notification) => (
         seenIds.has(getNotificationIdentity(notification)) ? count : count + 1
     ), 0);
 
 const applyLocalSeenStatus = (notifications, seenIds) =>
-    (Array.isArray(notifications) ? notifications : []).map((notification) => ({
+    dedupeNotifications(notifications).map((notification) => ({
         ...notification,
         is_read: seenIds.has(getNotificationIdentity(notification)),
     }));
@@ -1589,7 +1622,7 @@ function AppLayout() {
                     ) : (
                         displayNotifications.map((notification) => (
                             <Box
-                                key={notification.id}
+                                key={getNotificationIdentity(notification)}
                                 onClick={() => handleNotificationClick(notification)}
                                 sx={{
                                     bgcolor: notification.is_read ? C.surface : C.accentLight,
