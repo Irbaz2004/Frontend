@@ -78,6 +78,17 @@ const StatCard = ({ icon, value, label, iconBg }) => (
 );
 
 // ─── Main Component ────────────────────────────────────────────────────────────
+const DEFAULT_STATE = 'Tamil Nadu';
+const STATE_LABELS = {
+    TamilNadu: 'Tamil Nadu',
+    tamilnadu: 'Tamil Nadu',
+};
+const normalizeStateName = (state) => {
+    const value = state?.trim();
+    return STATE_LABELS[value] || value || DEFAULT_STATE;
+};
+const getCityState = (city) => normalizeStateName(city?.city_state || city?.state);
+
 export default function Location() {
     const [loading, setLoading] = useState(false);
     const [stats, setStats] = useState({ total_locations: 0, total_cities: 0, total_states: 0 });
@@ -86,9 +97,9 @@ export default function Location() {
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
     // Tree state
-    const [expandedStates, setExpandedStates] = useState(['Tamil Nadu']);
+    const [expandedStates, setExpandedStates] = useState([DEFAULT_STATE]);
     const [selectedCity, setSelectedCity] = useState('');
-    const [selectedState, setSelectedState] = useState('Tamil Nadu');
+    const [selectedState, setSelectedState] = useState(DEFAULT_STATE);
 
     // Filter state
     const [areaSearch, setAreaSearch] = useState('');
@@ -105,7 +116,7 @@ export default function Location() {
     // Dialog
     const [openDialog, setOpenDialog] = useState(false);
     const [editingLocation, setEditingLocation] = useState(null);
-    const [formData, setFormData] = useState({ area: '', city: '', state: 'Tamil Nadu', pincode: '' });
+    const [formData, setFormData] = useState({ area: '', city: '', state: DEFAULT_STATE, pincode: '' });
 
     const role = localStorage.getItem('nearzo_role');
     const isAdmin = role === 'admin';
@@ -115,7 +126,7 @@ export default function Location() {
         {
             country: 'India',
             states: citiesWithAreas.map(city => ({
-                name: city.city_state || 'Tamil Nadu',
+                name: getCityState(city),
                 cities: [city.city_name]
             })).reduce((acc, curr) => {
                 const existing = acc.find(s => s.name === curr.name);
@@ -130,7 +141,9 @@ export default function Location() {
     ];
 
     // Get areas for selected city from citiesWithAreas
-    const selectedCityData = citiesWithAreas.find(c => c.city_name === selectedCity);
+    const selectedCityData =
+        citiesWithAreas.find(c => c.city_name === selectedCity && getCityState(c) === selectedState) ||
+        citiesWithAreas.find(c => c.city_name === selectedCity);
     const allAreas = selectedCityData?.areas || [];
     const filteredAreas = allAreas.filter(a =>
         !areaSearch || a.area?.toLowerCase().includes(areaSearch.toLowerCase())
@@ -145,15 +158,13 @@ export default function Location() {
 
     useEffect(() => {
         loadAll();
-        // Set default selected city to first city if available
-        if (citiesWithAreas.length > 0 && !selectedCity) {
-            setSelectedCity(citiesWithAreas[0].city_name);
-        }
     }, []);
 
     useEffect(() => {
         if (citiesWithAreas.length > 0 && !selectedCity) {
-            setSelectedCity(citiesWithAreas[0].city_name);
+            const defaultCity = citiesWithAreas[0];
+            setSelectedCity(defaultCity.city_name);
+            setSelectedState(getCityState(defaultCity));
         }
     }, [citiesWithAreas]);
 
@@ -213,8 +224,8 @@ export default function Location() {
             setEditingLocation(location);
             setFormData({ 
                 area: location.area, 
-                city: location.city, 
-                state: location.state || 'Tamil Nadu', 
+                city: location.city || selectedCity, 
+                state: location.state || selectedState || DEFAULT_STATE, 
                 pincode: location.pincode || '' 
             });
         } else {
@@ -222,7 +233,7 @@ export default function Location() {
             setFormData({ 
                 area: '', 
                 city: selectedCity || '', 
-                state: selectedState || 'Tamil Nadu', 
+                state: selectedState || DEFAULT_STATE, 
                 pincode: '' 
             });
         }
@@ -406,7 +417,7 @@ export default function Location() {
     const [hoveredRow, setHoveredRow] = useState(null);
 
     // Get unique states from citiesWithAreas
-    const uniqueStates = [...new Set(citiesWithAreas.map(c => c.city_state || 'Tamil Nadu'))];
+    const uniqueStates = [...new Set(citiesWithAreas.map(getCityState))];
 
     return (
         <div style={s.page}>
@@ -485,13 +496,14 @@ export default function Location() {
                             </div>
 
                             {expandedStates.includes(state) && citiesWithAreas
-                                .filter(c => (c.city_state || 'Tamil Nadu') === state)
+                                .filter(c => getCityState(c) === state)
                                 .map(city => (
                                     <div
                                         key={city.city_name}
                                         style={s.treeItem(2, selectedCity === city.city_name)}
                                         onClick={() => { 
                                             setSelectedCity(city.city_name); 
+                                            setSelectedState(getCityState(city));
                                             setPage(1); 
                                             setSidePanelOpen(true);
                                             setAreaSearch('');
