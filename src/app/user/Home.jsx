@@ -1191,7 +1191,7 @@ export default function Home() {
                         />
                         <ScrollRail>
                             {homeData.shops.map((shop, i) => (
-                                <ShopCard key={shop.id} shop={shop} index={i} onClick={() => navigate(`/app/shops/`)} />
+                                <ShopCard key={shop.id} shop={shop} index={i} onClick={() => navigate(`/app/shops/${shop.id}`)} />
                             ))}
                         </ScrollRail>
                         <Box sx={{ height: 12 }} />

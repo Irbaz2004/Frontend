@@ -46,9 +46,13 @@ import {
     Refresh as RefreshIcon,
     AccessTime as AccessTimeIcon,
     ArrowBackIosNew as ArrowBackIcon,
+    ShareOutlined as ShareIcon,
 } from '@mui/icons-material';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getShopsByLocation, getShopById, getShopCategoriesWithCount, incrementShopViewCount } from '../../services/shops';
 import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
+import { shareListing } from '../../utils/shareListing';
+import ListingEnhancements from './components/ListingEnhancements';
 
 // ─── Design tokens (unchanged — same theme) ──────────────────────────────────
 const C = {
@@ -88,7 +92,7 @@ const APP_HEADER_OFFSET = 64;
 const SHEET_EASE_ENTER = 'cubic-bezier(0.16, 1, 0.3, 1)';
 const SHEET_EASE_EXIT  = 'cubic-bezier(0.7, 0, 0.84, 0)';
 
-// ─── Google search helper (used by "Key Items Available" chips) ─────────────
+// ─── Google search helper (used by "Browse Items Online" chips) ─────────────
 function searchOnGoogle(term) {
     if (!term) return;
     const url = `https://www.google.com/search?q=${encodeURIComponent(term)}`;
@@ -726,10 +730,10 @@ function ShopDetailsContent({ shop, isMobile }) {
                     </>
                 )}
 
-                {/* ── Key Items Available — click any item to search it on Google ── */}
+                {/* ── Browse Items Online — click any item to search it on Google ── */}
                 {shop.keywords?.length > 0 && (
                     <>
-                        <SectionLabel>Key Items Available</SectionLabel>
+                        <SectionLabel>Browse Items Online</SectionLabel>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2.5 }}>
                             {shop.keywords.map((item, idx) => (
                                 <Chip
@@ -847,7 +851,7 @@ function ShopImageHero({ src, alt }) {
 }
 
 /* ─── Shop Details Drawer ────────────────────────────────────────────────── */
-function ShopDetailsDrawer({ open, shop, loading, onClose, onRoute, onCall }) {
+function ShopDetailsDrawer({ open, shop, loading, onClose, onRoute, onCall, onShare }) {
     const theme    = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -909,9 +913,14 @@ function ShopDetailsDrawer({ open, shop, loading, onClose, onRoute, onCall }) {
             >
                 <ArrowBackIcon sx={{ fontSize: 16, color: C.text }} />
             </IconButton>
+            {shop && <Tooltip title="Share this shop" arrow><IconButton onClick={() => onShare(shop)}
+                sx={{ position: 'absolute', top: 16, right: 16, bgcolor: 'rgba(255,255,255,.95)', width: 42, height: 42, zIndex: 10, boxShadow: `0 4px 14px ${C.shadowMd}`, '&:hover': { bgcolor: C.accentLight, color: C.accent } }}>
+                <ShareIcon sx={{ fontSize: 20 }} />
+            </IconButton></Tooltip>}
 
             <Box sx={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <ShopDetailsContent shop={shop} isMobile={isMobile} />
+                <ListingEnhancements items={shop?.keywords} label="Key items available" />
             </Box>
 
             {shop && (
@@ -994,6 +1003,8 @@ function ShopDetailsDrawer({ open, shop, loading, onClose, onRoute, onCall }) {
    Main Component
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function Shops() {
+    const navigate = useNavigate();
+    const { shopId } = useParams();
     const theme    = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const viewedShopsRef = useRef(new Set());
@@ -1017,6 +1028,7 @@ export default function Shops() {
     const [headerHeight,     setHeaderHeight]     = useState(210);
 
     const scrollRef = useRef(null);
+    const openedFromUrlRef = useRef(null);
 
     useEffect(() => {
         const measure = () => {
@@ -1101,6 +1113,8 @@ export default function Shops() {
     };
 
     const handleShopClick = useCallback(async (shop) => {
+        openedFromUrlRef.current = String(shop.id);
+        navigate(`/app/shops/${shop.id}`);
         setSelectedShop(null);
         setSelectedShop(shop);
         setLoadingDetails(true);
@@ -1124,10 +1138,23 @@ export default function Shops() {
         } finally {
             setLoadingDetails(false);
         }
-    }, [userLocation]);
+    }, [userLocation, navigate]);
+
+    useEffect(() => {
+        if (!shopId || !userLocation || openedFromUrlRef.current === shopId) return;
+        openedFromUrlRef.current = shopId;
+        handleShopClick({ id: shopId });
+    }, [shopId, userLocation, handleShopClick]);
 
     const handleCloseDetails = () => {
         setDetailsOpen(false);
+        openedFromUrlRef.current = null;
+        navigate('/app/shops');
+    };
+
+    const handleShare = async (shop) => {
+        const message = await shareListing({ title: shop.business_name || shop.title || 'Shop near you', text: `Check out ${shop.business_name || shop.title || 'this shop'} on HeloZO` });
+        if (message) setSnackbar({ open: true, message });
     };
 
     const handleGetDirections = (shop) => {
@@ -1511,6 +1538,7 @@ export default function Shops() {
                 onClose={handleCloseDetails}
                 onRoute={handleGetDirections}
                 onCall={handleCallShop}
+                onShare={handleShare}
             />
 
             <Snackbar

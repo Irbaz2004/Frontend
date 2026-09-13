@@ -52,10 +52,13 @@ import {
     Layers as FloorIcon,
     Weekend as FurnishingIcon,
     ArrowBackIosNew as ArrowBackIcon,
+    ShareOutlined as ShareIcon,
 } from '@mui/icons-material';
 import { getHousesByLocation, getHouseById, getHouseFilterOptions, incrementHouseViewCount } from '../../services/house';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
+import { shareListing } from '../../utils/shareListing';
+import ListingEnhancements from './components/ListingEnhancements';
 
 // ─── Design Tokens (same theme, unchanged) ─────────────────────────────────
 const C = {
@@ -463,7 +466,7 @@ function HouseDetailsContent({ house, isMobile }) {
 /* ─── Full Screen / Bottom-sheet House Details Drawer ───────────────────────
    Stays mounted via the `open` prop so closing always plays the smooth
    slide-down animation instead of disappearing abruptly. */
-function HouseDetailsDrawer({ open, house, onClose, onRoute, onCall }) {
+function HouseDetailsDrawer({ open, house, onClose, onRoute, onCall, onShare }) {
     const theme    = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -516,9 +519,14 @@ function HouseDetailsDrawer({ open, house, onClose, onRoute, onCall }) {
             >
                 <ArrowBackIcon sx={{ fontSize: 16, color: C.text }} />
             </IconButton>
+            {house && <Tooltip title="Share this property" arrow><IconButton onClick={() => onShare(house)}
+                sx={{ position: 'absolute', top: 16, right: 16, bgcolor: 'rgba(255,255,255,.95)', width: 42, height: 42, zIndex: 10, boxShadow: `0 4px 14px ${C.shadowMd}`, '&:hover': { bgcolor: C.accentLight, color: C.accent } }}>
+                <ShareIcon sx={{ fontSize: 20 }} />
+            </IconButton></Tooltip>}
 
             <Box sx={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <HouseDetailsContent house={house} isMobile={isMobile} />
+                <ListingEnhancements items={house?.keywords || house?.amenities} label="Amenities available" />
             </Box>
 
             {/* Sticky footer — rent on the left, actions on the right */}
@@ -679,6 +687,7 @@ const FilterPanel = ({ radius, setRadius, rentRange, setRentRange, rooms, setRoo
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function Houses() {
     const navigate = useNavigate();
+    const { houseId } = useParams();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const viewedHousesRef = useRef(new Set());
@@ -726,6 +735,7 @@ export default function Houses() {
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [snackbar, setSnackbar] = useState({ open: false, message: '' });
+    const openedFromUrlRef = useRef(null);
 
     useEffect(() => {
         getCurrentLocation();
@@ -798,6 +808,8 @@ export default function Houses() {
     };
 
     const handleHouseClick = async (house) => {
+        openedFromUrlRef.current = String(house.id);
+        navigate(`/app/houses/${house.id}`);
         setSelectedHouse(null);
         setSelectedHouse(house);
         setLoadingDetails(true);
@@ -817,6 +829,24 @@ export default function Houses() {
         } finally {
             setLoadingDetails(false);
         }
+    };
+
+    useEffect(() => {
+        if (!houseId || !userLocation || openedFromUrlRef.current === houseId) return;
+        openedFromUrlRef.current = houseId;
+        handleHouseClick({ id: houseId });
+    }, [houseId, userLocation]);
+
+    const handleCloseDetails = () => {
+        setDetailsOpen(false);
+        openedFromUrlRef.current = null;
+        navigate('/app/houses');
+    };
+
+    const handleShare = async (house) => {
+        const name = house.title || house.property_name || `${house.rooms || ''} BHK home`.trim();
+        const message = await shareListing({ title: name || 'Home near you', text: `Check out ${name || 'this home'} on HeloZO` });
+        if (message) setSnackbar({ open: true, message });
     };
 
     const handleGetDirections = (house) => {
@@ -1122,9 +1152,10 @@ export default function Houses() {
             <HouseDetailsDrawer
                 open={detailsOpen}
                 house={selectedHouse}
-                onClose={() => setDetailsOpen(false)}
+                onClose={handleCloseDetails}
                 onRoute={handleGetDirections}
                 onCall={handleCallOwner}
+                onShare={handleShare}
             />
 
             <Snackbar

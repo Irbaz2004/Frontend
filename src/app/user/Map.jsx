@@ -1,5 +1,6 @@
 // app/user/Map.jsx — v8: framer-motion interactions, animated detail/list/filter panels, clickable key items
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Tooltip, ZoomControl, useMapEvents } from 'react-leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAllNearby } from '../../services/map';
 import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
@@ -67,20 +68,20 @@ const C = {
   border:      '#E0E7FF',
   borderLight: '#EEF2FF',
 
-  shop:        '#325fec',
-  shopLight:   '#EEF4FF',
-  shopMid:     '#BFCFFF',
-  shopDark:    '#1A45C2',
+  shop:        '#F97316',
+  shopLight:   '#FFF7ED',
+  shopMid:     '#FDBA74',
+  shopDark:    '#C2410C',
 
-  house:       '#325fec',
-  houseLight:  '#EEF4FF',
-  houseMid:    '#BFCFFF',
-  houseDark:   '#1A45C2',
+  house:       '#2635dc',
+  houseLight:  '#f2f6fe',
+  houseMid:    '#cacef8',
+  houseDark:   '#0613a2',
 
-  job:         '#325fec',
-  jobLight:    '#EEF4FF',
-  jobMid:      '#BFCFFF',
-  jobDark:     '#1A45C2',
+  job:         '#059669',
+  jobLight:    '#ECFDF5',
+  jobMid:      '#6EE7B7',
+  jobDark:     '#047857',
 
   accent:      '#325fec',
   accentLight: '#EEF4FF',
@@ -196,6 +197,68 @@ const makeIcon = (type) => L.divIcon({
 });
 const ICONS = { shop: makeIcon('shop'), house: makeIcon('house'), job: makeIcon('job'), user: makeIcon('user') };
 
+function MapInteractionController({ onBackgroundClick }) {
+  useMapEvents({ click: () => onBackgroundClick?.() });
+  return null;
+}
+
+function NearbyMap({ items, userLocation, radius, mapRef, onSelect, onRoute }) {
+  const center = [userLocation.latitude, userLocation.longitude];
+  return (
+    <MapContainer ref={mapRef} center={center} zoom={16} zoomControl={false}
+      attributionControl zoomAnimation fadeAnimation preferCanvas
+      style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+      <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        maxZoom={19} className="mv5-theme-tiles" />
+      <ZoomControl position="topright" />
+      <MapInteractionController onBackgroundClick={() => onSelect(null)} />
+      <Circle center={center} radius={radius * 1000}
+        pathOptions={{ color: C.accent, fillColor: C.accent, fillOpacity: 0.1, weight: 2.5, dashArray: '7 7', lineCap: 'round' }} />
+      <Marker position={center} icon={ICONS.user} zIndexOffset={1000}>
+        <Tooltip direction="top" offset={[0, -14]}>You are here</Tooltip>
+        <Popup><div className="mv5-popup" style={{ textAlign: 'center', padding: 16 }}>
+          <div className="mv5-popup-title">You are here</div>
+          <div className="mv5-popup-sub" style={{ marginBottom: 0 }}>Your current location</div>
+        </div></Popup>
+      </Marker>
+      {items.map((item, index) => {
+        const type = item._type;
+        const meta = TYPE[type];
+        const lat = Number(item.latitude);
+        const lng = Number(item.longitude);
+        if (!meta || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        const key = `${type}-${item.id ?? item._id ?? `${lat}-${lng}-${index}`}`;
+        const price = type === 'house' ? `${fmtINR(item.rent_per_month)}/mo`
+          : type === 'job' ? `${fmtINR(item.salary)}/${item.salary_type === 'month' ? 'mo' : 'day'}` : null;
+        return (
+          <Marker key={key} position={[lat, lng]} icon={ICONS[type]}
+            eventHandlers={{ dblclick: () => onSelect(item) }}>
+            <Tooltip direction="top" offset={[0, -38]} opacity={0.96}>
+              <strong>{getName(item)}</strong><br />{fmtDist(item.distance)} away
+            </Tooltip>
+            <Popup maxWidth={285}>
+              <div style={{ borderTop: `4px solid ${meta.color}` }}><div className="mv5-popup">
+                <span className="badge" style={{ background: meta.bg, color: meta.dark }}>{meta.label}</span>
+                <div className="mv5-popup-title" style={{ marginTop: 8 }}>{getName(item)}</div>
+                {getSub(item) && <div className="mv5-popup-sub">{getSub(item)}</div>}
+                {price && <div style={{ color: meta.color, fontWeight: 800, fontSize: 15, marginBottom: 8 }}>{price}</div>}
+                <div style={{ color: C.textSub, fontSize: 12, marginBottom: 12 }}>
+                  <strong style={{ color: meta.color }}>{fmtDist(item.distance)}</strong> away
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => onRoute(item)}>Route</button>
+                  <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => onSelect(item)}>Details</button>
+                </div>
+              </div></div>
+            </Popup>
+          </Marker>
+        );
+      })}
+    </MapContainer>
+  );
+}
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const fmtINR  = (n) => new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:0 }).format(n||0);
 const fmtDist = (d) => d != null ? (d < 1 ? `${Math.round(d*1000)} m` : `${d.toFixed(1)} km`) : '—';
@@ -220,7 +283,7 @@ const injectCSS = () => {
       bottom: ${BOTTOM_NAV_H}px;
       left: 0; right: 0;
       font-family: 'Inter', sans-serif;
-      background: #ffffff;
+      background: #eef4ff;
       color: ${C.text};
       overflow: hidden;
       z-index: 10;
@@ -252,11 +315,11 @@ const injectCSS = () => {
     }
 
     /* Leaflet */
-    .leaflet-container { font-family: 'Inter', sans-serif !important; background: #ffffff !important; }
-    .leaflet-tile-pane { background: #ffffff !important; }
+    .leaflet-container { font-family: 'Inter', sans-serif !important; background: #eef4ff !important; }
+    .leaflet-tile-pane { background: #eef4ff !important; }
     .mv5-theme-tiles {
-      filter: grayscale(1) brightness(.98) contrast(1.18) sepia(.18) hue-rotate(182deg) saturate(2.8);
-      opacity: 1;
+      filter: grayscale(.72) sepia(.12) hue-rotate(176deg) saturate(1.45) brightness(1.07) contrast(.88);
+      opacity: .88;
     }
     .leaflet-pane.leaflet-tile-pane::after {
       content: "";
@@ -264,9 +327,9 @@ const injectCSS = () => {
       inset: -80px;
       pointer-events: none;
       background:
-        linear-gradient(0deg, rgba(255,255,255,.12), rgba(255,255,255,.12)),
-        radial-gradient(circle at 30% 20%, rgba(26,59,184,.14), transparent 34%),
-        radial-gradient(circle at 78% 72%, rgba(26,59,184,.1), transparent 30%);
+        linear-gradient(135deg, rgba(238,244,255,.24), rgba(255,255,255,.06)),
+        radial-gradient(circle at 26% 18%, rgba(50,95,236,.12), transparent 34%),
+        radial-gradient(circle at 82% 76%, rgba(50,95,236,.09), transparent 32%);
       z-index: 500;
     }
     .leaflet-popup-content-wrapper {
@@ -292,19 +355,52 @@ const injectCSS = () => {
       transition: background .15s, transform .15s !important;
     }
     .leaflet-popup-close-button:hover { transform: scale(1.1) !important; }
-    .leaflet-control-attribution { display: none !important; }
-    .leaflet-bar { border: none !important; box-shadow: 0 4px 16px ${C.shadowMd} !important; }
+    .leaflet-control-attribution {
+      display: block !important; background: rgba(255,255,255,.82) !important;
+      backdrop-filter: blur(8px); border-radius: 8px 0 0 0;
+      color: ${C.textMuted} !important; font-size: 9px !important;
+    }
+    .leaflet-control-zoom {
+      padding: 4px !important; border-radius: 16px !important;
+      background: rgba(255,255,255,.86) !important; backdrop-filter: blur(14px);
+      box-shadow: 0 10px 30px rgba(15,23,42,.13) !important;
+    }
+    .leaflet-bar { border: 1px solid rgba(191,207,255,.8) !important; box-shadow: none !important; }
     .leaflet-bar a {
-      background: ${C.surface} !important; color: ${C.accent} !important;
-      border: 1px solid ${C.border} !important; border-radius: 12px !important;
-      margin: 4px !important; width: 38px !important; height: 38px !important;
+      background: transparent !important; color: ${C.accent} !important;
+      border: 0 !important; border-radius: 11px !important;
+      margin: 2px !important; width: 38px !important; height: 38px !important;
       line-height: 36px !important; font-size: 18px !important; font-weight: 700 !important;
       transition: all .15s !important;
     }
     .leaflet-bar a:hover  { background: ${C.accentLight} !important; transform: scale(1.06) !important; }
     .leaflet-bar a:active { transform: scale(.93) !important; }
     .leaflet-routing-container { display: none !important; }
-    .leaflet-marker-icon { transition: filter .15s ease; }
+    .leaflet-marker-icon {
+      transition: filter .18s ease !important;
+      filter: drop-shadow(0 6px 8px rgba(15,23,42,.22));
+    }
+    .leaflet-marker-icon:hover {
+      filter: drop-shadow(0 10px 12px rgba(15,23,42,.38)) saturate(1.25);
+    }
+    .leaflet-tooltip {
+      border: 0 !important; border-radius: 10px !important; padding: 8px 11px !important;
+      color: ${C.text} !important; box-shadow: 0 8px 28px rgba(15,23,42,.16) !important;
+      font-size: 11px !important; line-height: 1.45 !important;
+    }
+    .mv5-map-zone::after {
+      content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      box-shadow: inset 0 0 70px rgba(50,95,236,.08);
+    }
+    .mv5-fabs {
+      padding: 6px; border: 1px solid rgba(191,207,255,.85); border-radius: 18px;
+      background: rgba(255,255,255,.84); backdrop-filter: blur(16px);
+      box-shadow: 0 12px 34px rgba(15,23,42,.14);
+    }
+    .mv5-fabs .btn-icon { box-shadow: none; border: 0; background: transparent; }
+    .mv5-fabs .btn-icon:hover { background: ${C.accentLight}; }
+    .mv5-fabs .mv5-location-btn { background: ${C.accent}; color: #fff; }
+    .mv5-fabs .mv5-location-btn:hover { background: ${C.accentDark}; color: #fff; }
 
     /* Animations */
     @keyframes slideUp   { from { transform:translateY(32px); opacity:0 } to { transform:translateY(0); opacity:1 } }
@@ -441,9 +537,20 @@ const injectCSS = () => {
       position: absolute; bottom: 20px;
       left: 50%;
       z-index: 100; display: flex; align-items: center; gap: 8px;
-      background: ${C.surface}; border: 1px solid ${C.border};
-      border-radius: 100px; padding: 9px 18px;
-      box-shadow: 0 4px 16px ${C.shadowMd}; white-space: nowrap;
+      background: rgba(255,255,255,.88); border: 1px solid ${C.accentMid};
+      backdrop-filter: blur(16px); border-radius: 100px; padding: 10px 18px;
+      box-shadow: 0 12px 32px rgba(15,23,42,.13); white-space: nowrap;
+    }
+    .mv5-legend {
+      position: absolute; bottom: 20px; left: 12px; z-index: 100;
+      display: flex; align-items: center; gap: 5px; padding: 6px;
+      background: rgba(255,255,255,.86); border: 1px solid ${C.accentMid};
+      border-radius: 16px; backdrop-filter: blur(16px);
+      box-shadow: 0 12px 32px rgba(15,23,42,.12);
+    }
+    @media (max-width: 520px) {
+      .mv5-legend { flex-direction: column; align-items: stretch; padding: 5px; }
+      .mv5-statusbar { bottom: 18px; padding: 9px 14px; }
     }
 
     /* Detail hero — minimal, sits flush at the very top of the panel */
@@ -660,10 +767,6 @@ export default function Map() {
   const [typeFilter, setTypeFilter]         = useState({ shops: true, houses: true, jobs: true });
 
   const mapRef        = useRef(null);
-  const mapContRef    = useRef(null);
-  const markersRef    = useRef([]);
-  const userMarkerRef = useRef(null);
-  const userCircleRef = useRef(null);
   const routingRef    = useRef(null);
   const intervalRef   = useRef(null);
   const loadingTimer  = useRef(null);
@@ -696,43 +799,12 @@ export default function Map() {
   }, []);
 
   useEffect(() => {
-    if (phase !== 'ready' || !mapContRef.current || mapRef.current) return;
-    mapRef.current = L.map(mapContRef.current, {
-      zoomControl: false, attributionControl: false,
-      zoomAnimation: true, fadeAnimation: true,
-    }).setView([userLocation.latitude, userLocation.longitude], 16);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      className: 'mv5-theme-tiles',
-    })
-      .addTo(mapRef.current);
-    L.control.zoom({ position: 'topright' }).addTo(mapRef.current);
-    return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
-  }, [phase]);
-
-  useEffect(() => {
     if (!userLocation) return;
     fetchData();
     clearInterval(intervalRef.current);
     intervalRef.current = setInterval(fetchData, 30000);
     return () => clearInterval(intervalRef.current);
   }, [userLocation, radius, typeFilter, debouncedSearch]);
-
-  useEffect(() => {
-    if (!mapRef.current || !userLocation) return;
-    renderMarkers();
-  }, [shops, houses, jobs, userLocation, radius]);
-
-  useEffect(() => {
-    const h = (e) => setDetailItem(e.detail);
-    window.addEventListener('mv5:detail', h);
-    return () => window.removeEventListener('mv5:detail', h);
-  }, []);
-  useEffect(() => {
-    const h = (e) => showRoute(e.detail);
-    window.addEventListener('mv5:route', h);
-    return () => window.removeEventListener('mv5:route', h);
-  }, [userLocation]);
 
   useEffect(() => { if (!listModalOpen && viewMode === 'list') setViewMode('map'); }, [listModalOpen]);
   useEffect(() => { if (viewMode === 'list') setListModalOpen(true); else setListModalOpen(false); }, [viewMode]);
@@ -933,7 +1005,14 @@ export default function Map() {
 
       {/* ── MAP ZONE ── */}
       <div className="mv5-map-zone">
-        <div ref={mapContRef} style={{ position: 'absolute', inset: 0, zIndex: 0 }} />
+        <NearbyMap
+          items={filteredItems}
+          userLocation={userLocation}
+          radius={radius}
+          mapRef={mapRef}
+          onSelect={setDetailItem}
+          onRoute={showRoute}
+        />
 
         {/* ── MOBILE TOPBAR ── */}
         <motion.div
@@ -1058,7 +1137,7 @@ export default function Map() {
             display: 'flex', flexDirection: 'column', gap: 8,
           }}
         >
-          <motion.button whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }} className="btn-icon" title="My location" onClick={() => {
+          <motion.button whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.9 }} className="btn-icon mv5-location-btn" title="My location" onClick={() => {
             if (mapRef.current && userLocation)
               mapRef.current.flyTo([userLocation.latitude, userLocation.longitude], 16, { duration: 1 });
           }}>
@@ -1112,10 +1191,7 @@ export default function Map() {
 
         {/* ── LEGEND ── */}
         {viewMode === 'map' && !detailItem && (
-          <div style={{
-            position: 'absolute', bottom: 20, left: 12, zIndex: 100,
-            display: 'flex', flexDirection: 'column', gap: 5,
-          }}>
+          <div className="mv5-legend">
             {Object.entries(TYPE).map(([k, m], i) => (
               <motion.div key={k}
                 initial={{ opacity: 0, x: -10 }}
@@ -1123,9 +1199,9 @@ export default function Map() {
                 transition={{ ...EASE_FAST, delay: i * 0.04 }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 7,
-                  background: C.surface, borderRadius: 100, padding: '5px 12px',
-                  border: `1px solid ${typeFilter[k + 's'] ? m.color + '44' : C.border}`,
-                  boxShadow: `0 2px 8px ${C.shadowSm}`,
+                  background: typeFilter[k + 's'] ? m.bg : C.surfaceAlt,
+                  borderRadius: 11, padding: '7px 10px',
+                  border: `1px solid ${typeFilter[k + 's'] ? m.color + '38' : C.border}`,
                 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
                 <span style={{ color: m.dark, fontSize: 11.5, fontWeight: 600 }}>{m.label}</span>

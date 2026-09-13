@@ -52,10 +52,14 @@ import {
     CalendarToday as CalendarIcon,
     BookmarkBorder as BookmarkIcon,
     WorkspacePremium as QualificationBadgeIcon,
+    ShareOutlined as ShareIcon,
 } from '@mui/icons-material';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getJobsByLocation, getJobById, getJobFilterOptions, incrementJobViewCount } from '../../services/jobs';
 import { useAuth } from '../context/AuthContext';
 import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
+import { shareListing } from '../../utils/shareListing';
+import ListingEnhancements from './components/ListingEnhancements';
 
 // ─── Design Tokens (same theme as Shops / Houses) ──────────────────────────
 const C = {
@@ -570,7 +574,7 @@ function JobDetailsContent({ job, isMobile, onClose }) {
 /* ─── Full Screen / Bottom-sheet Job Details Drawer ─────────────────────────
    Stays mounted via the `open` prop so closing always plays the smooth
    slide-down animation instead of disappearing abruptly. */
-function JobDetailsDrawer({ open, job, onClose, onCall }) {
+function JobDetailsDrawer({ open, job, onClose, onCall, onShare }) {
     const theme    = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -604,9 +608,14 @@ function JobDetailsDrawer({ open, job, onClose, onCall }) {
             {!isMobile && (
                 <Box sx={{ width: 36, height: 4, borderRadius: 2, background: C.border, margin: '10px auto 0', flexShrink: 0, position: 'relative', zIndex: 5 }} />
             )}
+            {job && <Tooltip title="Share this job" arrow><IconButton onClick={() => onShare(job)}
+                sx={{ position: 'absolute', top: 16, right: 16, bgcolor: 'rgba(255,255,255,.96)', width: 42, height: 42, zIndex: 20, boxShadow: `0 4px 14px ${C.shadowMd}`, '&:hover': { bgcolor: C.accentLight, color: C.accent } }}>
+                <ShareIcon sx={{ fontSize: 20 }} />
+            </IconButton></Tooltip>}
 
             <Box sx={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <JobDetailsContent job={job} isMobile={isMobile} onClose={onClose} />
+                <ListingEnhancements items={job?.keywords || job?.skills} label="Skills & key items" />
             </Box>
 
             {/* Sticky footer — salary on the left, actions on the right */}
@@ -866,6 +875,8 @@ function FilterPanel({ radius, setRadius, jobType, setJobType, salaryRange, setS
    Main Component
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function Jobs() {
+    const navigate = useNavigate();
+    const { jobId } = useParams();
     const { isAuthenticated, user } = useAuth();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -903,6 +914,7 @@ export default function Jobs() {
     const [headerHeight, setHeaderHeight] = useState(180);
 
     const scrollRef = useRef(null);
+    const openedFromUrlRef = useRef(null);
 
     useEffect(() => {
         const measure = () => {
@@ -1084,6 +1096,8 @@ export default function Jobs() {
     };
 
     const handleView = async (job) => {
+        openedFromUrlRef.current = String(job.id);
+        navigate(`/app/jobs/${job.id}`);
         setSelectedJob(null);
         setSelectedJob(job);
         setLoadingDetails(true);
@@ -1106,6 +1120,24 @@ export default function Jobs() {
         } finally {
             setLoadingDetails(false);
         }
+    };
+
+    useEffect(() => {
+        if (!jobId || !userLocation || openedFromUrlRef.current === jobId) return;
+        openedFromUrlRef.current = jobId;
+        handleView({ id: jobId });
+    }, [jobId, userLocation]);
+
+    const handleCloseDetails = () => {
+        setDetailsOpen(false);
+        openedFromUrlRef.current = null;
+        navigate('/app/jobs');
+    };
+
+    const handleShare = async (job) => {
+        const name = job.job_title || job.title || 'Job opportunity';
+        const message = await shareListing({ title: name, text: `Check out ${name} on HeloZO` });
+        if (message) setCallSnackbar({ open: true, message });
     };
 
     const clearFilters = () => {
@@ -1391,8 +1423,9 @@ export default function Jobs() {
             <JobDetailsDrawer
                 open={detailsOpen}
                 job={selectedJob}
-                onClose={() => setDetailsOpen(false)}
+                onClose={handleCloseDetails}
                 onCall={handleCall}
+                onShare={handleShare}
             />
         </Box>
     );

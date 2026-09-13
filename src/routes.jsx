@@ -263,17 +263,26 @@ function AppRoutes() {
                         <UserShops />
                     </AuthGuard>
                 } />
+                <Route path="shops/:shopId" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}><UserShops /></AuthGuard>
+                } />
                 
                 <Route path="houses" element={
                     <AuthGuard allowedRoles={['user', 'admin']}>
                         <UserHouses />
                     </AuthGuard>
                 } />
+                <Route path="houses/:houseId" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}><UserHouses /></AuthGuard>
+                } />
 
                 <Route path="jobs" element={
                     <AuthGuard allowedRoles={['user', 'admin']}>
                         <UserJobs />
                     </AuthGuard>
+                } />
+                <Route path="jobs/:jobId" element={
+                    <AuthGuard allowedRoles={['user', 'admin']}><UserJobs /></AuthGuard>
                 } />
 
                 <Route path="profile" element={

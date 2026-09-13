@@ -23,7 +23,7 @@ export default function ShopCard({ shop, onClick, onSave, isSaved }) {
 
     const handleClick = () => {
         if (onClick) onClick();
-        else navigate(`/app/user/shops/${shop.id}`);
+        else navigate(`/app/shops/${shop.id}`);
     };
 
     return (
