@@ -9,6 +9,7 @@ import L from 'leaflet';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 import 'leaflet-routing-machine';
 import loadingGif from '../../assets/Radar.gif';
+import notifySound from '../../assets/notify.mp3';
 
 import StorefrontIcon  from '@mui/icons-material/Storefront';
 import HomeIcon        from '@mui/icons-material/Home';
@@ -316,12 +317,12 @@ const injectCSS = () => {
       .mv5-map-zone { position: absolute; inset: 0; }
       .leaflet-top.leaflet-right {
         top: auto;
-        right: 50%;
-        bottom: 12px;
-        transform: translateX(50%);
+        right: 12px;
+        bottom: 176px;
+        transform: none;
       }
       .leaflet-right .leaflet-control-zoom { margin-right: 0 !important; }
-      .mv5-statusbar { bottom: 118px; }
+      .mv5-statusbar { bottom: 20px; }
     }
 
     /* Leaflet */
@@ -787,6 +788,39 @@ export default function Map() {
   const intervalRef   = useRef(null);
   const loadingTimer  = useRef(null);
   const searchTimer   = useRef(null);
+  const notifyAudioRef = useRef(null);
+  const hasResultsRef = useRef(false);
+  const resultSoundPlayedRef = useRef(false);
+
+  const playResultSound = useCallback(() => {
+    if (!hasResultsRef.current || resultSoundPlayedRef.current || !notifyAudioRef.current) return;
+    notifyAudioRef.current.currentTime = 0;
+    const playback = notifyAudioRef.current.play();
+    if (playback?.then) {
+      playback.then(() => { resultSoundPlayedRef.current = true; }).catch(() => {});
+    } else {
+      resultSoundPlayedRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    const audio = new Audio(notifySound);
+    audio.preload = 'auto';
+    audio.volume = 0.55;
+    notifyAudioRef.current = audio;
+
+    // If autoplay is blocked, the first user interaction retries the sound.
+    const retryPlayback = () => playResultSound();
+    window.addEventListener('pointerdown', retryPlayback);
+    window.addEventListener('keydown', retryPlayback);
+
+    return () => {
+      window.removeEventListener('pointerdown', retryPlayback);
+      window.removeEventListener('keydown', retryPlayback);
+      audio.pause();
+      notifyAudioRef.current = null;
+    };
+  }, [playResultSound]);
 
   useEffect(() => {
     clearTimeout(searchTimer.current);
@@ -833,9 +867,14 @@ export default function Map() {
     try {
       const types = Object.entries(typeFilter).filter(([,v]) => v).map(([k]) => k).join(',');
       const res = await getAllNearby(userLocation.latitude, userLocation.longitude, radius, types, debouncedSearch);
-      setShops(res.shops   || []);
-      setHouses(res.houses || []);
-      setJobs(res.jobs     || []);
+      const nextShops = res.shops || [];
+      const nextHouses = res.houses || [];
+      const nextJobs = res.jobs || [];
+      setShops(nextShops);
+      setHouses(nextHouses);
+      setJobs(nextJobs);
+      hasResultsRef.current = nextShops.length + nextHouses.length + nextJobs.length > 0;
+      playResultSound();
       setError('');
     } catch (e) {
       setError(e.message || 'Failed to load');
@@ -1200,26 +1239,6 @@ export default function Map() {
           )}
         </AnimatePresence>
 
-        {/* ── LEGEND ── */}
-        {viewMode === 'map' && !detailItem && (
-          <div className="mv5-legend">
-            {Object.entries(TYPE).map(([k, m], i) => (
-              <motion.div key={k}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: typeFilter[k + 's'] ? 1 : 0.4, x: 0 }}
-                transition={{ ...EASE_FAST, delay: i * 0.04 }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 7,
-                  background: typeFilter[k + 's'] ? m.bg : C.surfaceAlt,
-                  borderRadius: 11, padding: '7px 10px',
-                  border: `1px solid ${typeFilter[k + 's'] ? m.color + '38' : C.border}`,
-                }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
-                <span style={{ color: m.dark, fontSize: 11.5, fontWeight: 600 }}>{m.label}</span>
-              </motion.div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* ── LIST BOTTOM SHEET (mobile) ── */}
