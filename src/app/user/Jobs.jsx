@@ -54,7 +54,7 @@ import {
     WorkspacePremium as QualificationBadgeIcon,
     ShareOutlined as ShareIcon,
 } from '@mui/icons-material';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getJobsByLocation, getJobById, getJobFilterOptions, incrementJobViewCount } from '../../services/jobs';
 import { useAuth } from '../context/AuthContext';
 import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
@@ -876,7 +876,9 @@ function FilterPanel({ radius, setRadius, jobType, setJobType, salaryRange, setS
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function Jobs() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { jobId } = useParams();
+    const isPublicShare = location.pathname.startsWith('/share/jobs/');
     const { isAuthenticated, user } = useAuth();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -1097,7 +1099,7 @@ export default function Jobs() {
 
     const handleView = async (job) => {
         openedFromUrlRef.current = String(job.id);
-        navigate(`/app/jobs/${job.id}`);
+        if (!isPublicShare) navigate(`/app/jobs/${job.id}`);
         setSelectedJob(null);
         setSelectedJob(job);
         setLoadingDetails(true);

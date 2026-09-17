@@ -55,7 +55,7 @@ import {
     ShareOutlined as ShareIcon,
 } from '@mui/icons-material';
 import { getHousesByLocation, getHouseById, getHouseFilterOptions, incrementHouseViewCount } from '../../services/house';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
 import { getListingShareUrl, shareListing } from '../../utils/shareListing';
 import ListingEnhancements from './components/ListingEnhancements';
@@ -687,7 +687,9 @@ const FilterPanel = ({ radius, setRadius, rentRange, setRentRange, rooms, setRoo
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function Houses() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { houseId } = useParams();
+    const isPublicShare = location.pathname.startsWith('/share/houses/');
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const viewedHousesRef = useRef(new Set());
@@ -809,7 +811,7 @@ export default function Houses() {
 
     const handleHouseClick = async (house) => {
         openedFromUrlRef.current = String(house.id);
-        navigate(`/app/houses/${house.id}`);
+        if (!isPublicShare) navigate(`/app/houses/${house.id}`);
         setSelectedHouse(null);
         setSelectedHouse(house);
         setLoadingDetails(true);

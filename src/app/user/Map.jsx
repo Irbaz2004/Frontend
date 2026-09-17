@@ -314,6 +314,14 @@ const injectCSS = () => {
     @media (max-width: 899px) {
       .mv5-sidebar  { display: none !important; }
       .mv5-map-zone { position: absolute; inset: 0; }
+      .leaflet-top.leaflet-right {
+        top: auto;
+        right: 50%;
+        bottom: 12px;
+        transform: translateX(50%);
+      }
+      .leaflet-right .leaflet-control-zoom { margin-right: 0 !important; }
+      .mv5-statusbar { bottom: 118px; }
     }
 
     /* Leaflet */
@@ -721,6 +729,12 @@ const injectCSS = () => {
       overflow-wrap: anywhere;
     }
 
+    @media (max-width: 899px) {
+      .mv5-detail-scroll {
+        padding-bottom: calc(${BOTTOM_NAV_H}px + 28px + env(safe-area-inset-bottom, 0px));
+      }
+    }
+
     @media (max-width: 320px) {
       .detail-hero-body { padding: 12px 12px 16px; gap: 10px; }
       .detail-hero-topbar { padding-left: 10px; padding-right: 10px; }
@@ -1094,21 +1108,6 @@ export default function Map() {
               )}
             </motion.button>
           ))}
-          <div className="view-pill" style={{ marginLeft: 'auto', flexShrink: 0, boxShadow: `0 2px 8px ${C.shadowSm}` }}>
-            <motion.button whileTap={tapScale} className={`view-btn ${viewMode === 'map' ? 'on' : ''}`} onClick={() => setViewMode('map')}>
-              <MapIcon sx={{ fontSize: 12 }} /> Map
-            </motion.button>
-            <motion.button whileTap={tapScale} className={`view-btn ${viewMode === 'list' ? 'on' : ''}`} onClick={() => setViewMode('list')}>
-              <ListIcon sx={{ fontSize: 12 }} />
-              List
-              {allItems.length > 0 && (
-                <span style={{
-                  background: C.accent, color: '#fff', borderRadius: 100,
-                  fontSize: 9, fontWeight: 800, padding: '1px 5px', lineHeight: '14px', marginLeft: 2,
-                }}>{allItems.length}</span>
-              )}
-            </motion.button>
-          </div>
         </motion.div>
 
         {/* ── FILTER PANEL ── */}
@@ -1121,9 +1120,10 @@ export default function Map() {
               exit={{ opacity: 0, scale: 0.92, y: -10 }}
               transition={SPRING_SNAPPY}
               style={{
-                position: 'absolute', top: 64, right: 12, zIndex: 200,
+                position: 'absolute', top: 112, right: 12, zIndex: 200,
                 background: C.surface, border: `1px solid ${C.border}`,
                 borderRadius: 20, padding: 18, width: 265,
+                maxWidth: 'calc(100vw - 24px)', boxSizing: 'border-box',
                 boxShadow: `0 20px 60px ${C.shadowLg}`,
                 transformOrigin: 'top right',
               }}
@@ -1736,6 +1736,7 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps, onShare }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ ...EASE_FAST, delay: 0.1 }}
+        className="mv5-detail-scroll"
         style={{ flex: 1, overflowY: 'auto', background: C.surface, WebkitOverflowScrolling: 'touch' }}
       >
 

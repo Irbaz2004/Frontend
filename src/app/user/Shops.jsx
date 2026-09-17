@@ -48,7 +48,7 @@ import {
     ArrowBackIosNew as ArrowBackIcon,
     ShareOutlined as ShareIcon,
 } from '@mui/icons-material';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getShopsByLocation, getShopById, getShopCategoriesWithCount, incrementShopViewCount } from '../../services/shops';
 import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
 import { getListingShareUrl, shareListing } from '../../utils/shareListing';
@@ -1004,7 +1004,9 @@ function ShopDetailsDrawer({ open, shop, loading, onClose, onRoute, onCall, onSh
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function Shops() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { shopId } = useParams();
+    const isPublicShare = location.pathname.startsWith('/share/shops/');
     const theme    = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const viewedShopsRef = useRef(new Set());
@@ -1114,7 +1116,7 @@ export default function Shops() {
 
     const handleShopClick = useCallback(async (shop) => {
         openedFromUrlRef.current = String(shop.id);
-        navigate(`/app/shops/${shop.id}`);
+        if (!isPublicShare) navigate(`/app/shops/${shop.id}`);
         setSelectedShop(null);
         setSelectedShop(shop);
         setLoadingDetails(true);
@@ -1138,7 +1140,7 @@ export default function Shops() {
         } finally {
             setLoadingDetails(false);
         }
-    }, [userLocation, navigate]);
+    }, [userLocation, navigate, isPublicShare]);
 
     useEffect(() => {
         if (!shopId || !userLocation || openedFromUrlRef.current === shopId) return;
