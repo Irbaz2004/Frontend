@@ -37,8 +37,10 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon      from '@mui/icons-material/Cancel';
 import DirectionsIcon  from '@mui/icons-material/Directions';
 import OpenInNewIcon   from '@mui/icons-material/OpenInNew';
+import ShareIcon       from '@mui/icons-material/ShareOutlined';
 import TagIcon         from '@mui/icons-material/Tag';
 import { CircularProgress } from '@mui/material';
+import { getListingShareUrl, shareListing } from '../../utils/shareListing';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -873,6 +875,15 @@ export default function Map() {
     );
   };
 
+  const handleShare = async (item) => {
+    const name = getName(item);
+    await shareListing({
+      title: name,
+      text: `Check out ${name} on HeloZO`,
+      url: getListingShareUrl(item._type, item.id),
+    });
+  };
+
   const renderMarkers = useCallback(() => {
     if (!mapRef.current) return;
     markersRef.current.forEach(m => m.remove());
@@ -1302,6 +1313,7 @@ export default function Map() {
             onClose={() => setDetailItem(null)}
             onRoute={showRoute}
             openGoogleMaps={openGoogleMaps}
+            onShare={handleShare}
           />
         )}
       </AnimatePresence>
@@ -1617,7 +1629,7 @@ function ListView({ items, onSelect, onRoute }) {
 }
 
 // ─── DETAIL PANEL (minimal theme) ─────────────────────────────────────────────
-function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
+function DetailPanel({ item, onClose, onRoute, openGoogleMaps, onShare }) {
   const m     = TYPE[item._type] || {};
   const IconC = m.Icon || LocationOnIcon;
   const name  = getName(item);
@@ -1740,7 +1752,7 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
         {/* Action buttons */}
         <div className="detail-action-wrap" style={{ paddingTop: price ? 12 : undefined }}>
           <div className="detail-actions" style={{
-            '--detail-action-columns': phone ? 'repeat(3,minmax(0,1fr))' : 'repeat(2,minmax(0,1fr))',
+            '--detail-action-columns': phone ? 'repeat(4,minmax(0,1fr))' : 'repeat(3,minmax(0,1fr))',
           }}>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }} className="detail-action-btn primary" onClick={() => onRoute(item)}>
               <DirectionsIcon sx={{ fontSize: 22 }} />
@@ -1749,6 +1761,10 @@ function DetailPanel({ item, onClose, onRoute, openGoogleMaps }) {
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }} className="detail-action-btn" onClick={() => openGoogleMaps(item)}>
               <OpenInNewIcon sx={{ fontSize: 22, color: C.textSub }} />
               <span>Google Maps</span>
+            </motion.button>
+            <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }} className="detail-action-btn" onClick={() => onShare(item)}>
+              <ShareIcon sx={{ fontSize: 22, color: C.textSub }} />
+              <span>Share</span>
             </motion.button>
             {phone && (
               <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }} className="detail-action-btn" onClick={() => window.location.href = `tel:${phone}`}>

@@ -12,3 +12,8 @@ export async function shareListing({ title, text, url = window.location.href }) 
     await navigator.clipboard.writeText(url);
     return 'Link copied to clipboard';
 }
+
+export function getListingShareUrl(type, id) {
+    const pluralType = type === 'house' ? 'houses' : type === 'job' ? 'jobs' : 'shops';
+    return `${window.location.origin}/share/${pluralType}/${encodeURIComponent(id)}`;
+}

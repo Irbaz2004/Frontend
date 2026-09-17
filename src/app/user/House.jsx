@@ -57,7 +57,7 @@ import {
 import { getHousesByLocation, getHouseById, getHouseFilterOptions, incrementHouseViewCount } from '../../services/house';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
-import { shareListing } from '../../utils/shareListing';
+import { getListingShareUrl, shareListing } from '../../utils/shareListing';
 import ListingEnhancements from './components/ListingEnhancements';
 
 // ─── Design Tokens (same theme, unchanged) ─────────────────────────────────
@@ -845,7 +845,7 @@ export default function Houses() {
 
     const handleShare = async (house) => {
         const name = house.title || house.property_name || `${house.rooms || ''} BHK home`.trim();
-        const message = await shareListing({ title: name || 'Home near you', text: `Check out ${name || 'this home'} on HeloZO` });
+        const message = await shareListing({ title: name || 'Home near you', text: `Check out ${name || 'this home'} on HeloZO`, url: getListingShareUrl('house', house.id) });
         if (message) setSnackbar({ open: true, message });
     };
 

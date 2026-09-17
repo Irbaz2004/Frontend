@@ -240,6 +240,12 @@ function AppRoutes() {
                 </AuthRedirect>
             } />
 
+            {/* Public listing previews used by shared links. The detail drawer is
+                full-screen; leaving it returns to the protected app. */}
+            <Route path="/share/shops/:shopId" element={<UserShops />} />
+            <Route path="/share/houses/:houseId" element={<UserHouses />} />
+            <Route path="/share/jobs/:jobId" element={<UserJobs />} />
+
             {/* App Shell - Protected */}
             <Route path="/app" element={<AppLayout />}>
                 {/* Default redirect to home based on role */}

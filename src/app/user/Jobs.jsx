@@ -58,7 +58,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { getJobsByLocation, getJobById, getJobFilterOptions, incrementJobViewCount } from '../../services/jobs';
 import { useAuth } from '../context/AuthContext';
 import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
-import { shareListing } from '../../utils/shareListing';
+import { getListingShareUrl, shareListing } from '../../utils/shareListing';
 import ListingEnhancements from './components/ListingEnhancements';
 
 // ─── Design Tokens (same theme as Shops / Houses) ──────────────────────────
@@ -1136,7 +1136,7 @@ export default function Jobs() {
 
     const handleShare = async (job) => {
         const name = job.job_title || job.title || 'Job opportunity';
-        const message = await shareListing({ title: name, text: `Check out ${name} on HeloZO` });
+        const message = await shareListing({ title: name, text: `Check out ${name} on HeloZO`, url: getListingShareUrl('job', job.id) });
         if (message) setCallSnackbar({ open: true, message });
     };
 

@@ -51,7 +51,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { getShopsByLocation, getShopById, getShopCategoriesWithCount, incrementShopViewCount } from '../../services/shops';
 import { DEFAULT_USER_LOCATION, getCachedUserLocation, saveCachedUserLocation } from '../../utils/userLocation';
-import { shareListing } from '../../utils/shareListing';
+import { getListingShareUrl, shareListing } from '../../utils/shareListing';
 import ListingEnhancements from './components/ListingEnhancements';
 
 // ─── Design tokens (unchanged — same theme) ──────────────────────────────────
@@ -1153,7 +1153,7 @@ export default function Shops() {
     };
 
     const handleShare = async (shop) => {
-        const message = await shareListing({ title: shop.business_name || shop.title || 'Shop near you', text: `Check out ${shop.business_name || shop.title || 'this shop'} on HeloZO` });
+        const message = await shareListing({ title: shop.business_name || shop.title || 'Shop near you', text: `Check out ${shop.business_name || shop.title || 'this shop'} on HeloZO`, url: getListingShareUrl('shop', shop.id) });
         if (message) setSnackbar({ open: true, message });
     };
 
