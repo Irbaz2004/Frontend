@@ -1539,7 +1539,7 @@ export default function Profile() {
     const createdNotificationKeysRef = useRef(new Set());
 
     const emptyShop = { business_name: '', category: '', additional_phone: '', keywords: [], custom_keyword: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', opening_time: '', closing_time: '', shop_image: null, shop_image_preview: '' };
-    const emptyHouse = { rooms: '', halls: '', kitchens: '', bathrooms: '', floor: '', rent_per_month: '', advance_amount: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', is_available: true, house_image: null, house_image_preview: '' };
+    const emptyHouse = { rooms: '', halls: '', kitchens: '', bathrooms: '1', floor: '', rent_per_month: '', advance_amount: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', is_available: true, house_image: null, house_image_preview: '' };
     const emptyJob = { shop_id: '', company_name: '', job_title: '', salary: '', salary_type: 'month', qualification: '', job_type: 'full_time', area: '', city: '', state: '', is_open: true, contact_phone: '' };
     const emptyProfile = { full_name: '', area: '', city: '', state: '' };
 
@@ -2248,7 +2248,7 @@ export default function Profile() {
     const openEditHouse = (h) => {
         setEditingHouse(h);
         setHouseForm({
-            rooms: h.rooms, halls: h.halls, kitchens: h.kitchens, bathrooms: h.bathrooms ?? '', floor: h.floor,
+            rooms: h.rooms, halls: h.halls, kitchens: h.kitchens, bathrooms: h.bathrooms || '1', floor: h.floor,
             rent_per_month: h.rent_per_month, advance_amount: h.advance_amount || '',
             latitude: h.latitude || '', longitude: h.longitude || '',
             area: h.area || '', city: h.city || '', state: h.state || '',
@@ -2595,7 +2595,9 @@ export default function Profile() {
                                                     <div style={{ padding: '11px 12px', flex: 1, minWidth: 0 }}>
                                                         <div style={{ fontSize: 14, fontWeight: 700 }}>{h.rooms} BHK House</div>
                                                         <div style={{ fontSize: 13, color: '#325fec', fontWeight: 700 }}>{formatPrice(h.rent_per_month)}/mo</div>
-                                                        <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{h.bathrooms ?? 0} {Number(h.bathrooms) === 1 ? 'Bathroom' : 'Bathrooms'}</div>
+                                                        <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                                                            {h.bathrooms || 1} {Number(h.bathrooms || 1) === 1 ? 'Bathroom' : 'Bathrooms'}
+                                                        </div>
                                                         <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
                                                             <Icon name="visibility" size={12} color="#94A3B8" /> {h.views_count || 0}
                                                         </div>
