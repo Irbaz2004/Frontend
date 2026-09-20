@@ -1539,7 +1539,7 @@ export default function Profile() {
     const createdNotificationKeysRef = useRef(new Set());
 
     const emptyShop = { business_name: '', category: '', additional_phone: '', keywords: [], custom_keyword: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', opening_time: '', closing_time: '', shop_image: null, shop_image_preview: '' };
-    const emptyHouse = { rooms: '', halls: '', kitchens: '', floor: '', rent_per_month: '', advance_amount: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', is_available: true, house_image: null, house_image_preview: '' };
+    const emptyHouse = { rooms: '', halls: '', kitchens: '', bathrooms: '', floor: '', rent_per_month: '', advance_amount: '', latitude: '', longitude: '', area: '', city: '', state: '', description: '', is_available: true, house_image: null, house_image_preview: '' };
     const emptyJob = { shop_id: '', company_name: '', job_title: '', salary: '', salary_type: 'month', qualification: '', job_type: 'full_time', area: '', city: '', state: '', is_open: true, contact_phone: '' };
     const emptyProfile = { full_name: '', area: '', city: '', state: '' };
 
@@ -2010,7 +2010,7 @@ export default function Profile() {
         }
         try {
             const fd = new FormData();
-            ['rooms', 'halls', 'kitchens', 'floor', 'rent_per_month', 'advance_amount', 'latitude', 'longitude', 'area', 'city', 'state', 'description'].forEach(k => fd.append(k, houseForm[k] || ''));
+            ['rooms', 'halls', 'kitchens', 'bathrooms', 'floor', 'rent_per_month', 'advance_amount', 'latitude', 'longitude', 'area', 'city', 'state', 'description'].forEach(k => fd.append(k, houseForm[k] || ''));
             fd.append('is_available', String(houseForm.is_available));
             if (houseForm.house_image instanceof File) fd.append('house_image', houseForm.house_image);
 
@@ -2070,7 +2070,7 @@ export default function Profile() {
         setUpdatingHouse(true);
         try {
             const fd = new FormData();
-            ['rooms', 'halls', 'kitchens', 'floor', 'rent_per_month', 'advance_amount', 'latitude', 'longitude', 'area', 'city', 'state', 'description'].forEach(k => fd.append(k, houseForm[k] || ''));
+            ['rooms', 'halls', 'kitchens', 'bathrooms', 'floor', 'rent_per_month', 'advance_amount', 'latitude', 'longitude', 'area', 'city', 'state', 'description'].forEach(k => fd.append(k, houseForm[k] || ''));
             fd.append('is_available', String(houseForm.is_available));
             if (houseForm.house_image instanceof File) {
                 fd.append('house_image', houseForm.house_image);
@@ -2248,7 +2248,7 @@ export default function Profile() {
     const openEditHouse = (h) => {
         setEditingHouse(h);
         setHouseForm({
-            rooms: h.rooms, halls: h.halls, kitchens: h.kitchens, floor: h.floor,
+            rooms: h.rooms, halls: h.halls, kitchens: h.kitchens, bathrooms: h.bathrooms ?? '', floor: h.floor,
             rent_per_month: h.rent_per_month, advance_amount: h.advance_amount || '',
             latitude: h.latitude || '', longitude: h.longitude || '',
             area: h.area || '', city: h.city || '', state: h.state || '',
@@ -2595,6 +2595,7 @@ export default function Profile() {
                                                     <div style={{ padding: '11px 12px', flex: 1, minWidth: 0 }}>
                                                         <div style={{ fontSize: 14, fontWeight: 700 }}>{h.rooms} BHK House</div>
                                                         <div style={{ fontSize: 13, color: '#325fec', fontWeight: 700 }}>{formatPrice(h.rent_per_month)}/mo</div>
+                                                        <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{h.bathrooms ?? 0} {Number(h.bathrooms) === 1 ? 'Bathroom' : 'Bathrooms'}</div>
                                                         <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
                                                             <Icon name="visibility" size={12} color="#94A3B8" /> {h.views_count || 0}
                                                         </div>
@@ -2937,6 +2938,7 @@ export default function Profile() {
                     <FormItem half><Input label="Rooms *" type="number" value={houseForm.rooms} onChange={e => setHouseForm(p => ({ ...p, rooms: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Halls" type="number" value={houseForm.halls} onChange={e => setHouseForm(p => ({ ...p, halls: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Kitchens" type="number" value={houseForm.kitchens} onChange={e => setHouseForm(p => ({ ...p, kitchens: e.target.value }))} /></FormItem>
+                    <FormItem half><Input label="Bathrooms" type="number" value={houseForm.bathrooms} onChange={e => setHouseForm(p => ({ ...p, bathrooms: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Floor" type="number" value={houseForm.floor} onChange={e => setHouseForm(p => ({ ...p, floor: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Rent / Month (₹) *" type="number" value={houseForm.rent_per_month} onChange={e => setHouseForm(p => ({ ...p, rent_per_month: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Advance (₹)" type="number" value={houseForm.advance_amount} onChange={e => setHouseForm(p => ({ ...p, advance_amount: e.target.value }))} /></FormItem>
@@ -2971,6 +2973,7 @@ export default function Profile() {
                     <FormItem half><Input label="Rooms *" type="number" value={houseForm.rooms} onChange={e => setHouseForm(p => ({ ...p, rooms: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Halls" type="number" value={houseForm.halls} onChange={e => setHouseForm(p => ({ ...p, halls: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Kitchens" type="number" value={houseForm.kitchens} onChange={e => setHouseForm(p => ({ ...p, kitchens: e.target.value }))} /></FormItem>
+                    <FormItem half><Input label="Bathrooms" type="number" value={houseForm.bathrooms} onChange={e => setHouseForm(p => ({ ...p, bathrooms: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Floor" type="number" value={houseForm.floor} onChange={e => setHouseForm(p => ({ ...p, floor: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Rent / Month (₹) *" type="number" value={houseForm.rent_per_month} onChange={e => setHouseForm(p => ({ ...p, rent_per_month: e.target.value }))} /></FormItem>
                     <FormItem half><Input label="Advance (₹)" type="number" value={houseForm.advance_amount} onChange={e => setHouseForm(p => ({ ...p, advance_amount: e.target.value }))} /></FormItem>
